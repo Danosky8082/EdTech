@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .exam-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .exam-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-upcoming {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-ongoing {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-completed {
+            background-color: #e8f5e8;
+            color: #388e3c;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Exams - <%= classData.name %>
+                        </h2>
+                        <a href="/student/dashboard" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Home
+                        </a>
+                    </div>
+
+                    <% if (exams && exams.length> 0) { %>
+                        <div class="row">
+                            <% exams.forEach(exam=> { %>
+                                <div class="col-md-6 mb-4">
+                                    <div class="card exam-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">
+                                                <%= exam.title %>
+                                            </h5>
+                                            <span class="status-badge status-<%= exam.status %>">
+                                                <%= exam.status.charAt(0).toUpperCase() + exam.status.slice(1) %>
+                                            </span>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (exam.description) { %>
+                                                <p class="card-text">
+                                                    <%= exam.description %>
+                                                </p>
+                                                <% } %>
+
+                                                    <div class="exam-details mb-3">
+                                                        <small class="text-muted d-block">
+                                                            <i class="fas fa-calendar"></i>
+                                                            Date: <%= new Date(exam.date).toLocaleDateString() %>
+                                                        </small>
+                                                        <small class="text-muted d-block">
+                                                            <i class="fas fa-clock"></i>
+                                                            Duration: <%= exam.duration %> minutes
+                                                        </small>
+                                                        <small class="text-muted d-block">
+                                                            <i class="fas fa-question-circle"></i>
+                                                            Questions: <%= exam.totalQuestions || 'N/A' %>
+                                                        </small>
+                                                        <% if (exam.hasAttempt) { %>
+                                                            <small class="text-success d-block">
+                                                                <i class="fas fa-check-circle"></i>
+                                                                Score: <%= exam.score !==null ? exam.score
+                                                                    : 'Not graded' %>
+                                                            </small>
+                                                            <% } %>
+                                                    </div>
+
+                                                    <div class="d-flex gap-2">
+                                                        <% if (exam.status==='ongoing' && !exam.hasAttempt) { %>
+                                                            <a href="/student/exams/<%= exam.id %>/take"
+                                                                class="btn btn-primary btn-sm">
+                                                                <i class="fas fa-play"></i> Start Exam
+                                                            </a>
+                                                            <% } else if (exam.status==='ongoing' && exam.hasAttempt) {
+                                                                %>
+                                                                <a href="/student/exams/<%= exam.id %>/take"
+                                                                    class="btn btn-warning btn-sm">
+                                                                    <i class="fas fa-sync"></i> Continue Exam
+                                                                </a>
+                                                                <% } else if (exam.status==='completed' &&
+                                                                    exam.hasAttempt) { %>
+                                                                    <a href="/student/exams/<%= exam.attempts[0].id %>/results"
+                                                                        class="btn btn-success btn-sm">
+                                                                        <i class="fas fa-chart-bar"></i> View Results
+                                                                    </a>
+                                                                    <% } else if (exam.status==='upcoming' ) { %>
+                                                                        <button class="btn btn-outline-secondary btn-sm"
+                                                                            disabled>
+                                                                            <i class="fas fa-clock"></i> Starts Soon
+                                                                        </button>
+                                                                        <% } %>
+
+                                                                            <% if (exam.status==='completed' &&
+                                                                                !exam.hasAttempt) { %>
+                                                                                <button
+                                                                                    class="btn btn-outline-danger btn-sm"
+                                                                                    disabled>
+                                                                                    <i class="fas fa-times"></i> Missed
+                                                                                </button>
+                                                                                <% } %>
+                                                    </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                        </div>
+                        <% } else { %>
+                            <div class="text-center py-5">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <h4>No Exams Available</h4>
+                                <p class="text-muted">There are no exams scheduled for this class yet.</p>
+                            </div>
+                            <% } %>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

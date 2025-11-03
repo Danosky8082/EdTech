@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .profile-section {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .welcome-text {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        .user-role {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            text-align: left;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .action-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .action-btn:hover {
+            transform: translateX(5px);
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Notification styles */
+        .notification-wrapper {
+            position: relative;
+            margin-right: 15px;
+        }
+
+        .notification-bell {
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .notification-bell:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border: 2px solid #6a11cb;
+        }
+
+        .notification-dropdown {
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .notification-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            font-weight: 600;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            display: flex;
+            align-items: flex-start;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item.unread {
+            background-color: #f0f7ff;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-icon {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            color: #6a11cb;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            color: #2d3436;
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: #636e72;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: #747d8c;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #747d8c;
+        }
+
+        .notification-empty i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .mark-all-read {
+            padding: 10px 15px;
+            border-top: 1px solid #f1f2f6;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #6a11cb;
+            transition: background-color 0.2s;
+        }
+
+        .mark-all-read:hover {
+            background-color: #e9ecef;
+        }
+
+        @media (max-width: 575.98px) {
+            .notification-dropdown {
+                width: 300px;
+                margin-left: -250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <strong>Welcome back, <%= user.firstName %>!</strong> You have successfully logged in to the
+                    dashboard.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Left Sidebar with Profile -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <% if (user.avatar) { %>
+                                <img src="/<%= user.avatar %>" alt="Admin Profile" class="profile-img mb-3"
+                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                <% } else { %>
+                                    <img src="/images/default-profile.png" alt="Admin Profile" class="profile-img mb-3">
+                                    <% } %>
+                                        <h4>
+                                            <%= user.firstName %>
+                                                <%= user.lastName %>
+                                        </h4>
+                                        <p class="welcome-text">Welcome to your dashboard</p>
+                                        <span class="user-role">
+                                            <%= user.role %>
+                                                <% if (isSuperAdmin) { %>
+                                                    <span class="badge bg-danger ms-1">Super Admin</span>
+                                                    <% } %>
+                                        </span>
+                                        
+                                        <% if (userSchool) { %>
+                                            <div class="mt-2">
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-school me-1"></i>
+                                                    <%= userSchool %>
+                                                </span>
+                                            </div>
+                                            <% } else if (isSuperAdmin) { %>
+                                                <div class="mt-2">
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-star me-1"></i>
+                                                        All Schools Access
+                                                    </span>
+                                                </div>
+                                                <% } %>
+                                                    </div>
+
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/admin/users" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-users"></i> User Management
+                                </a>
+                                <a href="/admin/classes" class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                    <i class="fas fa-chalkboard"></i> Class Management
+                                </a>
+                                <a href="/admin/analytics" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-chart-bar"></i> View Analytics
+                                </a>
+                                <a href="/admin/activities" class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                    <i class="fas fa-history"></i> View Activities
+                                </a>
+                                <a href="/auth/change-password" class="btn btn-outline-dark w-100 action-btn">
+                                    <i class="fas fa-key"></i> Change Password
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="col-md-9">
+                        <div class="row">
+                            <!-- Statistics Cards -->
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center stat-card">
+                                    <div class="card-body">
+                                        <h1 class="display-4"><strong>
+                                                <%= overview.totalStudents %>
+                                            </strong></h1>
+                                        <p class="card-text"><strong>Students</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center stat-card">
+                                    <div class="card-body">
+                                        <h1 class="display-4"><strong>
+                                                <%= overview.totalTeachers %>
+                                            </strong></h1>
+                                        <p class="card-text"><strong>Teachers</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center stat-card">
+                                    <div class="card-body">
+                                        <h1 class="display-4"><strong>
+                                                <%= overview.totalClasses %>
+                                            </strong></h1>
+                                        <p class="card-text"><strong>Classes</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center stat-card">
+                                    <div class="card-body">
+                                        <h1 class="display-4"><strong>
+                                                <%= overview.totalAssignments %>
+                                            </strong></h1>
+                                        <p class="card-text"><strong>Assignments</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Recent Activity -->
+                            <div class="col-md-8">
+                                <div class="card mb-4 dashboard-card">
+                                    <div class="card-header">
+                                        <h4>Recent Activity</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (recentActivities && recentActivities.length> 0) { %>
+                                            <div class="list-group">
+                                                <% recentActivities.forEach(activity=> { %>
+                                                    <div class="list-group-item">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1">
+                                                                <%= activity.firstName %>
+                                                                    <%= activity.lastName %>
+                                                            </h6>
+                                                            <small>
+                                                                <%= new Date(activity.createdAt).toLocaleDateString() %>
+                                                            </small>
+                                                        </div>
+                                                        <p class="mb-1">
+                                                            ID: <%= activity.idNumber %> | Role: <%= activity.role %>
+                                                                    <% if (activity.studentInfo) { %>
+                                                                        | Grade: <%= activity.studentInfo.grade %>-<%=
+                                                                                activity.studentInfo.section %>
+                                                                                <% } else if (activity.teacherInfo) { %>
+                                                                                    | Subject: <%=
+                                                                                        activity.teacherInfo.subject %>
+                                                                                        <% } else if
+                                                                                            (activity.adminInfo) { %>
+                                                                                            | Role: <%=
+                                                                                                activity.adminInfo.roleLevel
+                                                                                                %>
+                                                                                                <% } %>
+                                                        </p>
+                                                        <% if (activity.email) { %>
+                                                            <small class="text-muted">Email: <%= activity.email %>
+                                                                    </small>
+                                                            <% } %>
+                                                    </div>
+                                                    <% }) %>
+                                            </div>
+                                            <% } else { %>
+                                                <p class="text-center text-muted">No recent activity.</p>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Admin Actions -->
+                            <div class="col-md-4">
+                                <div class="card dashboard-card">
+                                    <div class="card-header">
+                                        <h4>Admin Actions</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <a href="/admin/users" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                            <i class="fas fa-users"></i> User Management
+                                        </a>
+                                        <a href="/admin/classes"
+                                            class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                            <i class="fas fa-chalkboard"></i> Class Management
+                                        </a>
+                                        <a href="/admin/analytics" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                            <i class="fas fa-chart-bar"></i> View Analytics
+                                        </a>
+                                        <a href="/admin/activities"
+                                            class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                            <i class="fas fa-history"></i> View Activities
+                                        </a>
+                                        <a href="/auth/change-password" class="btn btn-outline-dark w-100 action-btn">
+                                            <i class="fas fa-key"></i> Change Password
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Function to mark all notifications as read
+            function markAllNotificationsAsRead() {
+                // Remove the badge
+                const badge = document.querySelector('.notification-badge');
+                if (badge) badge.remove();
+
+                // Remove unread styling from all notifications
+                const unreadItems = document.querySelectorAll('.notification-item.unread');
+                unreadItems.forEach(item => {
+                    item.classList.remove('unread');
+                });
+
+                // Update the notification count in header
+                const countBadge = document.querySelector('.notification-header .badge');
+                if (countBadge) countBadge.remove();
+
+                // Show a confirmation message
+                const notificationHeader = document.querySelector('.notification-header');
+                const confirmation = document.createElement('div');
+                confirmation.className = 'notification-message text-success';
+                confirmation.innerHTML = '<i class="fas fa-check-circle me-1"></i> All notifications marked as read';
+                notificationHeader.parentNode.insertBefore(confirmation, notificationHeader.nextSibling);
+
+                // Remove the mark all read button
+                const markAllReadBtn = document.querySelector('.mark-all-read');
+                if (markAllReadBtn) markAllReadBtn.remove();
+
+                // Send API request
+                fetch('/admin/notifications/mark-all-read', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            console.error('Failed to mark notifications as read');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error marking notifications as read:', error);
+                    });
+            }
+
+            // Initialize notification dropdown position on mobile
+            document.addEventListener('DOMContentLoaded', function () {
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                if (window.innerWidth < 576 && notificationDropdown) {
+                    const dropdownMenu = notificationDropdown.nextElementSibling;
+                    dropdownMenu.style.marginLeft = '-250px';
+                }
+            });
+        </script>
+</body>
+
+</html>

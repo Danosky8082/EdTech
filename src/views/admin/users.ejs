@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .search-highlight {
+            background-color: #fff3cd;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .sticky-header thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+        }
+
+        th[data-sort] {
+            cursor: pointer;
+        }
+
+        th[data-sort]:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- Access Level Info -->
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-user-shield me-2"></i>
+                                <% if (isSuperAdmin) { %>
+                                    Super Administrator Access - All Schools
+                                    <% } else if (userSchool) { %>
+                                        <%= adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() + adminInfo.roleLevel.slice(1)
+                                            : 'Administrator' %> Access - <%= userSchool %>
+                                                <% } else { %>
+                                                    Administrator Access - No School Assigned
+                                                    <% } %>
+                            </h6>
+                            <small class="text-muted">
+                                <% if (isSuperAdmin) { %>
+                                    You can view and manage all users across all schools
+                                    <% } else if (userSchool) { %>
+                                        You can view and manage all users in <%= userSchool %> (teachers, students, and administrators)
+                                            <% } else { %>
+                                                You have administrator access but no school is assigned
+                                                <% } %>
+                            </small>
+                        </div>
+                        <span class="badge bg-<%= isSuperAdmin ? 'danger' : userSchool ? 'warning' : 'secondary' %>">
+                            <%= isSuperAdmin ? 'Super Admin' : userSchool ? (adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() +
+                                adminInfo.roleLevel.slice(1) : 'School Admin' ) : 'No School' %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>User Management</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                        <i class="fas fa-plus"></i> Create User
+                    </button>
+                </div>
+
+                <!-- Access Status Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof paidStudents !=='undefined' ? paidStudents : 0 %>
+                                </h4>
+                                <p>Fully Paid Students</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof partialStudents !=='undefined' ? partialStudents : 0 %>
+                                </h4>
+                                <p>Partial Payment</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof unpaidStudents !=='undefined' ? unpaidStudents : 0 %>
+                                </h4>
+                                <p>Unpaid Students</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-secondary">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof expiredStudents !=='undefined' ? expiredStudents : 0 %>
+                                </h4>
+                                <p>Access Expired</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="searchInput" class="form-control"
+                                        placeholder="Search users by ID, name, email, role, school, or status...">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="roleFilter" class="form-select">
+                                    <option value="">All Roles</option>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="statusFilter" class="form-select">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <select id="tuitionFilter" class="form-select">
+                                    <option value="">All Tuition Status</option>
+                                    <option value="paid">Fully Paid</option>
+                                    <option value="partial">Partial Payment</option>
+                                    <option value="unpaid">Unpaid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="accessFilter" class="form-select">
+                                    <option value="">All Access Status</option>
+                                    <option value="active">Active Access</option>
+                                    <option value="no-access">No Access</option>
+                                </select>
+                            </div>
+                            <!-- School Filter - Only show for Super Admin -->
+                            <% if (isSuperAdmin) { %>
+                                <div class="col-md-4">
+                                    <select id="schoolFilter" class="form-select">
+                                        <option value="">All Schools</option>
+                                        <!-- Schools will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <% } else { %>
+                                    <div class="col-md-4">
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-outline-primary w-50" id="applyFilters">
+                                                <i class="fas fa-filter"></i> Apply Filters
+                                            </button>
+                                            <button class="btn btn-outline-secondary w-50" id="resetFilters">
+                                                <i class="fas fa-redo"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <% } %>
+                        </div>
+                        <% if (isSuperAdmin) { %>
+                            <div class="row mt-2">
+                                <div class="col-md-8">
+                                    <!-- Empty space for alignment -->
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary w-50" id="applyFilters">
+                                            <i class="fas fa-filter"></i> Apply Filters
+                                        </button>
+                                        <button class="btn btn-outline-secondary w-50" id="resetFilters">
+                                            <i class="fas fa-redo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <% } %>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <div class="form-text">
+                                            <span id="resultCount">
+                                                <%= users && users.length> 0 ? users.length : 0 %> users found
+                                            </span>
+                                            <span id="activeFilters" class="ms-2"></span>
+                                            <!-- Display current school for non-super admins -->
+                                            <% if (!isSuperAdmin && userSchool) { %>
+                                                <span class="badge bg-info ms-2">
+                                                    <i class="fas fa-school"></i> School: <%= userSchool %>
+                                                </span>
+                                                <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover sticky-header">
+                                <thead>
+                                    <tr>
+                                        <th>Avatar</th>
+                                        <th data-sort="idNumber">ID Number <i class="fas fa-sort"></i></th>
+                                        <th data-sort="name">Name <i class="fas fa-sort"></i></th>
+                                        <th>Email</th>
+                                        <th>Age</th>
+                                        <th>Date of Birth</th>
+                                        <th data-sort="role">Role <i class="fas fa-sort"></i></th>
+                                        <% if (isSuperAdmin) { %>
+                                            <th data-sort="school">School <i class="fas fa-sort"></i></th>
+                                            <% } %>
+                                                <th>Tuition Status</th>
+                                                <th>Access Status</th>
+                                                <th data-sort="status">Status <i class="fas fa-sort"></i></th>
+                                                <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody">
+                                    <% if (users && users.length> 0) { %>
+                                        <% users.forEach(user=> { %>
+                                            <tr class="user-row" data-id="<%= user.id %>"
+                                                data-idnumber="<%= user.idNumber %>"
+                                                data-name="<%= user.firstName %> <%= user.lastName %>"
+                                                data-email="<%= user.email || '' %>" data-role="<%= user.role %>"
+                                                data-school="<%= user.school || '' %>"
+                                                data-status="<%= user.isActive ? 'active' : 'inactive' %>"
+                                                data-tuition="<%= user.student ? user.student.tuitionStatus : '' %>"
+                                                data-access="<%= getAccessStatus(user) %>">
+                                                <td>
+                                                    <% if (user.avatar) { %>
+                                                        <img src="/<%= user.avatar %>" alt="Avatar"
+                                                            class="rounded-circle" width="40" height="40">
+                                                        <% } else { %>
+                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                                                                style="width: 40px; height: 40px;">
+                                                                <i class="fas fa-user text-white"></i>
+                                                            </div>
+                                                            <% } %>
+                                                </td>
+                                                <td class="id-number">
+                                                    <%= user.idNumber %>
+                                                </td>
+                                                <td class="user-name">
+                                                    <%= user.firstName %>
+                                                        <%= user.lastName %>
+                                                </td>
+                                                <td class="user-email">
+                                                    <%= user.email || 'N/A' %>
+                                                </td>
+                                                <td class="user-age">
+                                                    <%= user.age !==null ? user.age + ' years' : 'N/A' %>
+                                                </td>
+                                                <td class="user-dob">
+                                                    <%= user.dateOfBirth ? new
+                                                        Date(user.dateOfBirth).toLocaleDateString() : 'N/A' %>
+                                                </td>
+                                                <td class="user-role">
+                                                    <span class="badge bg-<%= 
+                                                    user.role === 'admin' ? 'danger' : 
+                                                    user.role === 'teacher' ? 'warning' : 'info' 
+                                                %>">
+                                                        <%= user.role %>
+                                                    </span>
+                                                </td>
+                                                <% if (isSuperAdmin) { %>
+                                                    <td class="user-school">
+                                                        <span class="badge bg-secondary">
+                                                            <%= user.school || 'No School' %>
+                                                        </span>
+                                                    </td>
+                                                    <% } %>
+                                                        <td class="tuition-status">
+                                                            <% if (user.role==='student' && user.student) { %>
+                                                                <span class="badge bg-<%= 
+                                                        user.student.tuitionStatus === 'paid' ? 'success' : 
+                                                        user.student.tuitionStatus === 'partial' ? 'warning' : 'danger' 
+                                                    %>">
+                                                                    <%= user.student.tuitionStatus ?
+                                                                        user.student.tuitionStatus.charAt(0).toUpperCase()
+                                                                        + user.student.tuitionStatus.slice(1) : 'Unpaid'
+                                                                        %>
+                                                                </span>
+                                                                <% if (user.student.tuitionStatus==='paid' &&
+                                                                    user.student.tuitionPayments &&
+                                                                    user.student.tuitionPayments.length> 0) { %>
+                                                                    <br>
+                                                                    <small class="text-muted">Receipt: <%=
+                                                                            user.student.tuitionPayments[0].receiptNumber
+                                                                            %></small>
+                                                                    <% } %>
+                                                                        <% } else { %>
+                                                                            <span class="badge bg-secondary">N/A</span>
+                                                                            <% } %>
+                                                        </td>
+                                                        <td class="access-status">
+                                                            <% if (user.role==='student' && user.student) { %>
+                                                                <% const now=new Date(); %>
+                                                                    <% const
+                                                                        hasAccess=user.student.tuitionStatus==='paid' ||
+                                                                        (user.student.tuitionStatus==='partial' &&
+                                                                        user.student.tempPasswordExpiry && new
+                                                                        Date(user.student.tempPasswordExpiry)> now) %>
+                                                                        <span
+                                                                            class="badge bg-<%= hasAccess ? 'success' : 'danger' %>">
+                                                                            <%= hasAccess ? 'Active Access'
+                                                                                : 'No Access' %>
+                                                                        </span>
+                                                                        <% if (user.student.tuitionStatus==='partial' &&
+                                                                            user.student.tempPasswordExpiry) { %>
+                                                                            <br>
+                                                                            <small class="text-muted">
+                                                                                <% if (new
+                                                                                    Date(user.student.tempPasswordExpiry)>
+                                                                                    now) { %>
+                                                                                    Expires: <%= new
+                                                                                        Date(user.student.tempPasswordExpiry).toLocaleDateString()
+                                                                                        %>
+                                                                                        <% } else { %>
+                                                                                            Expired: <%= new
+                                                                                                Date(user.student.tempPasswordExpiry).toLocaleDateString()
+                                                                                                %>
+                                                                                                <% } %>
+                                                                            </small>
+                                                                            <% } %>
+                                                                                <% } else { %>
+                                                                                    <span class="badge bg-success">Full
+                                                                                        Access</span>
+                                                                                    <% } %>
+                                                        </td>
+                                                        <td class="user-status">
+                                                            <span
+                                                                class="badge bg-<%= user.isActive ? 'success' : 'secondary' %>">
+                                                                <%= user.isActive ? 'Active' : 'Inactive' %>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group">
+                                                                <button class="btn btn-sm btn-outline-primary"
+                                                                    onclick="editUser('<%= user.id %>')">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                <button
+                                                                    class="btn btn-sm btn-outline-<%= user.isActive ? 'danger' : 'success' %>"
+                                                                    onclick="toggleUserStatus('<%= user.id %>', <%= user.isActive %>)">
+                                                                    <%= user.isActive ? 'Deactivate' : 'Activate' %>
+                                                                </button>
+                                                                <% if (user.role==='student' && user.student) { %>
+                                                                    <button class="btn btn-sm btn-outline-info"
+                                                                        onclick="manageTuition('<%= user.id %>')">
+                                                                        <i class="fas fa-money-bill"></i>
+                                                                    </button>
+                                                                    <% } %>
+                                                            </div>
+                                                        </td>
+                                            </tr>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <tr id="noUsersRow">
+                                                        <td colspan="12" class="text-center">No users found</td>
+                                                    </tr>
+                                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- Create User Modal -->
+        <div class="modal fade" id="createUserModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="/admin/users/create" method="POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Profile Image (Optional)</label>
+                                    <input type="file" class="form-control" name="avatar" accept="image/*">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">ID Number *</label>
+                                    <input type="text" class="form-control" name="idNumber" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" name="firstName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" name="lastName" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" name="phone">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date of Birth (Optional)</label>
+                                    <input type="date" class="form-control" name="dateOfBirth"
+                                        max="<%= new Date().toISOString().split('T')[0] %>">
+                                    <div class="form-text">Age will be calculated automatically</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">School</label>
+                                    <% if (isSuperAdmin) { %>
+                                        <input type="text" class="form-control" name="school"
+                                            placeholder="Enter school name">
+                                        <div class="form-text">Super Admin: You can assign any school</div>
+                                        <% } else if (userSchool) { %>
+                                            <input type="text" class="form-control" name="school"
+                                                value="<%= userSchool %>" readonly>
+                                            <div class="form-text">
+                                                <% if (canSeeAllSchoolUsers) { %>
+                                                    School Administrator: New users will be assigned to <%= userSchool
+                                                        %>
+                                                        <% } else { %>
+                                                            Principal/Head Teacher: New users will be assigned to <%=
+                                                                userSchool %>
+                                                                <% } %>
+                                            </div>
+                                            <% } else { %>
+                                                <input type="text" class="form-control" name="school"
+                                                    placeholder="Enter school name">
+                                                <div class="form-text">Assign school for new user</div>
+                                                <% } %>
+                                </div>
+                            </div>
+
+                            <!-- Add school filter for super admin -->
+                            <% if (isSuperAdmin) { %>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title"><i class="fas fa-filter me-2"></i>School Filter
+                                                </h6>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-outline-primary active"
+                                                        data-filter="all">All Schools</button>
+                                                    <button type="button" class="btn btn-outline-secondary"
+                                                        data-filter="null">No School</button>
+                                                    <!-- School filters will be dynamically added -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Role *</label>
+                                        <select class="form-select" name="role" required onchange="toggleRoleFields()">
+                                            <option value="">Select Role</option>
+                                            <option value="student">Student</option>
+                                            <option value="teacher">Teacher</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Student Fields -->
+                                    <div id="studentFields" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Grade *</label>
+                                                <input type="text" class="form-control" name="grade">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Section *</label>
+                                                <input type="text" class="form-control" name="section">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Tuition Status *</label>
+                                                <select class="form-select" name="tuitionStatus" required
+                                                    onchange="toggleTuitionFields()">
+                                                    <option value="unpaid">Unpaid</option>
+                                                    <option value="partial">Partial Payment</option>
+                                                    <option value="paid">Fully Paid</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Access Duration (Partial Payment)</label>
+                                                <select class="form-select" name="accessDuration" id="accessDuration">
+                                                    <option value="7">7 Days</option>
+                                                    <option value="15">15 Days</option>
+                                                    <option value="30" selected>30 Days</option>
+                                                    <option value="60">60 Days</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Receipt Number (If Paid)</label>
+                                                <input type="text" class="form-control" name="receiptNumber"
+                                                    id="receiptNumber">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Teacher Fields -->
+                                    <div id="teacherFields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">Subject *</label>
+                                            <input type="text" class="form-control" name="subject">
+                                        </div>
+                                    </div>
+
+                                <!-- Admin Fields -->
+                                <div id="adminFields" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label">Role Level</label>
+                                        <select class="form-select" name="roleLevel">
+                                            <option value="principal">Principal</option>
+                                            <option value="headteacher">Head Teacher</option>
+                                            <option value="administrator">Administrator</option>
+                                        <% if (isSuperAdmin) { %>
+                                            <option value="superadmin">Super Admin</option>
+                                            <% } %>
+                                        </select>
+                                    </div>
+                                </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div class="modal fade" id="editUserModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editUserForm" enctype="multipart/form-data">
+                        <div class="modal-body" id="editUserModalBody">
+                            <!-- Content will be loaded dynamically -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tuition Management Modal -->
+        <div class="modal fade" id="tuitionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Manage Tuition</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="tuitionModalBody">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+       ript src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global functions that need to be accessible from HTML onclick
+        window.editUser = async function (userId) {
+            try {
+                const response = await fetch(`/admin/users/${userId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const user = result.user;
+                    const modalBody = document.getElementById('editUserModalBody');
+
+                    modalBody.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Profile Image</label>
+                                <input type="file" class="form-control" name="avatar" accept="image/*">
+                                ${user.avatar ? `<div class="mt-2"><img src="/${user.avatar}" alt="Current avatar" width="60"></div>` : ''}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ID Number</label>
+                                <input type="text" class="form-control" value="${user.idNumber}" disabled>
+                                <small class="text-muted">ID Number cannot be changed</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name *</label>
+                                <input type="text" class="form-control" name="firstName" value="${user.firstName}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" name="lastName" value="${user.lastName}" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" value="${user.email || ''}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" name="phone" value="${user.phone || ''}">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date of Birth (Optional)</label>
+                                <input type="date" class="form-control" name="dateOfBirth" value="${user.dateOfBirth || ''}" 
+                                       max="${new Date().toISOString().split('T')[0]}">
+                                <div class="form-text">Age will be calculated automatically</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">School</label>
+                                <input type="text" class="form-control" name="school" value="${user.school || ''}" 
+                                       placeholder="Enter school name"
+                                       <%= userSchool ? 'readonly' : '' %>>
+                                <% if (userSchool) { %>
+                                    <div class="form-text">School cannot be changed</div>
+                                <% } %>
+                            </div>
+                        </div>
+                        ${user.role === 'student' && user.student ? `
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Grade / Class *</label>
+                                    <input type="text" class="form-control" name="grade" value="${user.student.grade}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Section *</label>
+                                    <input type="text" class="form-control" name="section" value="${user.student.section}" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tuition Status *</label>
+                                    <select class="form-select" name="tuitionStatus" required>
+                                        <option value="unpaid" ${user.student.tuitionStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
+                                        <option value="partial" ${user.student.tuitionStatus === 'partial' ? 'selected' : ''}>Partial Payment</option>
+                                        <option value="paid" ${user.student.tuitionStatus === 'paid' ? 'selected' : ''}>Fully Paid</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Receipt Number (If Paid)</label>
+                                    <input type="text" class="form-control" name="receiptNumber" 
+                                           value="${user.student.tuitionPayments && user.student.tuitionPayments.length > 0 ? user.student.tuitionPayments[0].receiptNumber : ''}" 
+                                           placeholder="Enter receipt number">
+                                </div>
+                            </div>
+                            <div id="tuitionAlert">
+                                ${user.student.tuitionStatus === 'paid' ? `
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i> Student can change password
+                                    </div>
+                                ` : user.student.tuitionStatus === 'partial' ? `
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Temporary password expires in 30 days
+                                    </div>
+                                ` : `
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-times-circle"></i> Student cannot access their Dashboard until tuition is paid
+                                    </div>
+                                `}
+                            </div>
+                        ` : ''}
+                        ${user.role === 'teacher' && user.teacher ? `
+                            <div class="mb-3">
+                                <label class="form-label">Subject *</label>
+                                <input type="text" class="form-control" name="subject" value="${user.teacher.subject}" required>
+                            </div>
+                        ` : ''}
+                        ${user.role === 'admin' && user.admin ? `
+                            <div class="mb-3">
+                                <label class="form-label">Role Level</label>
+                                <select class="form-select" name="roleLevel">
+                                    <option value="principal" ${user.admin.roleLevel === 'principal' ? 'selected' : ''}>Principal</option>
+                                    <option value="headteacher" ${user.admin.roleLevel === 'headteacher' ? 'selected' : ''}>Head Teacher</option>
+                                    <option value="administrator" ${user.admin.roleLevel === 'administrator' ? 'selected' : ''}>Administrator</option>
+                                    <% if (isSuperAdmin) { %>
+                                        <option value="superadmin" ${user.admin.roleLevel === 'superadmin' ? 'selected' : ''}>Super Admin</option>
+                                    <% } %>
+                                </select>
+                            </div>
+                        ` : ''}
+                    `;
+
+                    // Add event listener for tuition status change
+                    if (user.role === 'student' && user.student) {
+                        setTimeout(() => {
+                            const tuitionStatusSelect = modalBody.querySelector('select[name="tuitionStatus"]');
+                            const tuitionAlert = modalBody.querySelector('#tuitionAlert');
+
+                            if (tuitionStatusSelect && tuitionAlert) {
+                                tuitionStatusSelect.addEventListener('change', function () {
+                                    const status = this.value;
+                                    if (status === 'paid') {
+                                        tuitionAlert.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Student can change password</div>';
+                                    } else if (status === 'partial') {
+                                        tuitionAlert.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Temporary password expires in 30 days</div>';
+                                    } else {
+                                        tuitionAlert.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Student cannot change password until tuition is paid</div>';
+                                    }
+                                });
+                            }
+                        }, 100);
+                    }
+
+                    const editUserForm = document.getElementById('editUserForm');
+                    editUserForm.onsubmit = async (e) => {
+                        e.preventDefault();
+                        await updateUser(userId);
+                    };
+
+                    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+                    editModal.show();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading user data');
+            }
+        };
+
+        window.toggleUserStatus = async function (userId, isCurrentlyActive) {
+            if (!confirm(`Are you sure you want to ${isCurrentlyActive ? 'deactivate' : 'activate'} this user?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/users/${userId}/toggle-status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating user status');
+            }
+        };
+
+        window.manageTuition = async function (studentId) {
+            try {
+                const response = await fetch(`/admin/students/${studentId}/tuition`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const student = result.student;
+                    const modalBody = document.getElementById('tuitionModalBody');
+
+                    modalBody.innerHTML = `
+                        <div class="mb-3">
+                            <h6>Student: ${student.user.firstName} ${student.user.lastName}</h6>
+                            <p>ID: ${student.user.idNumber}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Current Tuition Status:</label>
+                            <span class="badge bg-${student.tuitionStatus === 'paid' ? 'success' : student.tuitionStatus === 'partial' ? 'warning' : 'danger'}">
+                                ${student.tuitionStatus ? student.tuitionStatus.toUpperCase() : 'UNPAID'}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Update Tuition Status</label>
+                            <select class="form-select" id="updateTuitionStatus">
+                                <option value="unpaid" ${student.tuitionStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
+                                <option value="partial" ${student.tuitionStatus === 'partial' ? 'selected' : ''}>Partial Payment</option>
+                                <option value="paid" ${student.tuitionStatus === 'paid' ? 'selected' : ''}>Fully Paid</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="partialPaymentFields" style="${student.tuitionStatus === 'partial' ? 'block' : 'none'}">
+                            <label class="form-label">Access Duration (Days)</label>
+                            <input type="number" class="form-control" id="accessDays" value="30" min="1" max="90">
+                        </div>
+                        <div class="mb-3" id="receiptFields" style="${student.tuitionStatus === 'paid' ? 'block' : 'none'}">
+                            <label class="form-label">Receipt Number</label>
+                            <input type="text" class="form-control" id="receiptNumber" placeholder="Enter receipt number">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" onclick="updateTuitionStatus('${studentId}')">
+                                Update Tuition Status
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="extendAccess('${studentId}')">
+                                Extend Access
+                            </button>
+                        </div>
+                    `;
+
+                    // Add event listener for status change
+                    document.getElementById('updateTuitionStatus').addEventListener('change', function () {
+                        const status = this.value;
+                        document.getElementById('partialPaymentFields').style.display = status === 'partial' ? 'block' : 'none';
+                        document.getElementById('receiptFields').style.display = status === 'paid' ? 'block' : 'none';
+                    });
+
+                    const tuitionModal = new bootstrap.Modal(document.getElementById('tuitionModal'));
+                    tuitionModal.show();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading tuition data');
+            }
+        };
+
+        // Other functions that don't need to be global
+        async function updateUser(userId) {
+            try {
+                const formData = new FormData(document.getElementById('editUserForm'));
+
+                const response = await fetch(`/admin/users/${userId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating user');
+            }
+        }
+
+        async function updateTuitionStatus(studentId) {
+            const status = document.getElementById('updateTuitionStatus').value;
+            const accessDays = document.getElementById('accessDays') ? document.getElementById('accessDays').value : 30;
+            const receiptNumber = document.getElementById('receiptNumber') ? document.getElementById('receiptNumber').value : '';
+
+            try {
+                const response = await fetch(`/admin/students/${studentId}/tuition`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tuitionStatus: status,
+                        accessDays: parseInt(accessDays),
+                        receiptNumber: receiptNumber
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating tuition status');
+            }
+        }
+
+        async function extendAccess(studentId) {
+            const extendDays = prompt('Enter number of days to extend access:', '30');
+
+            if (extendDays && !isNaN(extendDays)) {
+                try {
+                    const response = await fetch(`/admin/students/${studentId}/extend-access`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            days: parseInt(extendDays)
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while extending access');
+                }
+            }
+        }
+
+        // Search and Filter functionality
+        let currentSort = { field: null, direction: 'asc' };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeSearch();
+            initializeSorting();
+            <% if (isSuperAdmin) { %>
+                initializeSchoolFilter();
+            <% } %>
+
+            // Initialize role fields toggle
+            const roleSelect = document.querySelector('select[name="role"]');
+            if (roleSelect) {
+                roleSelect.addEventListener('change', toggleRoleFields);
+            }
+
+            // Initialize tuition fields toggle
+            const tuitionStatusSelect = document.querySelector('select[name="tuitionStatus"]');
+            if (tuitionStatusSelect) {
+                tuitionStatusSelect.addEventListener('change', toggleTuitionFields);
+            }
+        });
+
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
+            const applyFilters = document.getElementById('applyFilters');
+            const resetFilters = document.getElementById('resetFilters');
+            const roleFilter = document.getElementById('roleFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const tuitionFilter = document.getElementById('tuitionFilter');
+            const accessFilter = document.getElementById('accessFilter');
+
+            if (!searchInput) return;
+
+            // Real-time search
+            searchInput.addEventListener('input', performSearch);
+
+            // Clear search
+            if (clearSearch) {
+                clearSearch.addEventListener('click', function () {
+                    searchInput.value = '';
+                    performSearch();
+                    searchInput.focus();
+                });
+            }
+
+            // Apply filters
+            if (applyFilters) {
+                applyFilters.addEventListener('click', performSearch);
+            }
+
+            // Reset all filters
+            if (resetFilters) {
+                resetFilters.addEventListener('click', function () {
+                    searchInput.value = '';
+                    if (roleFilter) roleFilter.value = '';
+                    if (statusFilter) statusFilter.value = '';
+                    if (tuitionFilter) tuitionFilter.value = '';
+                    if (accessFilter) accessFilter.value = '';
+                    <% if (isSuperAdmin) { %>
+                        const schoolFilter = document.getElementById('schoolFilter');
+                        if (schoolFilter) schoolFilter.value = '';
+                    <% } %>
+                        performSearch();
+                });
+            }
+
+            // Enter key to search
+            searchInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // Filter change events
+            if (roleFilter) roleFilter.addEventListener('change', performSearch);
+            if (statusFilter) statusFilter.addEventListener('change', performSearch);
+            if (tuitionFilter) tuitionFilter.addEventListener('change', performSearch);
+            if (accessFilter) accessFilter.addEventListener('change', performSearch);
+
+            // Initial search to set up the display
+            performSearch();
+        }
+
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const roleFilter = document.getElementById('roleFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const tuitionFilter = document.getElementById('tuitionFilter');
+            const accessFilter = document.getElementById('accessFilter');
+
+            if (!searchInput) return;
+
+            const searchTerm = searchInput.value.toLowerCase();
+            const roleValue = roleFilter ? roleFilter.value : '';
+            const statusValue = statusFilter ? statusFilter.value : '';
+            const tuitionValue = tuitionFilter ? tuitionFilter.value : '';
+            const accessValue = accessFilter ? accessFilter.value : '';
+
+            // Get school filter if it exists (for super admin)
+            const schoolFilter = document.getElementById('schoolFilter') ?
+                document.getElementById('schoolFilter').value.toLowerCase() : '';
+
+            const rows = document.querySelectorAll('#userTableBody .user-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const idNumber = row.getAttribute('data-idnumber').toLowerCase();
+                const name = row.getAttribute('data-name').toLowerCase();
+                const email = row.getAttribute('data-email').toLowerCase();
+                const role = row.getAttribute('data-role');
+                const school = row.getAttribute('data-school').toLowerCase();
+                const status = row.getAttribute('data-status');
+                const tuition = row.getAttribute('data-tuition');
+                const access = row.getAttribute('data-access');
+
+                // Text search across multiple fields
+                const textMatch = !searchTerm ||
+                    idNumber.includes(searchTerm) ||
+                    name.includes(searchTerm) ||
+                    email.includes(searchTerm) ||
+                    school.includes(searchTerm) ||
+                    role.includes(searchTerm);
+
+                // Filter matches
+                const roleMatch = !roleValue || role === roleValue;
+                const statusMatch = !statusValue || status === statusValue;
+                const tuitionMatch = !tuitionValue || tuition === tuitionValue;
+                const accessMatch = !accessValue || access === accessValue;
+
+                // School filter (only for super admin)
+                const schoolMatch = !schoolFilter || school.includes(schoolFilter);
+
+                const shouldShow = textMatch && roleMatch && statusMatch && tuitionMatch && accessMatch && schoolMatch;
+
+                row.style.display = shouldShow ? '' : 'none';
+
+                if (shouldShow) {
+                    visibleCount++;
+                    // Highlight search terms
+                    highlightSearchTerms(row, searchTerm);
+                }
+            });
+
+            // Update result count
+            const resultCount = document.getElementById('resultCount');
+            if (resultCount) {
+                resultCount.textContent = `${visibleCount} users found`;
+            }
+
+            // Show/hide no results message
+            const noUsersRow = document.getElementById('noUsersRow');
+            if (noUsersRow) {
+                noUsersRow.style.display = visibleCount === 0 ? '' : 'none';
+            }
+
+            // Update active filters display
+            updateActiveFiltersDisplay();
+        }
+
+        function highlightSearchTerms(row, searchTerm) {
+            if (!searchTerm) return;
+
+            const fields = ['id-number', 'user-name', 'user-email', 'user-school'];
+
+            fields.forEach(field => {
+                const element = row.querySelector(`.${field}`);
+                if (element) {
+                    const text = element.textContent;
+                    const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+                    const highlighted = text.replace(regex, '<span class="search-highlight">$1</span>');
+                    element.innerHTML = highlighted;
+                }
+            });
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function updateActiveFiltersDisplay() {
+            const roleFilter = document.getElementById('roleFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const tuitionFilter = document.getElementById('tuitionFilter');
+            const accessFilter = document.getElementById('accessFilter');
+            const schoolFilter = document.getElementById('schoolFilter');
+
+            const activeFilters = [];
+            if (roleFilter && roleFilter.value) activeFilters.push(`Role: ${roleFilter.value}`);
+            if (statusFilter && statusFilter.value) activeFilters.push(`Status: ${statusFilter.value}`);
+            if (tuitionFilter && tuitionFilter.value) activeFilters.push(`Tuition: ${tuitionFilter.value}`);
+            if (accessFilter && accessFilter.value) activeFilters.push(`Access: ${accessFilter.value}`);
+            if (schoolFilter && schoolFilter.value) activeFilters.push(`School: ${schoolFilter.value}`);
+
+            const activeFiltersElement = document.getElementById('activeFilters');
+            if (activeFiltersElement) {
+                if (activeFilters.length > 0) {
+                    activeFiltersElement.innerHTML = `<i class="fas fa-filter"></i> Active: ${activeFilters.join(', ')}`;
+                } else {
+                    activeFiltersElement.innerHTML = '';
+                }
+            }
+        }
+
+        function initializeSorting() {
+            const sortableHeaders = document.querySelectorAll('th[data-sort]');
+
+            sortableHeaders.forEach(header => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function () {
+                    const field = this.getAttribute('data-sort');
+                    sortTable(field);
+                });
+            });
+        }
+
+        function sortTable(field) {
+            const rows = Array.from(document.querySelectorAll('#userTableBody .user-row'));
+            const direction = currentSort.field === field && currentSort.direction === 'asc' ? 'desc' : 'asc';
+
+            rows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (field) {
+                    case 'idNumber':
+                        aValue = a.getAttribute('data-idnumber');
+                        bValue = b.getAttribute('data-idnumber');
+                        // Handle numeric sorting for ID numbers
+                        if (!isNaN(aValue) && !isNaN(bValue)) {
+                            aValue = parseInt(aValue);
+                            bValue = parseInt(bValue);
+                        }
+                        break;
+                    case 'name':
+                        aValue = a.getAttribute('data-name').toLowerCase();
+                        bValue = b.getAttribute('data-name').toLowerCase();
+                        break;
+                    case 'role':
+                        aValue = a.getAttribute('data-role');
+                        bValue = b.getAttribute('data-role');
+                        break;
+                    case 'school':
+                        aValue = a.getAttribute('data-school').toLowerCase();
+                        bValue = b.getAttribute('data-school').toLowerCase();
+                        break;
+                    case 'status':
+                        aValue = a.getAttribute('data-status');
+                        bValue = b.getAttribute('data-status');
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Reorder rows in DOM
+            const tbody = document.getElementById('userTableBody');
+            rows.forEach(row => tbody.appendChild(row));
+
+            // Update sort indicators
+            updateSortIndicators(field, direction);
+
+            currentSort = { field, direction };
+        }
+
+        function updateSortIndicators(field, direction) {
+            // Remove all sort indicators
+            document.querySelectorAll('th[data-sort] i').forEach(icon => {
+                icon.className = 'fas fa-sort';
+            });
+
+            // Add indicator to current sorted column
+            const currentHeader = document.querySelector(`th[data-sort="${field}"]`);
+            if (currentHeader) {
+                const icon = currentHeader.querySelector('i');
+                icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            }
+        }
+
+        // Initialize school filter for super admin
+        function initializeSchoolFilter() {
+            const schoolFilter = document.getElementById('schoolFilter');
+            if (!schoolFilter) return;
+
+            // Get unique schools from the table
+            const schools = new Set();
+            const rows = document.querySelectorAll('#userTableBody .user-row');
+
+            rows.forEach(row => {
+                const school = row.getAttribute('data-school');
+                if (school) {
+                    schools.add(school);
+                }
+            });
+
+            // Add school options
+            const sortedSchools = Array.from(schools).sort();
+            sortedSchools.forEach(school => {
+                const option = document.createElement('option');
+                option.value = school;
+                option.textContent = school;
+                schoolFilter.appendChild(option);
+            });
+
+            // Add event listener
+            schoolFilter.addEventListener('change', performSearch);
+        }
+
+        function toggleTuitionFields() {
+            const tuitionStatus = document.querySelector('select[name="tuitionStatus"]');
+            const receiptField = document.getElementById('receiptNumber');
+            const accessDuration = document.getElementById('accessDuration');
+
+            if (!tuitionStatus) return;
+
+            const status = tuitionStatus.value;
+
+            if (receiptField) {
+                receiptField.required = status === 'paid';
+            }
+
+            if (accessDuration && accessDuration.parentElement) {
+                accessDuration.parentElement.style.display = status === 'partial' ? 'block' : 'none';
+            }
+        }
+
+        function toggleRoleFields() {
+            const roleSelect = document.querySelector('select[name="role"]');
+            if (!roleSelect) return;
+
+            const role = roleSelect.value;
+            const studentFields = document.getElementById('studentFields');
+            const teacherFields = document.getElementById('teacherFields');
+            const adminFields = document.getElementById('adminFields');
+
+            if (studentFields) studentFields.style.display = role === 'student' ? 'block' : 'none';
+            if (teacherFields) teacherFields.style.display = role === 'teacher' ? 'block' : 'none';
+            if (adminFields) adminFields.style.display = role === 'admin' ? 'block' : 'none';
+
+            if (role === 'student') {
+                toggleTuitionFields(); // Initialize tuition fields
+            }
+        }
+    </script>
+</body>
+
+</html>

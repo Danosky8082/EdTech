@@ -1,0 +1,293 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TuitionPayment {
+  id            Int      @id @default(autoincrement())
+  receiptNumber String   @unique
+  amount        Float
+  paymentDate   DateTime @default(now())
+  status        String   @default("verified") // verified, pending, rejected
+  verifiedBy    Int?     // Admin ID who verified
+  verifiedAt    DateTime?
+  studentId     Int
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  semester      String   // e.g., "2024-1", "2024-2"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("tuition_payments")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  idNumber    String   @unique
+  password    String
+  role        String // student, teacher, admin
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  avatar      String?
+  dateOfBirth DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Add these new fields for password security
+  isTemporaryPassword Boolean @default(true)
+  passwordChangedAt   DateTime?
+  lastLoginAt        DateTime?
+
+  // Add school field for school-based access control
+  school      String?
+
+  // Keep existing relationships
+  student       Student?
+  teacher       Teacher?
+  admin         Admin?
+  materialViews MaterialView[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Student {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade        String
+  section      String
+  enrollments  Enrollment[]
+  submissions  Submission[]
+  examAttempts ExamAttempt[]
+  studentNotes StudentNote[]
+  tuitionPayments TuitionPayment[] // Add this relationship
+  tuitionStatus String @default("unpaid") // unpaid, partial, paid
+  canChangePassword Boolean @default(false) // Controls password change ability
+  tempPasswordExpiry DateTime? // When temporary password expires
+
+  @@map("students")
+}
+
+model Teacher {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  classes      Class[]       @relation("TeacherClasses")
+  assignments  Assignment[]
+  exams        Exam[]
+  materials    Material[]
+  liveSessions LiveSession[]
+  gradedExamAttempts ExamAttempt[] @relation("GradedAttempts")
+
+  @@map("teachers")
+}
+
+model Admin {
+  id        Int    @id @default(autoincrement())
+  userId    Int    @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleLevel String @default("principal") // principal, headteacher, administrator, superadmin
+
+  @@map("admins")
+}
+
+model Class {
+  id           Int           @id @default(autoincrement())
+  name         String
+  grade        String
+  section      String
+  teacherId    Int
+  teacher      Teacher       @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]
+  materials    Material[]
+  assignments  Assignment[]
+  exams        Exam[]
+  liveSessions LiveSession[]
+  studentNotes StudentNote[]
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId    Int
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime @default(now())
+
+  @@unique([classId, studentId])
+  @@map("enrollments")
+}
+
+model Material {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  type        String // textbook, video, document, etc.
+  fileUrl     String
+  thumbnail   String?
+  category    String?
+  tags        String[]
+  classId     Int?
+  class       Class?         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId   Int?
+  teacher     Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  isPublic    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  views       MaterialView[]
+
+  @@map("materials")
+}
+
+model MaterialView {
+  id         Int      @id @default(autoincrement())
+  materialId Int
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewedAt   DateTime @default(now())
+
+  @@map("material_views")
+}
+
+model Assignment {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  dueDate     DateTime
+  classId     Int
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId   Int
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  submissions Submission[]
+  points      Int?         @default(100) // Total points for the assignment
+
+  @@map("assignments")
+}
+
+model Submission {
+  id            Int         @id @default(autoincrement())
+  assignmentId  Int
+  studentId     Int
+  fileUrl       String?     // For file uploads (now optional)
+  submittedAt   DateTime    @default(now())
+  grade         Int?        // Grade out of 100
+  feedback      String?
+  
+  // Enhanced submission fields
+  submissionType String?    @default("file") // "file", "text", "drawing"
+  content        String?    // For rich text submissions (HTML)
+  drawingData    String?    // For drawing submissions (base64 image)
+  textTitle      String?    // Title for text/drawing submissions
+  wordCount      Int?       // Word count for text submissions
+  status         String?    @default("submitted") // "draft", "submitted"
+  
+  // Relations
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+model Exam {
+  id          Int           @id @default(autoincrement())
+  title       String
+  description String?
+  classId     Int
+  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId   Int
+  teacher     Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  date        DateTime
+  duration    Int // in minutes
+  questions   Json? // Store questions as JSON array
+  maxAttempts Int           @default(1)
+  showResults Boolean       @default(true)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  attempts    ExamAttempt[]
+  totalMarks  Int           @default(100)
+
+  @@map("exams")
+}
+
+model ExamAttempt {
+  id          Int       @id @default(autoincrement())
+  examId      Int
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId   Int
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  answers     Json? // Store student answers as JSON
+  score       Float?
+  status      String    @default("in_progress") // in_progress, submitted, graded, published
+  timeSpent   Int?      @default(0) // in seconds
+  teacherFeedback String?
+  gradedAt    DateTime?
+  gradedBy    Int?      // Teacher ID who graded this attempt
+  grader      Teacher?  @relation("GradedAttempts", fields: [gradedBy], references: [id])
+
+  @@unique([examId, studentId, id])
+  @@map("exam_attempts")
+}
+
+model LiveSession {
+  id        Int       @id @default(autoincrement())
+  classId   Int
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId Int
+  teacher   Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  startTime DateTime
+  endTime   DateTime?
+  isActive  Boolean   @default(true)
+
+  @@map("live_sessions")
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  title       String
+  message     String
+  icon        String?
+  read        Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model StudentNote {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   // Can be text, base64 image, or JSON for mixed content
+  type      String   // text, drawing, mixed, quick
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("student_notes")
+}

@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - Exams</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SheetJS for Excel support -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Mammoth for Word document support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        .question-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .sortable-ghost {
+            opacity: 0.4;
+        }
+
+        td .btn-group {
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .upload-status {
+            margin-top: 10px;
+        }
+
+        .format-badge {
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
+        .file-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .supported-formats {
+            background: #e9f7fe;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .error-details {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        /* Fix for hidden required fields */
+        .question-card [required] {
+            border-color: #0d6efd;
+        }
+
+        .question-card [required]:invalid {
+            border-color: #dc3545;
+        }
+
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+
+        .is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6.4.4.4-.4'/%3e%3cpath d='M6 7v1'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <% if (success) { %>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <%= success %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <% if (error) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <%= error %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <% } %>
+
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h2>Exam Management</h2>
+                                <button class="btn btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#createExamModal">
+                                    <i class="fas fa-plus"></i> Create Exam
+                                </button>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0">Upcoming Exams</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (upcomingExams && upcomingExams.length> 0) { %>
+                                                <% upcomingExams.forEach(exam=> { %>
+                                                    <div class="border-start border-4 border-primary ps-3 mb-3">
+                                                        <h6>
+                                                            <%= exam.title %>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted">
+                                                            <strong>Class:</strong>
+                                                            <%= exam.class.name %><br>
+                                                                <strong>Date:</strong>
+                                                                <%= new Date(exam.date).toLocaleString() %><br>
+                                                                    <strong>Duration:</strong>
+                                                                    <%= exam.duration %> minutes
+                                                        </p>
+                                                    </div>
+                                                    <% }) %>
+                                                        <% } else { %>
+                                                            <p class="text-muted">No upcoming exams scheduled.</p>
+                                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0">Recent Exams</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (recentExams && recentExams.length> 0) { %>
+                                                <% recentExams.forEach(exam=> { %>
+                                                    <div class="border-start border-4 border-success ps-3 mb-3">
+                                                        <h6>
+                                                            <%= exam.title %>
+                                                        </h6>
+                                                        <p class="mb-1 text-muted">
+                                                            <strong>Class:</strong>
+                                                            <%= exam.class.name %><br>
+                                                                <strong>Completed:</strong>
+                                                                <%= new Date(exam.date).toLocaleDateString() %>
+                                                        </p>
+                                                        <a href="/teacher/exam/<%= exam.id %>/results"
+                                                            class="btn btn-sm btn-outline-success">
+                                                            View Results
+                                                        </a>
+                                                    </div>
+                                                    <% }) %>
+                                                        <% } else { %>
+                                                            <p class="text-muted">No recent exams found.</p>
+                                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>All Exams</h4>
+                                </div>
+                                <div class="card-body">
+                                    <% if (exams && exams.length> 0) { %>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Title</th>
+                                                        <th>Class</th>
+                                                        <th>Date & Time</th>
+                                                        <th>Duration</th>
+                                                        <th>Status</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% exams.forEach(exam=> { %>
+                                                        <tr>
+                                                            <td>
+                                                                <%= exam.title %>
+                                                            </td>
+                                                            <td>
+                                                                <%= exam.class.name %>
+                                                            </td>
+                                                            <td>
+                                                                <%= new Date(exam.date).toLocaleString() %>
+                                                            </td>
+                                                            <td>
+                                                                <%= exam.duration %> minutes
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-<%= 
+                                                new Date() > new Date(exam.date) ? 'secondary' : 'success' 
+                                            %>">
+                                                                    <%= new Date()> new Date(exam.date) ? 'Completed' :
+                                                                        'Upcoming'
+                                                                        %>
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="btn-group">
+                                                                    <a href="/teacher/exam/<%= exam.id %>"
+                                                                        class="btn btn-sm btn-outline-primary">View</a>
+                                                                    <a href="/teacher/exam/<%= exam.id %>/edit"
+                                                                        class="btn btn-sm btn-outline-warning">Edit</a>
+                                                                    <a href="/teacher/exam/<%= exam.id %>/results"
+                                                                        class="btn btn-sm btn-outline-info">Results</a>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <% }) %>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <% } else { %>
+                                            <div class="text-center py-4">
+                                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                                <h5>No exams created yet</h5>
+                                                <p class="text-muted">Create your first exam to get started.</p>
+                                            </div>
+                                            <% } %>
+                                </div>
+                            </div>
+        </div>
+
+        <!-- Create Exam Modal -->
+        <div class="modal fade" id="createExamModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Exam</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="createExamForm" action="/teacher/exams/create" method="POST">
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Exam Title *</label>
+                                        <input type="text" class="form-control" name="title" required>
+                                        <div class="invalid-feedback">Please provide an exam title.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Duration (minutes) *</label>
+                                        <input type="number" class="form-control" name="duration" min="1" required>
+                                        <div class="invalid-feedback">Please provide a valid duration (at least 1
+                                            minute).</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="2"></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Exam Date & Time *</label>
+                                    <input type="datetime-local" class="form-control" name="date" required>
+                                    <div class="invalid-feedback">Please select an exam date and time.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Class *</label>
+                                    <select class="form-select" name="classId" required>
+                                        <option value="">Select Class</option>
+                                        <% classes.forEach(cls=> { %>
+                                            <option value="<%= cls.id %>">
+                                                <%= cls.name %> - <%= cls.grade %>-<%= cls.section %>
+                                            </option>
+                                            <% }) %>
+                                    </select>
+                                    <div class="invalid-feedback">Please select a class.</div>
+                                </div>
+                            </div>
+
+                            <!-- New Fields for Updated Model -->
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Max Attempts</label>
+                                    <input type="number" class="form-control" name="maxAttempts" value="1" min="1"
+                                        max="10">
+                                    <small class="form-text text-muted">Number of times students can attempt this
+                                        exam</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Total Marks</label>
+                                    <input type="number" class="form-control" name="totalMarks" value="100" min="1"
+                                        max="1000">
+                                    <small class="form-text text-muted">Total marks for this exam</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="showResults"
+                                            id="showResults" checked>
+                                        <label class="form-check-label" for="showResults">
+                                            Show Results to Students
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Enhanced File Upload Section -->
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-file-upload me-2"></i>Upload Questions from File
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="supported-formats">
+                                            <h6 class="mb-2">Supported Formats:</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <span class="badge bg-primary">CSV</span>
+                                                <span class="badge bg-success">JSON</span>
+                                                <span class="badge bg-warning text-dark">Excel (.xlsx, .xls)</span>
+                                                <span class="badge bg-info text-dark">Word (.docx)</span>
+                                                <span class="badge bg-secondary">Text (.txt)</span>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <i class="fas fa-lightbulb me-1"></i>
+                                                For best results with Word documents, use .docx format and ensure the
+                                                file is not corrupted.
+                                            </small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Upload Questions File</label>
+                                            <input type="file" class="form-control" id="questionsFile"
+                                                accept=".csv,.json,.xlsx,.xls,.docx,.txt">
+                                            <small class="form-text text-muted">
+                                                Upload questions in any supported format.
+                                                <a href="#" id="showFormatInfo" class="text-decoration-none">
+                                                    <i class="fas fa-info-circle me-1"></i>Format Requirements
+                                                </a>
+                                            </small>
+                                        </div>
+
+                                        <!-- File Preview -->
+                                        <div id="filePreview" class="file-preview" style="display: none;">
+                                            <h6>File Preview:</h6>
+                                            <div id="previewContent"></div>
+                                        </div>
+
+                                        <div class="d-flex gap-2 mt-3">
+                                            <button type="button" class="btn btn-outline-info btn-sm"
+                                                id="uploadQuestionsBtn">
+                                                <i class="fas fa-upload me-1"></i> Upload & Parse File
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning btn-sm"
+                                                id="clearQuestionsBtn">
+                                                <i class="fas fa-trash me-1"></i> Clear All Questions
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                id="previewFileBtn">
+                                                <i class="fas fa-eye me-1"></i> Preview File
+                                            </button>
+                                        </div>
+
+                                        <!-- Upload Progress -->
+                                        <div id="uploadProgress" class="mt-2" style="display: none;">
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                    style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-muted">Processing file...</small>
+                                        </div>
+
+                                        <!-- Upload Status Messages -->
+                                        <div id="uploadStatus" class="mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Questions Section -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <label class="form-label mb-0"><strong>Exam Questions</strong></label>
+                                    <div>
+                                        <span class="badge bg-light text-dark me-2" id="questionsCount">0
+                                            questions</span>
+                                        <button type="button" class="btn btn-success btn-sm" id="addQuestionBtn">
+                                            <i class="fas fa-plus"></i> Add Question
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="questionsContainer">
+                                    <!-- Questions will be added here dynamically -->
+                                </div>
+
+                                <!-- Hidden field for JSON questions -->
+                                <input type="hidden" name="questions" id="questionsJson">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="submitExamForm">Create Exam</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Template (Hidden) -->
+        <div id="questionTemplate" class="d-none">
+            <div class="question-card" data-question-index="__INDEX__">
+                <div class="question-header">
+                    <h6 class="mb-0">Question <span class="question-number">__NUMBER__</span></h6>
+                    <button type="button" class="btn btn-danger btn-sm remove-question">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Question Text *</label>
+                    <textarea class="form-control question-text" rows="2"
+                        placeholder="Enter your question..."></textarea>
+                    <div class="invalid-feedback question-text-feedback">
+                        Please enter question text.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Question Type *</label>
+                    <select class="form-select question-type">
+                        <option value="">Select question type</option>
+                        <option value="multiple_choice">Multiple Choice</option>
+                        <option value="true_false">True/False</option>
+                        <option value="short_answer">Short Answer</option>
+                    </select>
+                    <div class="invalid-feedback question-type-feedback">
+                        Please select a question type.
+                    </div>
+                </div>
+
+                <!-- Points Field -->
+                <div class="mb-3">
+                    <label class="form-label">Points</label>
+                    <input type="number" class="form-control question-points" value="1" min="1" max="100">
+                </div>
+
+                <!-- Options Container (for multiple choice) -->
+                <div class="options-container" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label mb-0">Options *</label>
+                        <button type="button" class="btn btn-outline-primary btn-sm add-option">
+                            <i class="fas fa-plus"></i> Add Option
+                        </button>
+                    </div>
+                    <div class="options-list">
+                        <!-- Options will be added here -->
+                    </div>
+                    <div class="invalid-feedback options-feedback">
+                        Please add at least 2 options for multiple choice questions.
+                    </div>
+                </div>
+
+                <!-- Correct Answer Section -->
+                <div class="correct-answer-section">
+                    <label class="form-label">Correct Answer *</label>
+                    <div class="correct-answer-input">
+                        <!-- Will be populated based on question type -->
+                    </div>
+                    <div class="invalid-feedback correct-answer-feedback">
+                        Please provide a correct answer.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Format Requirements Modal -->
+        <div class="modal fade" id="formatInfoModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">File Format Requirements</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-4">
+                            <h6>CSV Format:</h6>
+                            <p>Columns: question, type, options (semicolon separated), correct_answer</p>
+                            <pre class="bg-light p-2 rounded">question,type,options,correct_answer
+"What is 2+2?",multiple_choice,"4;5;3;2",0
+"Is the Earth round?",true_false,,true</pre>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6>JSON Format:</h6>
+                            <pre class="bg-light p-2 rounded">[
+  {
+    "question": "What is 2+2?",
+    "type": "multiple_choice",
+    "options": ["4", "5", "3", "2"],
+    "correctAnswer": 0
+  }
+]</pre>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6>Excel Format:</h6>
+                            <p>Same columns as CSV format. First row should contain headers.</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6>Word Document Format:</h6>
+                            <p>Questions should be formatted with clear headings or numbering. Use .docx format only.
+                            </p>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Note:</strong> Only .docx files are supported. Older .doc files will not work.
+                                Ensure your Word document is not corrupted.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6>Text Format:</h6>
+                            <pre class="bg-light p-2 rounded">1. What is 2+2?
+   A) 4
+   B) 5
+   C) 3
+   Correct: A
+
+2. Is the Earth round? (True/False)
+   Correct: True</pre>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            let questionCount = 0;
+
+            // Initialize event listeners
+            document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+            document.getElementById('submitExamForm').addEventListener('click', handleFormSubmit);
+            document.getElementById('uploadQuestionsBtn').addEventListener('click', handleFileUpload);
+            document.getElementById('clearQuestionsBtn').addEventListener('click', clearAllQuestions);
+            document.getElementById('previewFileBtn').addEventListener('click', previewFile);
+            document.getElementById('showFormatInfo').addEventListener('click', showFormatInfo);
+            document.getElementById('questionsFile').addEventListener('change', resetFilePreview);
+
+            function showFormatInfo(e) {
+                e.preventDefault();
+                const modal = new bootstrap.Modal(document.getElementById('formatInfoModal'));
+                modal.show();
+            }
+
+            function resetFilePreview() {
+                document.getElementById('filePreview').style.display = 'none';
+                document.getElementById('previewContent').innerHTML = '';
+            }
+
+            function previewFile() {
+                const fileInput = document.getElementById('questionsFile');
+                if (!fileInput.files.length) {
+                    showStatus('Please select a file first.', 'warning');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const fileName = file.name.toLowerCase();
+                const previewDiv = document.getElementById('filePreview');
+                const previewContent = document.getElementById('previewContent');
+
+                previewDiv.style.display = 'block';
+                previewContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Loading preview...</p></div>';
+
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    try {
+                        let previewText = '';
+
+                        if (fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
+                            previewText = e.target.result;
+                            // Limit preview to first 1000 characters
+                            if (previewText.length > 1000) {
+                                previewText = previewText.substring(0, 1000) + '...\n\n[Preview truncated]';
+                            }
+                            previewContent.innerHTML = `<pre>${previewText}</pre>`;
+                        }
+                        else if (fileName.endsWith('.json')) {
+                            const jsonData = JSON.parse(e.target.result);
+                            previewText = JSON.stringify(jsonData, null, 2);
+                            // Limit preview
+                            if (previewText.length > 2000) {
+                                previewText = previewText.substring(0, 2000) + '...\n\n[Preview truncated]';
+                            }
+                            previewContent.innerHTML = `<pre>${previewText}</pre>`;
+                        }
+                        else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                            previewText = 'Excel Sheet Preview:\n\n';
+                            // Show first 10 rows
+                            jsonData.slice(0, 10).forEach(row => {
+                                previewText += row.join(', ') + '\n';
+                            });
+                            if (jsonData.length > 10) {
+                                previewText += '...\n[Showing first 10 rows only]';
+                            }
+                            previewContent.innerHTML = `<pre>${previewText}</pre>`;
+                        }
+                        else if (fileName.endsWith('.docx')) {
+                            previewContent.innerHTML = '<p>Word documents cannot be previewed in text format. The content will be extracted during processing.</p>';
+                        }
+                        else {
+                            previewContent.innerHTML = '<p>File format preview not available.</p>';
+                        }
+                    } catch (error) {
+                        previewContent.innerHTML = `<p class="text-danger">Error generating preview: ${error.message}</p>`;
+                    }
+                };
+
+                reader.onerror = function () {
+                    previewContent.innerHTML = '<p class="text-danger">Error reading file.</p>';
+                };
+
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            }
+
+            function addQuestion() {
+                questionCount++;
+                const template = document.getElementById('questionTemplate').innerHTML;
+                const questionHtml = template
+                    .replace(/__INDEX__/g, questionCount)
+                    .replace(/__NUMBER__/g, questionCount);
+
+                const div = document.createElement('div');
+                div.innerHTML = questionHtml;
+
+                const questionElement = div.firstElementChild;
+
+                if (!questionElement) {
+                    console.error('Failed to create question element from template');
+                    return;
+                }
+
+                document.getElementById('questionsContainer').appendChild(questionElement);
+                initializeQuestion(questionElement);
+                updateQuestionNumbers();
+                updateQuestionsCount();
+            }
+
+            function initializeQuestion(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to initializeQuestion:', questionElement);
+                    return;
+                }
+
+                const typeSelect = questionElement.querySelector('.question-type');
+                const optionsContainer = questionElement.querySelector('.options-container');
+                const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+                const removeBtn = questionElement.querySelector('.remove-question');
+
+                if (!typeSelect || !optionsContainer || !correctAnswerSection || !removeBtn) {
+                    console.error('Required elements not found in question element');
+                    return;
+                }
+
+                // Set up type change listener
+                typeSelect.addEventListener('change', function () {
+                    updateQuestionType(questionElement);
+                });
+
+                // Set up remove button
+                removeBtn.addEventListener('click', function () {
+                    questionElement.remove();
+                    updateQuestionNumbers();
+                    updateQuestionsCount();
+                });
+
+                // Initialize question type
+                updateQuestionType(questionElement);
+            }
+
+            function updateQuestionType(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to updateQuestionType:', questionElement);
+                    return;
+                }
+
+                const typeSelect = questionElement.querySelector('.question-type');
+                const optionsContainer = questionElement.querySelector('.options-container');
+                const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+
+                if (!typeSelect || !optionsContainer || !correctAnswerSection) {
+                    console.error('Required elements not found in updateQuestionType');
+                    return;
+                }
+
+                const type = typeSelect.value;
+
+                // Clear any previous validation states
+                clearQuestionValidation(questionElement);
+
+                switch (type) {
+                    case 'multiple_choice':
+                        optionsContainer.style.display = 'block';
+                        setupMultipleChoice(questionElement);
+                        break;
+                    case 'true_false':
+                        optionsContainer.style.display = 'none';
+                        setupTrueFalse(questionElement);
+                        break;
+                    case 'short_answer':
+                        optionsContainer.style.display = 'none';
+                        setupShortAnswer(questionElement);
+                        break;
+                    default:
+                        optionsContainer.style.display = 'none';
+                        correctAnswerSection.innerHTML = '<p class="text-muted">Select a question type to continue</p>';
+                        break;
+                }
+            }
+
+            function clearQuestionValidation(questionElement) {
+                const feedbackElements = questionElement.querySelectorAll('.invalid-feedback');
+                feedbackElements.forEach(feedback => {
+                    feedback.style.display = 'none';
+                });
+
+                const formControls = questionElement.querySelectorAll('.form-control, .form-select');
+                formControls.forEach(control => {
+                    control.classList.remove('is-invalid');
+                });
+            }
+
+            function setupMultipleChoice(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to setupMultipleChoice:', questionElement);
+                    return;
+                }
+
+                const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+                const optionsList = questionElement.querySelector('.options-list');
+                const addOptionBtn = questionElement.querySelector('.add-option');
+
+                if (!correctAnswerSection || !optionsList || !addOptionBtn) {
+                    console.error('Required elements not found in setupMultipleChoice');
+                    return;
+                }
+
+                // Clear existing options and setup
+                optionsList.innerHTML = '';
+                correctAnswerSection.innerHTML = '<select class="form-select correct-answer"><option value="">Select correct answer</option></select>';
+
+                // Add initial options
+                addOption(questionElement);
+                addOption(questionElement);
+
+                // Set up add option button
+                addOptionBtn.onclick = function () { addOption(questionElement); };
+            }
+
+            function addOption(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to addOption:', questionElement);
+                    return;
+                }
+
+                const optionsList = questionElement.querySelector('.options-list');
+                const correctAnswerSelect = questionElement.querySelector('.correct-answer');
+
+                if (!optionsList || !correctAnswerSelect) {
+                    console.error('Required elements not found in addOption');
+                    return;
+                }
+
+                const optionIndex = optionsList.children.length;
+
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option-item';
+                optionDiv.innerHTML = `
+                <input type="text" class="form-control option-text" placeholder="Option ${optionIndex + 1}">
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 remove-option">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+                optionsList.appendChild(optionDiv);
+
+                // Add to correct answer dropdown
+                const optionElement = document.createElement('option');
+                optionElement.value = optionIndex;
+                optionElement.textContent = `Option ${optionIndex + 1}`;
+                correctAnswerSelect.appendChild(optionElement);
+
+                // Set up remove option button
+                const removeOptionBtn = optionDiv.querySelector('.remove-option');
+                if (removeOptionBtn) {
+                    removeOptionBtn.addEventListener('click', function () {
+                        optionDiv.remove();
+                        updateCorrectAnswerOptions(questionElement);
+                    });
+                }
+
+                // Update option text in dropdown when input changes
+                const optionTextInput = optionDiv.querySelector('.option-text');
+                if (optionTextInput) {
+                    optionTextInput.addEventListener('input', function () {
+                        optionElement.textContent = this.value || `Option ${optionIndex + 1}`;
+                    });
+                }
+            }
+
+            function updateCorrectAnswerOptions(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to updateCorrectAnswerOptions:', questionElement);
+                    return;
+                }
+
+                const optionsList = questionElement.querySelector('.options-list');
+                const correctAnswerSelect = questionElement.querySelector('.correct-answer');
+
+                if (!optionsList || !correctAnswerSelect) {
+                    console.error('Required elements not found in updateCorrectAnswerOptions');
+                    return;
+                }
+
+                correctAnswerSelect.innerHTML = '<option value="">Select correct answer</option>';
+
+                Array.from(optionsList.children).forEach((optionDiv, index) => {
+                    const optionTextInput = optionDiv.querySelector('.option-text');
+                    if (optionTextInput) {
+                        const optionText = optionTextInput.value || `Option ${index + 1}`;
+                        const optionElement = document.createElement('option');
+                        optionElement.value = index;
+                        optionElement.textContent = optionText;
+                        correctAnswerSelect.appendChild(optionElement);
+                    }
+                });
+            }
+
+            function setupTrueFalse(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to setupTrueFalse:', questionElement);
+                    return;
+                }
+
+                const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+                if (!correctAnswerSection) {
+                    console.error('Correct answer section not found in setupTrueFalse');
+                    return;
+                }
+
+                correctAnswerSection.innerHTML = `
+                <select class="form-select correct-answer">
+                    <option value="">Select correct answer</option>
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            `;
+            }
+
+            function setupShortAnswer(questionElement) {
+                if (!(questionElement instanceof Element)) {
+                    console.error('Invalid element provided to setupShortAnswer:', questionElement);
+                    return;
+                }
+
+                const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+                if (!correctAnswerSection) {
+                    console.error('Correct answer section not found in setupShortAnswer');
+                    return;
+                }
+
+                correctAnswerSection.innerHTML = '<input type="text" class="form-control correct-answer" placeholder="Enter correct answer">';
+            }
+
+            function updateQuestionNumbers() {
+                const questionsContainer = document.getElementById('questionsContainer');
+                if (!questionsContainer) return;
+
+                const questions = questionsContainer.children;
+                Array.from(questions).forEach((question, index) => {
+                    if (question instanceof Element) {
+                        const numberElement = question.querySelector('.question-number');
+                        if (numberElement) {
+                            numberElement.textContent = index + 1;
+                            question.setAttribute('data-question-index', index + 1);
+                        }
+                    }
+                });
+            }
+
+            function updateQuestionsCount() {
+                const questionsContainer = document.getElementById('questionsContainer');
+                const count = questionsContainer ? questionsContainer.children.length : 0;
+                document.getElementById('questionsCount').textContent = `${count} question${count !== 1 ? 's' : ''}`;
+            }
+
+            function handleFormSubmit(e) {
+                e.preventDefault();
+                console.log('📝 Form submission started...');
+
+                // Create a FormData object to see what's being sent
+                const formData = new FormData(document.getElementById('createExamForm'));
+                console.log('FormData contents:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(key + ': ' + value);
+                }
+
+                // Validate main form fields
+                const title = document.querySelector('input[name="title"]');
+                const duration = document.querySelector('input[name="duration"]');
+                const date = document.querySelector('input[name="date"]');
+                const classId = document.querySelector('select[name="classId"]');
+
+                let isValid = true;
+
+                // Validate main fields
+                if (!title.value.trim()) {
+                    showFieldError(title, 'Exam title is required');
+                    isValid = false;
+                } else {
+                    clearFieldError(title);
+                }
+
+                if (!duration.value || duration.value < 1) {
+                    showFieldError(duration, 'Duration must be at least 1 minute');
+                    isValid = false;
+                } else {
+                    clearFieldError(duration);
+                }
+
+                if (!date.value) {
+                    showFieldError(date, 'Exam date and time is required');
+                    isValid = false;
+                } else {
+                    clearFieldError(date);
+                }
+
+                if (!classId.value) {
+                    showFieldError(classId, 'Please select a class');
+                    isValid = false;
+                } else {
+                    clearFieldError(classId);
+                }
+
+                // Validate questions
+                const questionsContainer = document.getElementById('questionsContainer');
+                if (!questionsContainer || questionsContainer.children.length === 0) {
+                    alert('Please add at least one question to the exam.');
+                    isValid = false;
+                } else {
+                    const questions = validateAllQuestions();
+                    if (!questions) {
+                        isValid = false;
+                    } else {
+                        // Set the hidden JSON field
+                        const questionsJsonField = document.getElementById('questionsJson');
+                        if (questionsJsonField) {
+                            questionsJsonField.value = JSON.stringify(questions);
+                            console.log('✅ Questions prepared:', questions.length);
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    console.log('✅ All validation passed, submitting form...');
+                    // Show loading state
+                    const submitBtn = document.getElementById('submitExamForm');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Exam...';
+                    submitBtn.disabled = true;
+
+                    // Submit the form
+                    document.getElementById('createExamForm').submit();
+                } else {
+                    console.log('❌ Validation failed');
+                    const firstError = document.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus();
+                    }
+                }
+            }
+
+            function showFieldError(field, message) {
+                field.classList.add('is-invalid');
+                // Find or create feedback element
+                let feedback = field.nextElementSibling;
+                if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    field.parentNode.appendChild(feedback);
+                }
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+            }
+
+            function clearFieldError(field) {
+                field.classList.remove('is-invalid');
+                const feedback = field.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.style.display = 'none';
+                }
+            }
+
+            function validateAllQuestions() {
+                const questionsContainer = document.getElementById('questionsContainer');
+                if (!questionsContainer) return null;
+
+                const questions = [];
+                const questionElements = questionsContainer.children;
+                let allQuestionsValid = true;
+
+                Array.from(questionElements).forEach((questionElement, index) => {
+                    if (!(questionElement instanceof Element)) {
+                        console.error('Invalid question element found:', questionElement);
+                        allQuestionsValid = false;
+                        return;
+                    }
+
+                    const typeSelect = questionElement.querySelector('.question-type');
+                    const questionTextInput = questionElement.querySelector('.question-text');
+                    const correctAnswerElement = questionElement.querySelector('.correct-answer');
+                    const pointsInput = questionElement.querySelector('.question-points');
+
+                    if (!typeSelect || !questionTextInput || !correctAnswerElement) {
+                        console.error('Required elements not found in question', index);
+                        allQuestionsValid = false;
+                        return;
+                    }
+
+                    const type = typeSelect.value;
+                    const questionText = questionTextInput.value.trim();
+
+                    // Clear previous validation
+                    clearQuestionValidation(questionElement);
+
+                    // Validate question text
+                    if (!questionText) {
+                        showQuestionFieldError(questionElement, 'question-text', 'Question text is required');
+                        allQuestionsValid = false;
+                    }
+
+                    // Validate question type
+                    if (!type) {
+                        showQuestionFieldError(questionElement, 'question-type', 'Question type is required');
+                        allQuestionsValid = false;
+                    }
+
+                    // Validate correct answer
+                    if (!correctAnswerElement.value) {
+                        showQuestionFieldError(questionElement, 'correct-answer', 'Correct answer is required');
+                        allQuestionsValid = false;
+                    }
+
+                    // Validate multiple choice options
+                    if (type === 'multiple_choice') {
+                        const options = questionElement.querySelectorAll('.option-text');
+                        const filledOptions = Array.from(options).filter(opt => opt.value.trim() !== '');
+
+                        if (filledOptions.length < 2) {
+                            showQuestionFieldError(questionElement, 'options', 'At least 2 options are required for multiple choice questions');
+                            allQuestionsValid = false;
+                        }
+                    }
+
+                    if (allQuestionsValid) {
+                        const question = {
+                            type: type,
+                            question: questionText,
+                            points: parseInt(pointsInput?.value) || 1
+                        };
+
+                        if (type === 'multiple_choice') {
+                            const options = [];
+                            const optionElements = questionElement.querySelectorAll('.option-text');
+                            optionElements.forEach(optionElement => {
+                                if (optionElement.value.trim()) {
+                                    options.push(optionElement.value.trim());
+                                }
+                            });
+                            question.options = options;
+                            question.correctAnswer = parseInt(correctAnswerElement.value);
+                        } else if (type === 'true_false') {
+                            question.correctAnswer = correctAnswerElement.value === 'true';
+                        } else if (type === 'short_answer') {
+                            question.correctAnswer = correctAnswerElement.value;
+                        }
+
+                        questions.push(question);
+                    }
+                });
+
+                return allQuestionsValid ? questions : null;
+            }
+
+            function showQuestionFieldError(questionElement, fieldType, message) {
+                const feedback = questionElement.querySelector(`.${fieldType}-feedback`);
+                const input = questionElement.querySelector(`.${fieldType.replace('-feedback', '')}`);
+
+                if (feedback) {
+                    feedback.textContent = message;
+                    feedback.style.display = 'block';
+                }
+
+                if (input) {
+                    input.classList.add('is-invalid');
+                }
+            }
+
+            // Enhanced file upload functionality with better error handling
+            async function handleFileUpload() {
+                const fileInput = document.getElementById('questionsFile');
+                const progressDiv = document.getElementById('uploadProgress');
+                const progressBar = progressDiv.querySelector('.progress-bar');
+                const statusDiv = document.getElementById('uploadStatus');
+
+                if (!fileInput.files.length) {
+                    showStatus('Please select a file to upload.', 'danger');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const fileName = file.name.toLowerCase();
+
+                try {
+                    progressDiv.style.display = 'block';
+                    progressBar.style.width = '30%';
+                    statusDiv.innerHTML = '';
+
+                    // Validate file type
+                    if (!isValidFileType(fileName)) {
+                        throw new Error(`Unsupported file type: ${file.name}. Please use CSV, JSON, Excel, Word (.docx only), or Text files.`);
+                    }
+
+                    // Validate file size (max 10MB)
+                    if (file.size > 10 * 1024 * 1024) {
+                        throw new Error('File size too large. Please select a file smaller than 10MB.');
+                    }
+
+                    const questions = await parseQuestionFile(file);
+
+                    progressBar.style.width = '70%';
+
+                    if (questions && questions.length > 0) {
+                        clearAllQuestions(false);
+                        addQuestionsFromArray(questions);
+
+                        progressBar.style.width = '100%';
+                        showStatus(`Successfully imported ${questions.length} questions from ${file.name}!`, 'success');
+                    } else {
+                        throw new Error('No valid questions found in file.');
+                    }
+
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('File processing error:', error);
+
+                    let errorMessage = 'Error processing file: ' + error.message;
+
+                    // Provide more specific error messages for common issues
+                    if (error.message.includes('Corrupted zip') || error.message.includes('docx')) {
+                        errorMessage = 'The Word document appears to be corrupted or in an unsupported format. ' +
+                            'Please ensure you are using a valid .docx file and try again. ' +
+                            'If the problem persists, try saving your document as a different format (PDF, text, etc.) and converting it back to .docx.';
+                    } else if (error.message.includes('JSON')) {
+                        errorMessage = 'Invalid JSON format. Please check that your JSON file is properly formatted.';
+                    } else if (error.message.includes('Excel') || error.message.includes('xlsx') || error.message.includes('xls')) {
+                        errorMessage = 'Error reading Excel file. Please ensure it is a valid Excel file and not corrupted.';
+                    }
+
+                    showStatus(errorMessage, 'danger', error);
+                    progressDiv.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }
+            }
+
+            function isValidFileType(fileName) {
+                const validExtensions = ['.csv', '.json', '.xlsx', '.xls', '.docx', '.txt'];
+                return validExtensions.some(ext => fileName.endsWith(ext));
+            }
+
+            function parseQuestionFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    const fileName = file.name.toLowerCase();
+
+                    reader.onload = function (e) {
+                        try {
+                            let questions = [];
+
+                            if (fileName.endsWith('.json')) {
+                                questions = parseJSONQuestions(e.target.result);
+                            } else if (fileName.endsWith('.csv')) {
+                                questions = parseCSVQuestions(e.target.result);
+                            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                                questions = parseExcelQuestions(e.target.result);
+                            } else if (fileName.endsWith('.docx')) {
+                                parseWordQuestions(e.target.result).then(questions => {
+                                    resolve(questions);
+                                }).catch(reject);
+                                return;
+                            } else if (fileName.endsWith('.txt')) {
+                                questions = parseTextQuestions(e.target.result);
+                            } else {
+                                reject(new Error('Unsupported file format. Please use CSV, JSON, Excel, Word, or Text files.'));
+                                return;
+                            }
+
+                            if (questions.length === 0) {
+                                reject(new Error('No valid questions found in the file.'));
+                                return;
+                            }
+
+                            resolve(questions);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+
+                    reader.onerror = function () {
+                        reject(new Error('Failed to read file. The file may be corrupted or in use by another program.'));
+                    };
+
+                    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.docx')) {
+                        reader.readAsArrayBuffer(file);
+                    } else {
+                        reader.readAsText(file);
+                    }
+                });
+            }
+
+            function parseJSONQuestions(content) {
+                try {
+                    const data = JSON.parse(content);
+
+                    if (Array.isArray(data)) {
+                        return data;
+                    } else if (data.questions && Array.isArray(data.questions)) {
+                        return data.questions;
+                    } else {
+                        throw new Error('Invalid JSON structure. Expected array of questions or object with "questions" array.');
+                    }
+                } catch (error) {
+                    throw new Error('Invalid JSON format: ' + error.message);
+                }
+            }
+
+            function parseCSVQuestions(content) {
+                const lines = content.split('\n').filter(line => line.trim());
+                if (lines.length < 2) {
+                    throw new Error('CSV file must have at least a header and one data row.');
+                }
+
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                const questions = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = parseCSVLine(lines[i]);
+                    if (values.length !== headers.length) continue;
+
+                    const question = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        question[headers[j]] = values[j].trim();
+                    }
+
+                    const standardized = standardizeQuestion(question);
+                    if (standardized) {
+                        questions.push(standardized);
+                    }
+                }
+
+                return questions;
+            }
+
+            function parseExcelQuestions(data) {
+                try {
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    if (jsonData.length === 0) {
+                        throw new Error('Excel file is empty or has no data.');
+                    }
+
+                    const questions = [];
+                    jsonData.forEach(row => {
+                        const standardized = standardizeQuestion(row);
+                        if (standardized) {
+                            questions.push(standardized);
+                        }
+                    });
+
+                    return questions;
+                } catch (error) {
+                    throw new Error('Error parsing Excel file: ' + error.message);
+                }
+            }
+
+            function parseWordQuestions(data) {
+                return new Promise((resolve, reject) => {
+                    // Check if data is a valid ArrayBuffer and has minimum size
+                    if (!data || data.byteLength < 100) {
+                        reject(new Error('The Word document appears to be empty or too small to be valid.'));
+                        return;
+                    }
+
+                    mammoth.extractRawText({ arrayBuffer: data })
+                        .then(function (result) {
+                            const text = result.value;
+                            console.log("Word document extracted text:", text.substring(0, 500) + "..."); // Debug log
+
+                            if (!text || text.trim().length === 0) {
+                                reject(new Error('No text content found in the Word document. The document might be empty or contain only images.'));
+                                return;
+                            }
+
+                            const questions = parseTextQuestions(text);
+
+                            if (questions.length === 0) {
+                                // Try alternative parsing method
+                                const alternativeQuestions = alternativeParseTextQuestions(text);
+                                if (alternativeQuestions.length > 0) {
+                                    console.log("Alternative parser found questions:", alternativeQuestions.length);
+                                    resolve(alternativeQuestions);
+                                } else {
+                                    reject(new Error(`No questions could be extracted from the Word document. 
+                                    Text content was found but no question patterns were detected. 
+                                    Please ensure your document has clearly formatted questions with numbering (1., 2., Q1, etc.)
+                                    and options (A., B., C., D.) or true/false indicators.`));
+                                }
+                            } else {
+                                resolve(questions);
+                            }
+                        })
+                        .catch(function (error) {
+                            console.error('Word document parsing error:', error);
+
+                            if (error.message.includes('Corrupted zip') || error.message.includes('missing')) {
+                                reject(new Error('The Word document appears to be corrupted. Please try with a different file or convert it to another format.'));
+                            } else if (error.message.includes('Not a ZIP archive')) {
+                                reject(new Error('The file does not appear to be a valid Word document (.docx). Please ensure you are using .docx format, not the older .doc format.'));
+                            } else {
+                                reject(new Error('Error parsing Word document: ' + error.message));
+                            }
+                        });
+                });
+            }
+
+            function parseTextQuestions(content) {
+                console.log("Parsing text content:", content.substring(0, 500) + "..."); // Debug log
+
+                const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                const questions = [];
+                let currentQuestion = null;
+                let inQuestionBlock = false;
+
+                // Common question patterns
+                const questionPatterns = [
+                    /^(\d+)[\.\)]\s+(.+)/,                    // "1. Question text"
+                    /^Q(\d*)[\.\)]?\s*:\s*(.+)/i,            // "Q1: Question text" or "Q: Question text"
+                    /^Question\s*(\d*)[\.\)]?\s*:\s*(.+)/i,  // "Question 1: Question text"
+                    /^(\d+\)\s+.+)/,                         // "1) Question text"
+                    /^[A-Z][a-z]*\s+\d+[\.\)]\s+(.+)/,       // "Chapter 1. Question text"
+                ];
+
+                // Option patterns
+                const optionPatterns = [
+                    /^([A-D])[\.\)]\s+(.+)/i,                // "A. Option text" or "a) option text"
+                    /^\(([A-D])\)\s+(.+)/i,                  // "(A) Option text"
+                    /^([A-D])\s*-\s*(.+)/i,                  // "A - Option text"
+                    /^Option\s*([A-D])\s*:\s*(.+)/i,         // "Option A: text"
+                ];
+
+                // Correct answer patterns
+                const correctAnswerPatterns = [
+                    /correct\s*[:\-]?\s*([A-D])/i,
+                    /answer\s*[:\-]?\s*([A-D])/i,
+                    /key\s*[:\-]?\s*([A-D])/i,
+                    /correct\s*[:\-]?\s*(true|false)/i,
+                    /answer\s*[:\-]?\s*(true|false)/i,
+                    /key\s*[:\-]?\s*(true|false)/i,
+                ];
+
+                // True/False indicators in question
+                const trueFalseIndicators = [
+                    /\(true\s*\/\s*false\)/i,
+                    /\[true\s*\/\s*false\]/i,
+                    /true\s*or\s*false/i,
+                    /t\s*\/\s*f/i,
+                    /\(t\s*\/\s*f\)/i,
+                ];
+
+                // Short answer indicators
+                const shortAnswerIndicators = [
+                    /short\s*answer/i,
+                    /essay/i,
+                    /briefly\s*explain/i,
+                    /describe/i,
+                    /what\s*is\s*your\s*opinion/i,
+                    /explain\s*in\s*your\s*own\s*words/i,
+                ];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    let matched = false;
+
+                    // Check if this line starts a new question
+                    for (const pattern of questionPatterns) {
+                        const match = line.match(pattern);
+                        if (match) {
+                            // Save previous question if exists
+                            if (currentQuestion && currentQuestion.question && currentQuestion.question.trim().length > 0) {
+                                finalizeQuestion(currentQuestion);
+                                questions.push(currentQuestion);
+                            }
+
+                            const questionText = match[2] || match[1];
+                            currentQuestion = {
+                                question: questionText,
+                                type: 'multiple_choice', // Default type
+                                options: [],
+                                correctAnswer: null
+                            };
+
+                            // Check for true/false indicators in question
+                            for (const tfIndicator of trueFalseIndicators) {
+                                if (questionText.match(tfIndicator)) {
+                                    currentQuestion.type = 'true_false';
+                                    currentQuestion.question = questionText.replace(tfIndicator, '').trim();
+                                    break;
+                                }
+                            }
+
+                            // Check for short answer indicators
+                            for (const saIndicator of shortAnswerIndicators) {
+                                if (questionText.toLowerCase().includes(saIndicator.source.replace(/\\s*\*/g, ' ').replace(/\(.*\)/, '').trim())) {
+                                    currentQuestion.type = 'short_answer';
+                                    break;
+                                }
+                            }
+
+                            inQuestionBlock = true;
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (matched) continue;
+
+                    // If we're in a question block, check for options
+                    if (inQuestionBlock && currentQuestion) {
+                        // Check for option patterns
+                        for (const pattern of optionPatterns) {
+                            const match = line.match(pattern);
+                            if (match) {
+                                const optionLetter = match[1].toUpperCase();
+                                const optionText = match[2];
+
+                                // Add option if it's multiple choice
+                                if (currentQuestion.type === 'multiple_choice') {
+                                    currentQuestion.options.push(optionText);
+                                }
+
+                                matched = true;
+                                break;
+                            }
+                        }
+
+                        if (matched) continue;
+
+                        // Check for correct answer patterns
+                        for (const pattern of correctAnswerPatterns) {
+                            const match = line.match(pattern);
+                            if (match) {
+                                const answer = match[1].toUpperCase();
+
+                                if (currentQuestion.type === 'multiple_choice') {
+                                    // Convert A,B,C,D to 0,1,2,3
+                                    const optionIndex = 'ABCD'.indexOf(answer);
+                                    if (optionIndex !== -1) {
+                                        currentQuestion.correctAnswer = optionIndex;
+                                    }
+                                } else if (currentQuestion.type === 'true_false') {
+                                    currentQuestion.correctAnswer = answer === 'TRUE';
+                                } else if (currentQuestion.type === 'short_answer') {
+                                    // For short answer, look for the answer in subsequent lines
+                                    let answerText = line.replace(pattern, '').trim();
+                                    if (!answerText) {
+                                        // Check next line for answer text
+                                        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+                                            const nextLine = lines[j];
+                                            if (nextLine && nextLine.trim().length > 0 &&
+                                                !nextLine.match(/correct|answer|key/i) &&
+                                                !nextLine.match(questionPatterns[0]) &&
+                                                !nextLine.match(optionPatterns[0])) {
+                                                answerText = nextLine.trim();
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (answerText) {
+                                        currentQuestion.correctAnswer = answerText;
+                                    }
+                                }
+
+                                matched = true;
+                                break;
+                            }
+                        }
+
+                        if (matched) continue;
+
+                        // If line doesn't match any pattern but we're in a question block and it's not empty,
+                        // and it doesn't look like the start of a new question, add it to the current question
+                        if (line.length > 0 &&
+                            !line.match(questionPatterns[0]) &&
+                            !line.match(/^\s*$/)) {
+
+                            // If it's a short answer question and we don't have a correct answer yet,
+                            // this might be the answer
+                            if (currentQuestion.type === 'short_answer' && !currentQuestion.correctAnswer) {
+                                currentQuestion.correctAnswer = line;
+                            }
+                            // Otherwise, append to question text if it seems like continuation
+                            else if (currentQuestion.question.length < 200) { // Limit to avoid capturing too much
+                                currentQuestion.question += ' ' + line;
+                            }
+                        }
+                    }
+
+                    // Check for end of question block (empty line or new question)
+                    if (inQuestionBlock && (line === '' || i === lines.length - 1)) {
+                        if (currentQuestion && currentQuestion.question && currentQuestion.question.trim().length > 0) {
+                            finalizeQuestion(currentQuestion);
+                            questions.push(currentQuestion);
+                            currentQuestion = null;
+                        }
+                        inQuestionBlock = false;
+                    }
+                }
+
+                // Add the last question if it exists
+                if (currentQuestion && currentQuestion.question && currentQuestion.question.trim().length > 0) {
+                    finalizeQuestion(currentQuestion);
+                    questions.push(currentQuestion);
+                }
+
+                // Final cleanup and validation
+                function finalizeQuestion(q) {
+                    // Trim question text
+                    q.question = q.question.trim();
+
+                    // Auto-detect question type if not set
+                    if (!q.type || q.type === 'multiple_choice') {
+                        if (q.question.match(/true\s*\/\s*false|true\s*or\s*false|t\s*\/\s*f/i)) {
+                            q.type = 'true_false';
+                        } else if (q.question.match(/explain|describe|what\s*is\s*your|opinion|briefly|in\s*your\s*own\s*words/i)) {
+                            q.type = 'short_answer';
+                        }
+                    }
+
+                    // For multiple choice, ensure we have at least 2 options
+                    if (q.type === 'multiple_choice' && q.options.length < 2) {
+                        q.type = 'short_answer';
+                        q.options = [];
+                    }
+
+                    // For true/false, set default options if missing
+                    if (q.type === 'true_false' && !q.correctAnswer) {
+                        // Try to infer from question text
+                        if (q.question.toLowerCase().includes('not ') ||
+                            q.question.toLowerCase().includes('never ') ||
+                            q.question.toLowerCase().includes('false')) {
+                            q.correctAnswer = false;
+                        } else if (q.question.toLowerCase().includes('true') ||
+                            q.question.toLowerCase().includes('correct') ||
+                            q.question.toLowerCase().includes('yes')) {
+                            q.correctAnswer = true;
+                        }
+                    }
+
+                    // For short answer, ensure we have a correct answer
+                    if (q.type === 'short_answer' && !q.correctAnswer) {
+                        q.correctAnswer = "Answer not specified in document";
+                    }
+
+                    // Ensure points field exists
+                    if (!q.points && !q.marks) {
+                        q.points = 1;
+                    } else if (q.marks && !q.points) {
+                        q.points = q.marks;
+                    }
+
+                    console.log("Finalized question:", q); // Debug log
+                }
+
+                console.log(`Found ${questions.length} questions in text content`);
+                return questions;
+            }
+
+            function alternativeParseTextQuestions(content) {
+                console.log("Trying alternative parser...");
+                const questions = [];
+                const blocks = content.split(/\n\s*\n/); // Split by empty lines
+
+                for (const block of blocks) {
+                    const lines = block.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                    if (lines.length < 2) continue;
+
+                    // Look for blocks that have a question-like first line
+                    const firstLine = lines[0];
+                    if (firstLine.match(/\d+[\.\)]|Q\d|Question|^[A-Z]/) && firstLine.length > 10) {
+                        const question = {
+                            question: firstLine,
+                            type: 'multiple_choice',
+                            options: [],
+                            correctAnswer: null,
+                            points: 1
+                        };
+
+                        // Look for options in subsequent lines
+                        for (let i = 1; i < lines.length; i++) {
+                            const line = lines[i];
+                            const optionMatch = line.match(/^([A-D])[\.\)]\s+(.+)/i);
+                            if (optionMatch) {
+                                question.options.push(optionMatch[2]);
+                            }
+
+                            // Look for correct answer
+                            const correctMatch = line.match(/correct\s*[:\-]?\s*([A-D])/i);
+                            if (correctMatch) {
+                                const optionIndex = 'ABCD'.indexOf(correctMatch[1].toUpperCase());
+                                if (optionIndex !== -1) {
+                                    question.correctAnswer = optionIndex;
+                                }
+                            }
+                        }
+
+                        // If we found options, it's a valid question
+                        if (question.options.length >= 2) {
+                            questions.push(question);
+                        } else {
+                            // If no options but it looks like a question, treat as short answer
+                            question.type = 'short_answer';
+                            question.correctAnswer = "Answer not specified";
+                            questions.push(question);
+                        }
+                    }
+                }
+
+                console.log(`Alternative parser found ${questions.length} questions`);
+                return questions;
+            }
+
+            function parseCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+
+                result.push(current);
+                return result;
+            }
+
+            function standardizeQuestion(rawQuestion) {
+                // Normalize keys to handle different naming conventions
+                const normalized = {};
+                Object.keys(rawQuestion).forEach(key => {
+                    const normalizedKey = key.toLowerCase()
+                        .replace(/\s+/g, '')
+                        .replace('_', '')
+                        .replace('-', '');
+                    normalized[normalizedKey] = rawQuestion[key];
+                });
+
+                // Basic validation
+                if (!normalized.question) {
+                    return null;
+                }
+
+                const question = {
+                    question: normalized.question,
+                    type: (normalized.type || 'multiple_choice').toLowerCase(),
+                    points: parseInt(normalized.points) || 1
+                };
+
+                switch (question.type) {
+                    case 'multiple_choice':
+                        if (normalized.options) {
+                            if (Array.isArray(normalized.options)) {
+                                question.options = normalized.options;
+                            } else {
+                                question.options = normalized.options.split(';').map(opt => opt.trim());
+                            }
+                        }
+
+                        // Handle correct answer (could be index or letter)
+                        if (normalized.correctanswer !== undefined) {
+                            let correctAnswer = normalized.correctanswer;
+                            if (typeof correctAnswer === 'string') {
+                                // Check if it's a letter (A, B, C, D)
+                                const letterIndex = 'ABCD'.indexOf(correctAnswer.toUpperCase());
+                                if (letterIndex !== -1) {
+                                    correctAnswer = letterIndex;
+                                } else {
+                                    correctAnswer = parseInt(correctAnswer);
+                                }
+                            }
+                            question.correctAnswer = correctAnswer;
+                        }
+                        break;
+
+                    case 'true_false':
+                        if (normalized.correctanswer !== undefined) {
+                            let correctAnswer = normalized.correctanswer;
+                            if (typeof correctAnswer === 'string') {
+                                correctAnswer = correctAnswer.toLowerCase() === 'true' || correctAnswer === '1';
+                            }
+                            question.correctAnswer = correctAnswer;
+                        }
+                        break;
+
+                    case 'short_answer':
+                        if (normalized.correctanswer !== undefined) {
+                            question.correctAnswer = normalized.correctanswer.toString();
+                        }
+                        break;
+
+                    default:
+                        return null;
+                }
+
+                return question;
+            }
+
+            function showStatus(message, type, error = null) {
+                const statusDiv = document.getElementById('uploadStatus');
+                let errorDetails = '';
+
+                if (error && type === 'danger') {
+                    errorDetails = `
+                    <div class="error-details mt-2">
+                        <strong>Technical Details:</strong><br>
+                        ${error.message || 'No additional details available'}
+                        ${error.stack ? `<br><small>${error.stack.split('\n')[0]}</small>` : ''}
+                    </div>
+                `;
+                }
+
+                statusDiv.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    ${errorDetails}
+                </div>
+            `;
+            }
+
+            function clearAllQuestions(showConfirm = true) {
+                if (showConfirm) {
+                    if (!confirm('Are you sure you want to clear all questions? This action cannot be undone.')) {
+                        return;
+                    }
+                }
+
+                const questionsContainer = document.getElementById('questionsContainer');
+                if (questionsContainer) {
+                    questionsContainer.innerHTML = '';
+                    questionCount = 0;
+                    updateQuestionsCount();
+                }
+            }
+
+            function addQuestionsFromArray(questionsArray) {
+                if (!questionsArray || !Array.isArray(questionsArray)) {
+                    console.error('Invalid questions array:', questionsArray);
+                    return;
+                }
+
+                questionsArray.forEach((q, index) => {
+                    addQuestion();
+
+                    const questionsContainer = document.getElementById('questionsContainer');
+                    const questionElement = questionsContainer.lastElementChild;
+
+                    if (questionElement && q.question) {
+                        const questionText = questionElement.querySelector('.question-text');
+                        if (questionText) {
+                            questionText.value = q.question;
+                        }
+
+                        const typeSelect = questionElement.querySelector('.question-type');
+                        if (typeSelect && q.type) {
+                            typeSelect.value = q.type;
+
+                            const event = new Event('change');
+                            typeSelect.dispatchEvent(event);
+
+                            setTimeout(() => {
+                                setQuestionData(questionElement, q);
+                            }, 100);
+                        }
+
+                        // Set points
+                        const pointsInput = questionElement.querySelector('.question-points');
+                        if (pointsInput && (q.points || q.marks)) {
+                            pointsInput.value = q.points || q.marks;
+                        }
+                    }
+                });
+            }
+
+            function setQuestionData(questionElement, questionData) {
+                const correctAnswerElement = questionElement.querySelector('.correct-answer');
+                if (!correctAnswerElement) return;
+
+                switch (questionData.type) {
+                    case 'multiple_choice':
+                        const optionsList = questionElement.querySelector('.options-list');
+                        if (optionsList && questionData.options && Array.isArray(questionData.options)) {
+                            optionsList.innerHTML = '';
+
+                            questionData.options.forEach((option, optIndex) => {
+                                addOption(questionElement);
+                                const optionInputs = questionElement.querySelectorAll('.option-text');
+                                if (optionInputs[optIndex]) {
+                                    optionInputs[optIndex].value = option;
+                                    optionInputs[optIndex].dispatchEvent(new Event('input'));
+                                }
+                            });
+
+                            setTimeout(() => {
+                                if (correctAnswerElement && questionData.correctAnswer !== undefined) {
+                                    let correctAnswer = questionData.correctAnswer;
+                                    if (typeof correctAnswer === 'string') {
+                                        correctAnswer = parseInt(correctAnswer);
+                                    }
+                                    if (!isNaN(correctAnswer) && correctAnswer >= 0) {
+                                        correctAnswerElement.value = correctAnswer;
+                                    }
+                                }
+                            }, 200);
+                        }
+                        break;
+
+                    case 'true_false':
+                        if (questionData.correctAnswer !== undefined) {
+                            let correctAnswer = questionData.correctAnswer;
+                            if (typeof correctAnswer === 'string') {
+                                correctAnswer = correctAnswer.toLowerCase() === 'true';
+                            }
+                            correctAnswerElement.value = correctAnswer.toString();
+                        }
+                        break;
+
+                    case 'short_answer':
+                        if (questionData.correctAnswer) {
+                            correctAnswerElement.value = questionData.correctAnswer;
+                        }
+                        break;
+                }
+            }
+
+            // Initialize questions count
+            updateQuestionsCount();
+        </script>
+</body>
+
+</html>

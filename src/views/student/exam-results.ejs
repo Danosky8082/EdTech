@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+
+        .result-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card result-card">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="mb-0"><i class="fas fa-chart-bar"></i> Exam Results</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <h4 class="text-primary">
+                                <%= exam.title %>
+                            </h4>
+                            <p class="text-muted">
+                                <%= exam.description %>
+                            </p>
+
+                            <div class="score-circle mb-4">
+                                <%= attempt.score || 0 %>/<%= totalMarks || 100 %>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Percentage</h6>
+                                            <h4 class="text-primary">
+                                                <%= percentage %>%
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Time Spent</h6>
+                                            <h4 class="text-primary">
+                                                <% if (attempt.timeSpent) { %>
+                                                    <%= Math.floor(attempt.timeSpent / 60) %>m <%= attempt.timeSpent %
+                                                            60 %>s
+                                                            <% } else { %>
+                                                                N/A
+                                                                <% } %>
+                                            </h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <% if (attempt.status==='published' || attempt.status==='graded' ) { %>
+                                    <div class="score-circle graded mb-4">
+                                        <%= attempt.score || 0 %>/<%= totalMarks %>
+                                    </div>
+                                    <h4 class="text-success mb-3">
+                                        <%= percentage %>%
+                                    </h4>
+                            
+                                    <% if (attempt.teacherFeedback) { %>
+                                        <div class="alert alert-info mt-3">
+                                            <h5><i class="fas fa-comment"></i> Teacher Feedback</h5>
+                                            <p class="mb-0">
+                                                <%= attempt.teacherFeedback %>
+                                            </p>
+                                        </div>
+                                        <% } %>
+                            
+                                            <% if (attempt.gradedAt) { %>
+                                                <small class="text-muted">
+                                                    Graded on: <%= new Date(attempt.gradedAt).toLocaleDateString() %>
+                                                </small>
+                                                <% } %>
+                                                    <% } else if (attempt.status==='submitted' ) { %>
+                                                        <div class="text-center py-4">
+                                                            <div class="score-circle submitted mb-4">
+                                                                <i class="fas fa-clock fa-2x"></i>
+                                                            </div>
+                                                            <h4 class="text-warning">Under Review</h4>
+                                                            <p class="text-muted">Your exam has been submitted and is waiting for teacher grading.
+                                                            </p>
+                                                            <div class="alert alert-warning">
+                                                                <i class="fas fa-info-circle"></i>
+                                                                You will be notified when your results are available.
+                                                            </div>
+                                                        </div>
+                                                        <% } %>
+                            </div>
+
+                            <div class="exam-details mb-4">
+                                <h5>Exam Details</h5>
+                                <div class="row text-start">
+                                    <div class="col-md-6">
+                                        <p><strong>Class:</strong>
+                                            <%= exam.class.name %>
+                                        </p>
+                                        <p><strong>Exam Date:</strong>
+                                            <%= new Date(exam.date).toLocaleDateString() %>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Duration:</strong>
+                                            <%= exam.duration %> minutes
+                                        </p>
+                                        <p><strong>Submitted:</strong>
+                                            <%= attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleString()
+                                                : 'Not submitted' %>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-center gap-3">
+                                <a href="/student/class/<%= exam.class.id %>/exams" class="btn btn-outline-primary">
+                                    <i class="fas fa-arrow-left"></i> Back to Exams
+                                </a>
+                                <a href="/student/dashboard" class="btn btn-primary">
+                                    <i class="fas fa-home"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

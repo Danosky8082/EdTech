@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EduTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .assignment-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .submission-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .submission-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .edit-due-date-btn {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .edit-due-date-btn:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- Assignment Header -->
+                <div class="assignment-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h1><i class="fas fa-tasks me-2"></i>
+                                <%= assignment.title %>
+                            </h1>
+                            <p class="lead mb-2">
+                                <%= assignment.class.name %> - Grade <%= assignment.class.grade %>-<%=
+                                            assignment.class.section %>
+                            </p>
+                            <p class="mb-1">Created by: <%= assignment.teacher.user.firstName %>
+                                    <%= assignment.teacher.user.lastName %>
+                            </p>
+                            <p class="mb-0">Due: <span id="dueDateDisplay">
+                                    <%= new Date(assignment.dueDate).toLocaleString() %>
+                                </span>
+                                <button class="btn btn-sm edit-due-date-btn ms-2" id="editDueDateBtn">
+                                    <i class="fas fa-edit me-1"></i> Edit Due Date
+                                </button>
+                            </p>
+                        </div>
+                        <a href="/teacher/assignments" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Assignments
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Assignment Details -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Assignment Details</h5>
+                                <button class="btn btn-sm btn-outline-primary" id="editAssignmentBtn">
+                                    <i class="fas fa-edit me-1"></i> Edit Assignment
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <% if (assignment.description) { %>
+                                    <h6>Description:</h6>
+                                    <p class="mb-4">
+                                        <%= assignment.description %>
+                                    </p>
+                                    <% } %>
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Due Date:</h6>
+                                                <p
+                                                    class="text-<%= new Date() > new Date(assignment.dueDate) ? 'danger' : 'success' %>">
+                                                    <strong id="dueDateText">
+                                                        <%= new Date(assignment.dueDate).toLocaleString() %>
+                                                    </strong>
+                                                </p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Status:</h6>
+                                                <% const isOverdue=new Date()> new Date(assignment.dueDate);
+                                                    const statusClass = isOverdue ? 'bg-secondary' : 'bg-success';
+                                                    const statusText = isOverdue ? 'Closed' : 'Open';
+                                                    %>
+                                                    <span class="badge <%= statusClass %> status-badge"
+                                                        id="statusBadge">
+                                                        <%= statusText %>
+                                                    </span>
+                                            </div>
+                                        </div>
+                            </div>
+                        </div>
+
+                        <!-- Submissions -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-file-upload me-2"></i>Submissions</h5>
+                                <span class="badge bg-primary rounded-pill">
+                                    <%= assignment.submissions.length %> submissions
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <% if (assignment.submissions && assignment.submissions.length> 0) { %>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Student</th>
+                                                    <th>Submitted</th>
+                                                    <th>Grade</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% assignment.submissions.forEach(function(submission) { %>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <% if (submission.student.user.avatar) { %>
+                                                                    <img src="/<%= submission.student.user.avatar %>"
+                                                                        alt="Profile" class="rounded-circle me-2"
+                                                                        style="width: 32px; height: 32px; object-fit: cover;"
+                                                                        onerror="this.style.display='none'">
+                                                                    <% } %>
+                                                                        <div>
+                                                                            <%= submission.student.user.firstName %>
+                                                                                <%= submission.student.user.lastName %>
+                                                                                    <br>
+                                                                                    <small class="text-muted">
+                                                                                        <%= submission.student.user.idNumber
+                                                                                            %>
+                                                                                    </small>
+                                                                        </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <%= new Date(submission.submittedAt).toLocaleDateString() %>
+                                                                <br>
+                                                                <small class="text-muted">
+                                                                    <%= new
+                                                                        Date(submission.submittedAt).toLocaleTimeString()
+                                                                        %>
+                                                                </small>
+                                                        </td>
+                                                        <td>
+                                                            <% if (submission.grade !==null) { %>
+                                                                <span class="badge bg-success">
+                                                                    <%= submission.grade %>
+                                                                </span>
+                                                                <% } else { %>
+                                                                    <span class="badge bg-secondary">Not graded</span>
+                                                                    <% } %>
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                class="badge bg-<%= submission.grade !== null ? 'success' : 'warning' %>">
+                                                                <%= submission.grade !==null ? 'Graded' : 'Pending' %>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <a href="/teacher/grading?assignment=<%= assignment.id %>&student=<%= submission.student.id %>"
+                                                                class="btn btn-sm btn-outline-primary">
+                                                                <i class="fas fa-edit me-1"></i> Grade
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    <% }); %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <% } else { %>
+                                        <div class="text-center py-4">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                            <h5>No Submissions Yet</h5>
+                                            <p class="text-muted">Students haven't submitted any work for this
+                                                assignment yet.</p>
+                                        </div>
+                                        <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <% const totalStudents=assignment.class.enrollments ?
+                                    assignment.class.enrollments.length : 0; const submissionRate=totalStudents> 0 ?
+                                    (assignment.submissions.length / totalStudents) * 100 : 0;
+                                    const gradedSubmissions = assignment.submissions.filter(s => s.grade !==
+                                    null).length;
+                                    const gradingProgress = assignment.submissions.length > 0 ? (gradedSubmissions /
+                                    assignment.submissions.length)
+                                    * 100 : 0;
+                                    %>
+
+                                    <div class="mb-3">
+                                        <h6>Submission Rate</h6>
+                                        <div class="progress mb-2" style="height: 20px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                style="--width: <%= submissionRate %>; width: var(--width)%;"
+                                                aria-valuenow="<%= submissionRate %>" aria-valuemin="0"
+                                                aria-valuemax="100">
+                                                <%= Math.round(submissionRate) %>%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <%= assignment.submissions.length %> of <%= totalStudents %> students submitted
+                                    </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <h6>Grading Progress</h6>
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                        style="width: <%= gradingProgress %>%;" aria-valuenow="<%= gradingProgress %>"
+                                        aria-valuemin="0" aria-valuemax="100">
+                                        <%= Math.round(gradingProgress) %>%
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    <%= gradedSubmissions %> of <%= assignment.submissions.length %> submissions graded
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/teacher/grading?assignment=<%= assignment.id %>"
+                                    class="btn btn-primary w-100 mb-2">
+                                    <i class="fas fa-check-circle me-1"></i> Grade Submissions
+                                </a>
+                                <button class="btn btn-outline-success w-100 mb-2" id="editAssignmentBtn2">
+                                    <i class="fas fa-edit me-1"></i> Edit Assignment
+                                </button>
+                                <a href="/teacher/assignments" class="btn btn-outline-secondary w-100 mb-2">
+                                    <i class="fas fa-list me-1"></i> All Assignments
+                                </a>
+                                <a href="/teacher/class/<%= assignment.class.id %>" class="btn btn-outline-info w-100">
+                                    <i class="fas fa-chalkboard me-1"></i> View Class
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- Edit Due Date Modal -->
+        <div class="modal fade" id="editDueDateModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-calendar-edit me-2"></i>Edit Due Date</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editDueDateForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="assignmentId" value="<%= assignment.id %>">
+                            <div class="mb-3">
+                                <label class="form-label">New Due Date *</label>
+                                <input type="datetime-local" class="form-control" id="newDueDate" name="dueDate"
+                                    required value="<%= new Date(assignment.dueDate).toISOString().slice(0,16) %>">
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Changing the due date will affect the assignment status and student notifications.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i> Update Due Date
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Assignment Modal -->
+        <div class="modal fade" id="editAssignmentModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Assignment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editAssignmentForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="editAssignmentId" value="<%= assignment.id %>">
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Assignment Title *</label>
+                                    <input type="text" class="form-control" id="editTitle" name="title" required
+                                        value="<%= assignment.title %>">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Due Date *</label>
+                                    <input type="datetime-local" class="form-control" id="editDueDate" name="dueDate"
+                                        required value="<%= new Date(assignment.dueDate).toISOString().slice(0,16) %>">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="editDescription" name="description" rows="3"
+                                    placeholder="Optional assignment description"><%= assignment.description || '' %></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Class *</label>
+                                <select class="form-select" id="editClassId" name="classId" required>
+                                    <% classes.forEach(cls=> { %>
+                                        <option value="<%= cls.id %>" <%=assignment.classId===cls.id ? 'selected' : ''
+                                            %>>
+                                            <%= cls.name %> - Grade <%= cls.grade %>-<%= cls.section %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i> Update Assignment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Set minimum datetime for due date inputs
+                const now = new Date();
+                const minDateTime = now.toISOString().slice(0, 16);
+                document.getElementById('newDueDate').min = minDateTime;
+                document.getElementById('editDueDate').min = minDateTime;
+
+                // Edit due date button
+                document.getElementById('editDueDateBtn').addEventListener('click', function () {
+                    const editDueDateModal = new bootstrap.Modal(document.getElementById('editDueDateModal'));
+                    editDueDateModal.show();
+                });
+
+                // Edit assignment buttons
+                document.getElementById('editAssignmentBtn').addEventListener('click', function () {
+                    const editAssignmentModal = new bootstrap.Modal(document.getElementById('editAssignmentModal'));
+                    editAssignmentModal.show();
+                });
+
+                document.getElementById('editAssignmentBtn2').addEventListener('click', function () {
+                    const editAssignmentModal = new bootstrap.Modal(document.getElementById('editAssignmentModal'));
+                    editAssignmentModal.show();
+                });
+
+                // Handle due date form submission
+                document.getElementById('editDueDateForm').addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const assignmentId = document.getElementById('assignmentId').value;
+                    const newDueDate = document.getElementById('newDueDate').value;
+
+                    try {
+                        const response = await fetch(`/teacher/assignments/update/${assignmentId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                title: '<%= assignment.title %>',
+                                description: '<%= assignment.description || "" %>',
+                                dueDate: newDueDate,
+                                classId: '<%= assignment.classId %>'
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            alert('Due date updated successfully!');
+
+                            // Update the displayed due date
+                            const newDate = new Date(newDueDate);
+                            document.getElementById('dueDateDisplay').textContent = newDate.toLocaleString();
+                            document.getElementById('dueDateText').textContent = newDate.toLocaleString();
+
+                            // Update status badge
+                            const isOverdue = new Date() > newDate;
+                            const statusBadge = document.getElementById('statusBadge');
+                            statusBadge.textContent = isOverdue ? 'Closed' : 'Open';
+                            statusBadge.className = `badge ${isOverdue ? 'bg-secondary' : 'bg-success'} status-badge`;
+
+                            // Close modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('editDueDateModal'));
+                            modal.hide();
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating the due date');
+                    }
+                });
+
+                // Handle assignment edit form submission
+                document.getElementById('editAssignmentForm').addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const assignmentId = document.getElementById('editAssignmentId').value;
+                    const formData = new FormData(this);
+
+                    try {
+                        const response = await fetch(`/teacher/assignments/update/${assignmentId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                title: formData.get('title'),
+                                description: formData.get('description'),
+                                dueDate: formData.get('dueDate'),
+                                classId: formData.get('classId')
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            alert('Assignment updated successfully!');
+                            location.reload(); // Reload to see all changes
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating the assignment');
+                    }
+                });
+            });
+        </script>
+</body>
+
+</html>

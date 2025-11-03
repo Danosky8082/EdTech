@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - Class Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card {
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .badge {
+            font-size: 0.8rem;
+        }
+
+        .form-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Class Management</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                        <i class="fas fa-plus"></i> Create Class
+                    </button>
+                </div>
+
+                <div class="row">
+                    <% if (classes && classes.length> 0) { %>
+                        <% classes.forEach(cls=> { %>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">
+                                            <%= cls.name %>
+                                        </h5>
+                                        <span class="badge bg-secondary">
+                                            <%= cls.grade %>-<%= cls.section %>
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Teacher:</strong>
+                                            <%= cls.teacher.user.firstName %>
+                                                <%= cls.teacher.user.lastName %>
+                                        </p>
+                                        <p><strong>Students:</strong>
+                                            <%= cls.enrollments.length %>
+                                        </p>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editClass('<%= cls.id %>')">Edit</button>
+                                            <a href="/admin/classes/<%= cls.id %>/enroll"
+                                                class="btn btn-sm btn-outline-info">
+                                                Manage Students</a>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteClass('<%= cls.id %>')">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }) %>
+                                <% } else { %>
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            No classes found. Create your first class to get started.
+                                        </div>
+                                    </div>
+                                    <% } %>
+                </div>
+        </div>
+
+        <!-- Create Class Modal -->
+        <div class="modal fade" id="createClassModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="/admin/classes/create" method="POST" id="createClassForm">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Class Name *</label>
+                                <input type="text" class="form-control" id="className" name="name" readonly>
+                                <div class="form-text">Class name will be automatically generated from Grade and Section
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Grade / Class *</label>
+                                    <input type="text" class="form-control" id="grade" name="grade" required
+                                        placeholder="e.g., JSS 2, Primary 5">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Section *</label>
+                                    <input type="text" class="form-control" id="section" name="section" required
+                                        placeholder="e.g., A, B, C">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Teacher *</label>
+                                <select class="form-select" name="teacherId" required>
+                                    <option value="">Select Teacher</option>
+                                    <% teachers.forEach(teacher=> { %>
+                                        <option value="<%= teacher.id %>">
+                                            <%= teacher.user.firstName %>
+                                                <%= teacher.user.lastName %> - <%= teacher.subject %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Class</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Class Modal -->
+        <div class="modal fade" id="editClassModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editClassForm" method="POST">
+                        <div class="modal-body" id="editClassModalBody">
+                            <!-- Content will be loaded dynamically -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Class</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Function to update class name based on grade and section
+            function updateClassName() {
+                const grade = document.getElementById('grade') ? document.getElementById('grade').value : '';
+                const section = document.getElementById('section') ? document.getElementById('section').value : '';
+
+                if (grade && section) {
+                    document.getElementById('className').value = `${grade} ${section}`;
+                } else {
+                    document.getElementById('className').value = '';
+                }
+            }
+
+            // Add event listeners to grade and section inputs
+            document.addEventListener('DOMContentLoaded', function () {
+                const gradeInput = document.getElementById('grade');
+                const sectionInput = document.getElementById('section');
+
+                if (gradeInput) {
+                    gradeInput.addEventListener('input', updateClassName);
+                }
+
+                if (sectionInput) {
+                    sectionInput.addEventListener('input', updateClassName);
+                }
+
+                // Also update when modal is shown (in case of pre-filled values)
+                const createModal = document.getElementById('createClassModal');
+                if (createModal) {
+                    createModal.addEventListener('shown.bs.modal', updateClassName);
+                }
+            });
+
+            // Edit class function - UPDATED VERSION with class name generation
+            async function editClass(classId) {
+                try {
+                    const response = await fetch(`/admin/classes/${classId}/edit`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const cls = result.class;
+                        const modalBody = document.getElementById('editClassModalBody');
+
+                        modalBody.innerHTML = `
+                            <div class="mb-3">
+                                <label class="form-label">Class Name *</label>
+                                <input type="text" class="form-control" id="editClassName" name="name" value="${cls.name}" readonly>
+                                <div class="form-text">Class name is generated from Grade and Section</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Grade/Class *</label>
+                                    <input type="text" class="form-control" id="editGrade" name="grade" value="${cls.grade}" required 
+                                        oninput="updateEditClassName()">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Section *</label>
+                                    <input type="text" class="form-control" id="editSection" name="section" value="${cls.section}" required 
+                                        oninput="updateEditClassName()">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Teacher *</label>
+                                <select class="form-select" name="teacherId" required>
+                                    <option value="">Select Teacher</option>
+                                    ${result.teachers.map(teacher => `
+                                        <option value="${teacher.id}" ${teacher.id === cls.teacherId ? 'selected' : ''}>
+                                            ${teacher.user.firstName} ${teacher.user.lastName} - ${teacher.subject}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <input type="hidden" name="classId" value="${cls.id}">
+                        `;
+
+                        const editClassForm = document.getElementById('editClassForm');
+
+                        // Remove any existing event listeners
+                        const newForm = editClassForm.cloneNode(true);
+                        editClassForm.parentNode.replaceChild(newForm, editClassForm);
+
+                        // Add new event listener
+                        newForm.addEventListener('submit', async function (event) {
+                            event.preventDefault();
+
+                            const formData = new FormData(newForm);
+                            const data = Object.fromEntries(formData.entries());
+
+                            try {
+                                const response = await fetch(`/admin/classes/${classId}/update`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                    },
+                                    body: new URLSearchParams(data).toString()
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success) {
+                                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editClassModal'));
+                                    editModal.hide();
+                                    alert(result.message);
+                                    location.reload();
+                                } else {
+                                    alert('Error: ' + result.message);
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                alert('An error occurred while updating the class');
+                            }
+                        });
+
+                        const editModal = new bootstrap.Modal(document.getElementById('editClassModal'));
+                        editModal.show();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while loading class data');
+                }
+            }
+
+            // Function to update class name in edit modal
+            function updateEditClassName() {
+                const grade = document.getElementById('editGrade') ? document.getElementById('editGrade').value : '';
+                const section = document.getElementById('editSection') ? document.getElementById('editSection').value : '';
+
+                if (grade && section) {
+                    document.getElementById('editClassName').value = `${grade} ${section}`;
+                }
+            }
+
+            // Delete class function
+            async function deleteClass(classId) {
+                if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/admin/classes/${classId}/delete`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the class');
+                }
+            }
+
+            // Add this function to handle form submission
+            async function handleEditFormSubmit(event) {
+                event.preventDefault();
+
+                const form = event.target;
+                const formData = new FormData(form);
+                const url = form.action;
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Close the modal
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editClassModal'));
+                        editModal.hide();
+
+                        // Show success message
+                        alert(result.message);
+
+                        // Reload the page to see changes
+                        location.reload();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating the class');
+                }
+            }
+
+            // Add this to your existing script to attach the event listener
+            document.addEventListener('DOMContentLoaded', function () {
+                const editClassForm = document.getElementById('editClassForm');
+                if (editClassForm) {
+                    editClassForm.addEventListener('submit', handleEditFormSubmit);
+                }
+            });
+        </script>
+</body>
+
+</html>

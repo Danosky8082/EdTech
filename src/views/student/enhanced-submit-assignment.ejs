@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <% if (submissionType==='text' ) { %>
+        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+        <% } %>
+            <style>
+                .editor-container {
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    min-height: 400px;
+                    padding: 15px;
+                }
+
+                .drawing-canvas {
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    background: white;
+                    cursor: crosshair;
+                    width: 100%;
+                }
+
+                .toolbar {
+                    background: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    padding: 10px;
+                    margin-bottom: 10px;
+                }
+
+                .submission-preview {
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    min-height: 200px;
+                }
+
+                .canvas-container {
+                    max-width: 100%;
+                    overflow: auto;
+                }
+            </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">
+                                    <i class="fas fa-upload me-2"></i>
+                                    Submit Assignment: <%= assignment.title %>
+                                </h4>
+                                <a href="/student/class/<%= assignment.class.id %>/assignments" class="btn btn-light">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to Assignments
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Assignment Info -->
+                            <div class="alert alert-info">
+                                <h6>
+                                    <%= assignment.title %>
+                                </h6>
+                                <% if (assignment.description) { %>
+                                    <p class="mb-1">
+                                        <%= assignment.description %>
+                                    </p>
+                                    <% } %>
+                                        <small><strong>Due:</strong>
+                                            <%= new Date(assignment.dueDate).toLocaleString() %>
+                                        </small>
+                                        <% if (new Date()> new Date(assignment.dueDate)) { %>
+                                            <br>
+                                            <small class="text-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                This assignment is past due
+                                            </small>
+                                            <% } %>
+                            </div>
+
+                            <% if (submissionType==='text' ) { %>
+                                <!-- Rich Text Editor -->
+                                <div id="textEditor">
+                                    <div id="editor" style="height: 400px;"></div>
+                                </div>
+                                <% } else if (submissionType==='drawing' ) { %>
+                                    <!-- Drawing Canvas -->
+                                    <div id="drawingCanvas">
+                                        <div class="toolbar mb-3">
+                                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                                    id="brushBtn">
+                                                    <i class="fas fa-paint-brush"></i> Brush
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    id="eraserBtn">
+                                                    <i class="fas fa-eraser"></i> Eraser
+                                                </button>
+                                                <div class="d-flex align-items-center">
+                                                    <label class="form-label mb-0 me-2">Color:</label>
+                                                    <input type="color" id="colorPicker"
+                                                        class="form-control form-control-color">
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <label class="form-label mb-0 me-2">Size:</label>
+                                                    <input type="range" id="brushSize" class="form-range" min="1"
+                                                        max="50" value="5" style="width: 100px;">
+                                                    <span class="ms-2" id="brushSizeValue">5</span>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                    id="clearCanvas">
+                                                    <i class="fas fa-trash"></i> Clear
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="canvas-container">
+                                            <canvas id="canvas" width="800" height="500"
+                                                style="border: 1px solid #ccc; cursor: crosshair; max-width: 100%;"></canvas>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <div class="mt-4">
+                                            <button type="button" id="submitBtn" class="btn btn-success btn-lg">
+                                                <i class="fas fa-paper-plane me-2"></i> Submit Assignment
+                                            </button>
+                                            <a href="/student/class/<%= assignment.class.id %>/assignments"
+                                                class="btn btn-secondary btn-lg ms-2">
+                                                <i class="fas fa-times me-2"></i> Cancel
+                                            </a>
+                                        </div>
+
+                                        <!-- Submission Guidelines -->
+                                        <div class="mt-4">
+                                            <div class="alert alert-warning">
+                                                <h6><i class="fas fa-info-circle me-2"></i>Submission Guidelines</h6>
+                                                <ul class="mb-0">
+                                                    <% if (submissionType==='text' ) { %>
+                                                        <li>Use the rich text editor to format your assignment</li>
+                                                        <li>You can include images, links, and formatted text</li>
+                                                        <li>Make sure to proofread your work before submitting</li>
+                                                        <% } else if (submissionType==='drawing' ) { %>
+                                                            <li>Use the drawing tools to create your submission</li>
+                                                            <li>You can change brush size, color, and use the eraser
+                                                            </li>
+                                                            <li>Clear the canvas if you want to start over</li>
+                                                            <% } %>
+                                                                <li>You can only submit once per assignment</li>
+                                                                <li>Your teacher will be notified of your submission
+                                                                </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (submissionType==='text' ) { %>
+            <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+            <% } %>
+
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                <script>
+                    const assignmentId = <%= assignment.id %>;
+                    const submissionType = '<%= submissionType %>';
+
+                    document.addEventListener('DOMContentLoaded', function () {
+                        if (submissionType === 'text') {
+                            initializeTextEditor();
+                        } else if (submissionType === 'drawing') {
+                            initializeDrawingCanvas();
+                        }
+
+                        document.getElementById('submitBtn').addEventListener('click', submitAssignment);
+                    });
+
+                    function initializeTextEditor() {
+                        const quill = new Quill('#editor', {
+                            theme: 'snow',
+                            modules: {
+                                toolbar: [
+                                    [{ 'header': [1, 2, 3, false] }],
+                                    ['bold', 'italic', 'underline'],
+                                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                    ['link', 'image'],
+                                    ['clean']
+                                ]
+                            },
+                            placeholder: 'Write your assignment here...'
+                        });
+
+                        window.quill = quill;
+                    }
+
+                    function initializeDrawingCanvas() {
+                        const canvas = document.getElementById('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const brushSizeInput = document.getElementById('brushSize');
+                        const brushSizeValue = document.getElementById('brushSizeValue');
+                        let isDrawing = false;
+                        let lastX = 0;
+                        let lastY = 0;
+                        let currentTool = 'brush';
+                        let currentColor = '#000000';
+                        let brushSize = 5;
+
+                        // Set canvas background to white
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        // Update brush size display
+                        brushSizeInput.addEventListener('input', function () {
+                            brushSize = this.value;
+                            brushSizeValue.textContent = brushSize;
+                        });
+
+                        // Tool buttons
+                        document.getElementById('brushBtn').addEventListener('click', function () {
+                            currentTool = 'brush';
+                            this.classList.add('btn-primary');
+                            this.classList.remove('btn-outline-primary');
+                            document.getElementById('eraserBtn').classList.add('btn-outline-secondary');
+                            document.getElementById('eraserBtn').classList.remove('btn-secondary');
+                        });
+
+                        document.getElementById('eraserBtn').addEventListener('click', function () {
+                            currentTool = 'eraser';
+                            this.classList.add('btn-secondary');
+                            this.classList.remove('btn-outline-secondary');
+                            document.getElementById('brushBtn').classList.add('btn-outline-primary');
+                            document.getElementById('brushBtn').classList.remove('btn-primary');
+                        });
+
+                        document.getElementById('colorPicker').addEventListener('input', (e) => {
+                            currentColor = e.target.value;
+                        });
+
+                        document.getElementById('clearCanvas').addEventListener('click', () => {
+                            if (confirm('Are you sure you want to clear the canvas? This cannot be undone.')) {
+                                ctx.fillStyle = 'white';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            }
+                        });
+
+                        // Drawing functions
+                        canvas.addEventListener('mousedown', startDrawing);
+                        canvas.addEventListener('mousemove', draw);
+                        canvas.addEventListener('mouseup', stopDrawing);
+                        canvas.addEventListener('mouseout', stopDrawing);
+
+                        // Touch events for mobile devices
+                        canvas.addEventListener('touchstart', handleTouchStart);
+                        canvas.addEventListener('touchmove', handleTouchMove);
+                        canvas.addEventListener('touchend', stopDrawing);
+
+                        function startDrawing(e) {
+                            isDrawing = true;
+                            [lastX, lastY] = getCoordinates(e);
+                        }
+
+                        function draw(e) {
+                            if (!isDrawing) return;
+
+                            const [x, y] = getCoordinates(e);
+
+                            ctx.beginPath();
+                            ctx.moveTo(lastX, lastY);
+                            ctx.lineTo(x, y);
+
+                            if (currentTool === 'brush') {
+                                ctx.strokeStyle = currentColor;
+                            } else if (currentTool === 'eraser') {
+                                ctx.strokeStyle = 'white';
+                            }
+
+                            ctx.lineWidth = brushSize;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.stroke();
+
+                            [lastX, lastY] = [x, y];
+                        }
+
+                        function stopDrawing() {
+                            isDrawing = false;
+                        }
+
+                        function handleTouchStart(e) {
+                            e.preventDefault();
+                            const touch = e.touches[0];
+                            startDrawing(touch);
+                        }
+
+                        function handleTouchMove(e) {
+                            e.preventDefault();
+                            const touch = e.touches[0];
+                            draw(touch);
+                        }
+
+                        function getCoordinates(e) {
+                            const rect = canvas.getBoundingClientRect();
+                            let clientX, clientY;
+
+                            if (e.type.includes('touch')) {
+                                clientX = e.touches[0].clientX;
+                                clientY = e.touches[0].clientY;
+                            } else {
+                                clientX = e.clientX;
+                                clientY = e.clientY;
+                            }
+
+                            return [
+                                clientX - rect.left,
+                                clientY - rect.top
+                            ];
+                        }
+
+                        window.canvas = canvas;
+                    }
+
+                    async function submitAssignment() {
+                        let content = '';
+                        let title = '';
+
+                        if (submissionType === 'text') {
+                            content = window.quill.root.innerHTML;
+                            title = prompt('Please enter a title for your submission:', 'Text Assignment');
+                            if (!title) {
+                                alert('Please provide a title for your submission.');
+                                return;
+                            }
+                        } else if (submissionType === 'drawing') {
+                            content = window.canvas.toDataURL('image/png');
+                            title = prompt('Please enter a title for your drawing:', 'Drawing Assignment');
+                            if (!title) {
+                                alert('Please provide a title for your drawing.');
+                                return;
+                            }
+                        }
+
+                        if (!content || (submissionType === 'text' && content === '<p><br></p>')) {
+                            alert('Please provide your assignment content before submitting.');
+                            return;
+                        }
+
+                        // Check if assignment is past due
+                        const now = new Date();
+                        const dueDate = new Date('<%= assignment.dueDate %>');
+                        if (now > dueDate) {
+                            if (!confirm('This assignment is past due. Are you sure you want to submit?')) {
+                                return;
+                            }
+                        }
+
+                        try {
+                            let endpoint = '';
+                            let body = {};
+
+                            if (submissionType === 'text') {
+                                endpoint = `/student/assignments/${assignmentId}/submit-text`;
+                                body = {
+                                    title: title,
+                                    content: content
+                                };
+                            } else if (submissionType === 'drawing') {
+                                endpoint = `/student/assignments/${assignmentId}/submit-drawing`;
+                                body = {
+                                    title: title,
+                                    imageData: content
+                                };
+                            }
+
+                            const response = await fetch(endpoint, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(body)
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                alert('Assignment submitted successfully!');
+                                window.location.href = result.redirectUrl || `/student/class/<%= assignment.class.id %>/assignments`;
+                            } else {
+                                alert('Error: ' + result.message);
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('An error occurred while submitting the assignment.');
+                        }
+                    }
+                </script>
+</body>
+
+</html>

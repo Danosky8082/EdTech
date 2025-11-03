@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - <%= exam.title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>
+                            <%= exam.title %>
+                        </h2>
+                        <p class="text-muted mb-0">
+                            <%= exam.description %>
+                        </p>
+                    </div>
+                    <div class="btn-group">
+                        <a href="/teacher/exam/<%= exam.id %>/edit" class="btn btn-outline-warning">
+                            <i class="fas fa-edit"></i> Edit Exam
+                        </a>
+                        <a href="/teacher/exam/<%= exam.id %>/results" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar"></i> View Results
+                        </a>
+                        <a href="/teacher/exams" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Exams
+                        </a>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Exam Details -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Exam Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th width="40%">Class:</th>
+                                        <td>
+                                            <%= exam.class.name %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date & Time:</th>
+                                        <td>
+                                            <%= new Date(exam.date).toLocaleString() %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Duration:</th>
+                                        <td>
+                                            <%= exam.duration %> minutes
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>
+                                            <span
+                                                class="badge bg-<%= new Date() > new Date(exam.date) ? 'secondary' : 'success' %>">
+                                                <%= new Date()> new Date(exam.date) ? 'Completed' : 'Upcoming' %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Questions:</th>
+                                        <td>
+                                            <% if (exam.questions && Array.isArray(exam.questions)) { %>
+                                                <%= exam.questions.length %>
+                                                    <% } else { %>
+                                                        0
+                                                        <% } %>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Questions -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Exam Questions</h5>
+                                <span class="badge bg-primary">
+                                    <% if (exam.questions && Array.isArray(exam.questions)) { %>
+                                        <%= exam.questions.length %> Questions
+                                            <% } else { %>
+                                                0 Questions
+                                                <% } %>
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <% if (exam.questions && Array.isArray(exam.questions) && exam.questions.length> 0) { %>
+                                    <% exam.questions.forEach((question, index)=> { %>
+                                        <div class="question-card mb-4 p-3 border rounded">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="mb-0">Question <%= index + 1 %>
+                                                </h6>
+                                                <span class="badge bg-secondary">
+                                                    <%= question.type %>
+                                                </span>
+                                            </div>
+                                            <p class="mb-3">
+                                                <%= question.question %>
+                                            </p>
+
+                                            <% if (question.type==='multiple_choice' && question.options) { %>
+                                                <div class="options-list">
+                                                    <% question.options.forEach((option, optIndex)=> { %>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio"
+                                                                <%=optIndex===question.correctAnswer ? 'checked' : '' %>
+                                                            disabled>
+                                                            <label
+                                                                class="form-check-label <%= optIndex === question.correctAnswer ? 'text-success fw-bold' : '' %>">
+                                                                <%= option %>
+                                                                    <% if (optIndex===question.correctAnswer) { %>
+                                                                        <i class="fas fa-check ms-1"></i>
+                                                                        <% } %>
+                                                            </label>
+                                                        </div>
+                                                        <% }) %>
+                                                </div>
+                                                <% } else if (question.type==='true_false' ) { %>
+                                                    <div class="options-list">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio"
+                                                                <%=question.correctAnswer===true ? 'checked' : '' %>
+                                                            disabled>
+                                                            <label
+                                                                class="form-check-label <%= question.correctAnswer === true ? 'text-success fw-bold' : '' %>">
+                                                                True
+                                                                <% if (question.correctAnswer===true) { %>
+                                                                    <i class="fas fa-check ms-1"></i>
+                                                                    <% } %>
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio"
+                                                                <%=question.correctAnswer===false ? 'checked' : '' %>
+                                                            disabled>
+                                                            <label
+                                                                class="form-check-label <%= question.correctAnswer === false ? 'text-success fw-bold' : '' %>">
+                                                                False
+                                                                <% if (question.correctAnswer===false) { %>
+                                                                    <i class="fas fa-check ms-1"></i>
+                                                                    <% } %>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <% } else if (question.type==='short_answer' ) { %>
+                                                        <div class="correct-answer bg-light p-2 rounded">
+                                                            <strong>Correct Answer:</strong>
+                                                            <span class="text-success">
+                                                                <%= question.correctAnswer %>
+                                                            </span>
+                                                        </div>
+                                                        <% } %>
+                                        </div>
+                                        <% }) %>
+                                            <% } else { %>
+                                                <div class="text-center py-4">
+                                                    <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+                                                    <h5>No Questions Added</h5>
+                                                    <p class="text-muted">This exam doesn't have any questions yet.</p>
+                                                    <a href="/teacher/exam/<%= exam.id %>/edit" class="btn btn-primary">
+                                                        <i class="fas fa-plus"></i> Add Questions
+                                                    </a>
+                                                </div>
+                                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

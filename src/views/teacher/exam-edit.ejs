@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - Edit <%= exam.title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .question-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Edit Exam: <%= exam.title %>
+                    </h2>
+                    <div class="btn-group">
+                        <a href="/teacher/exam/<%= exam.id %>" class="btn btn-outline-primary">
+                            <i class="fas fa-eye"></i> View Exam
+                        </a>
+                        <a href="/teacher/exams" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Exams
+                        </a>
+                    </div>
+                </div>
+
+                <form id="editExamForm" action="/teacher/exam/<%= exam.id %>/update" method="POST">
+                    <div class="row">
+                        <!-- Basic Info -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">Basic Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Exam Title *</label>
+                                        <input type="text" class="form-control" name="title" value="<%= exam.title %>"
+                                            required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" name="description"
+                                            rows="2"><%= exam.description %></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Exam Date & Time *</label>
+                                            <input type="datetime-local" class="form-control" name="date"
+                                                value="<%= new Date(exam.date).toISOString().slice(0,16) %>" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Duration (minutes) *</label>
+                                            <input type="number" class="form-control" name="duration"
+                                                value="<%= exam.duration %>" min="1" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Class *</label>
+                                        <select class="form-select" name="classId" required>
+                                            <% classes.forEach(cls=> { %>
+                                                <option value="<%= cls.id %>" <%=cls.id===exam.classId ? 'selected' : ''
+                                                    %>>
+                                                    <%= cls.name %> - <%= cls.grade %>-<%= cls.section %>
+                                                </option>
+                                                <% }); %>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Questions -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Exam Questions</h5>
+                                    <button type="button" class="btn btn-success btn-sm" id="addQuestionBtn">
+                                        <i class="fas fa-plus"></i> Add Question
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="questionsContainer">
+                                        <!-- Questions will be populated by JavaScript -->
+                                    </div>
+                                    <input type="hidden" name="questions" id="questionsJson">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Update Exam
+                        </button>
+                        <a href="/teacher/exam/<%= exam.id %>" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+        </div>
+
+        <!-- Question Template -->
+        <div id="questionTemplate" class="d-none">
+            <div class="question-card" data-question-index="__INDEX__">
+                <div class="question-header">
+                    <h6 class="mb-0">Question <span class="question-number">__NUMBER__</span></h6>
+                    <button type="button" class="btn btn-danger btn-sm remove-question">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Question Text *</label>
+                    <textarea class="form-control question-text" rows="2" placeholder="Enter your question..."
+                        required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Question Type *</label>
+                    <select class="form-select question-type" required>
+                        <option value="multiple_choice">Multiple Choice</option>
+                        <option value="true_false">True/False</option>
+                        <option value="short_answer">Short Answer</option>
+                    </select>
+                </div>
+
+                <div class="options-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label mb-0">Options</label>
+                        <button type="button" class="btn btn-outline-primary btn-sm add-option">
+                            <i class="fas fa-plus"></i> Add Option
+                        </button>
+                    </div>
+                    <div class="options-list"></div>
+                </div>
+
+                <div class="correct-answer-section mt-3">
+                    <label class="form-label">Correct Answer *</label>
+                    <div class="correct-answer-input"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden div to store exam questions data -->
+        <div id="examQuestionsData" style="display: none;">
+            <%- JSON.stringify(exam.questions || []) %>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+   <script>
+    let questionCount = 0;
+
+    // Initialize with existing questions
+    document.addEventListener('DOMContentLoaded', function () {
+        // FIXED: Get questions data from hidden div instead of inline EJS
+        const examQuestionsDataElement = document.getElementById('examQuestionsData');
+        let examQuestions = [];
+
+        if (examQuestionsDataElement && examQuestionsDataElement.textContent) {
+            try {
+                examQuestions = JSON.parse(examQuestionsDataElement.textContent);
+            } catch (e) {
+                console.error('Error parsing exam questions:', e);
+                examQuestions = [];
+            }
+        }
+
+        console.log('Loaded questions:', examQuestions);
+
+        // Initialize event listeners
+        document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+        document.getElementById('editExamForm').addEventListener('submit', prepareFormData);
+
+        if (examQuestions && examQuestions.length > 0) {
+            examQuestions.forEach((question, index) => {
+                addQuestionFromData(question, index);
+            });
+        } else {
+            // Add one empty question if no questions exist
+            addQuestion();
+        }
+    });
+
+    function addQuestionFromData(questionData, index) {
+        questionCount++;
+        const template = document.getElementById('questionTemplate').innerHTML;
+        const questionHtml = template
+            .replace(/__INDEX__/g, questionCount)
+            .replace(/__NUMBER__/g, questionCount);
+
+        const div = document.createElement('div');
+        div.innerHTML = questionHtml;
+        const questionElement = div.firstElementChild;
+
+        if (questionElement) {
+            document.getElementById('questionsContainer').appendChild(questionElement);
+            initializeQuestion(questionElement);
+
+            // Populate with existing data
+            const questionText = questionElement.querySelector('.question-text');
+            const typeSelect = questionElement.querySelector('.question-type');
+
+            if (questionText && typeSelect) {
+                questionText.value = questionData.question || questionData.text || '';
+                typeSelect.value = questionData.type || 'multiple_choice';
+
+                // Trigger change to setup the correct UI
+                const event = new Event('change');
+                typeSelect.dispatchEvent(event);
+
+                // Populate the answer after a short delay to ensure UI is set up
+                setTimeout(() => {
+                    populateQuestionAnswer(questionElement, questionData);
+                }, 100);
+            }
+
+            updateQuestionNumbers();
+        }
+    }
+
+    function populateQuestionAnswer(questionElement, questionData) {
+        const correctAnswerElement = questionElement.querySelector('.correct-answer');
+        if (!correctAnswerElement) return;
+
+        if (questionData.type === 'multiple_choice') {
+            // Add options from data
+            if (questionData.options && Array.isArray(questionData.options)) {
+                questionData.options.forEach((option, index) => {
+                    addOption(questionElement);
+                    const optionInputs = questionElement.querySelectorAll('.option-text');
+                    if (optionInputs[index]) {
+                        // Handle both string options and object options
+                        optionInputs[index].value = typeof option === 'string' ? option : (option.text || option);
+                    }
+                });
+            }
+
+            // Set correct answer
+            if (questionData.correctAnswer !== undefined && questionData.correctAnswer !== null) {
+                correctAnswerElement.value = questionData.correctAnswer.toString();
+            }
+        } else if (questionData.type === 'true_false') {
+            correctAnswerElement.value = questionData.correctAnswer ? 'true' : 'false';
+        } else if (questionData.type === 'short_answer') {
+            correctAnswerElement.value = questionData.correctAnswer || '';
+        }
+    }
+
+    function addQuestion() {
+        console.log('Add Question button clicked');
+        questionCount++;
+        const template = document.getElementById('questionTemplate').innerHTML;
+        const questionHtml = template
+            .replace(/__INDEX__/g, questionCount)
+            .replace(/__NUMBER__/g, questionCount);
+
+        const div = document.createElement('div');
+        div.innerHTML = questionHtml;
+        const questionElement = div.firstElementChild;
+
+        if (questionElement) {
+            document.getElementById('questionsContainer').appendChild(questionElement);
+            initializeQuestion(questionElement);
+            updateQuestionNumbers();
+
+            // Force update of question type to ensure UI is properly set up
+            const typeSelect = questionElement.querySelector('.question-type');
+            if (typeSelect) {
+                const event = new Event('change');
+                typeSelect.dispatchEvent(event);
+            }
+        } else {
+            console.error('Failed to create question element');
+        }
+    }
+
+    function initializeQuestion(questionElement) {
+        const typeSelect = questionElement.querySelector('.question-type');
+        const optionsContainer = questionElement.querySelector('.options-container');
+        const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+        const removeBtn = questionElement.querySelector('.remove-question');
+        const addOptionBtn = questionElement.querySelector('.add-option');
+
+        if (!typeSelect || !optionsContainer || !correctAnswerSection || !removeBtn || !addOptionBtn) {
+            console.error('Required elements not found in question element');
+            return;
+        }
+
+        // Set up type change listener
+        typeSelect.addEventListener('change', function () {
+            updateQuestionType(questionElement);
+        });
+
+        // Set up remove button
+        removeBtn.addEventListener('click', function () {
+            if (confirm('Are you sure you want to remove this question?')) {
+                questionElement.remove();
+                updateQuestionNumbers();
+            }
+        });
+
+        // Set up add option button
+        addOptionBtn.addEventListener('click', function () {
+            addOption(questionElement);
+        });
+
+        // Initialize question type UI
+        updateQuestionType(questionElement);
+    }
+
+    function updateQuestionType(questionElement) {
+        const typeSelect = questionElement.querySelector('.question-type');
+        const optionsContainer = questionElement.querySelector('.options-container');
+        const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+
+        if (!typeSelect || !optionsContainer || !correctAnswerSection) {
+            console.error('Required elements not found in updateQuestionType');
+            return;
+        }
+
+        const type = typeSelect.value;
+
+        // Clear previous content
+        correctAnswerSection.innerHTML = '';
+
+        switch (type) {
+            case 'multiple_choice':
+                optionsContainer.style.display = 'block';
+                setupMultipleChoice(questionElement);
+                break;
+            case 'true_false':
+                optionsContainer.style.display = 'none';
+                setupTrueFalse(questionElement);
+                break;
+            case 'short_answer':
+                optionsContainer.style.display = 'none';
+                setupShortAnswer(questionElement);
+                break;
+        }
+    }
+
+    function setupMultipleChoice(questionElement) {
+        const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+        const optionsList = questionElement.querySelector('.options-list');
+        const addOptionBtn = questionElement.querySelector('.add-option');
+
+        if (!correctAnswerSection || !optionsList || !addOptionBtn) {
+            console.error('Required elements not found in setupMultipleChoice');
+            return;
+        }
+
+        // Clear and setup multiple choice UI
+        optionsList.innerHTML = '';
+        correctAnswerSection.innerHTML = '<select class="form-select correct-answer" required><option value="">Select correct answer</option></select>';
+
+        // FIXED: Only add initial options for NEW questions (when there are no existing options)
+        // Check if this is a new question by looking at the question text
+        const questionText = questionElement.querySelector('.question-text');
+        const isNewQuestion = !questionText || !questionText.value || questionText.value.trim() === '';
+
+        // Only add two empty options for completely new questions
+        if (isNewQuestion && optionsList.children.length === 0) {
+            addOption(questionElement);
+            addOption(questionElement);
+        }
+
+        // Update the correct answer dropdown
+        updateCorrectAnswerOptions(questionElement);
+    }
+
+    function addOption(questionElement) {
+        const optionsList = questionElement.querySelector('.options-list');
+        const correctAnswerSelect = questionElement.querySelector('.correct-answer');
+
+        if (!optionsList || !correctAnswerSelect) {
+            console.error('Required elements not found in addOption');
+            return;
+        }
+
+        const optionIndex = optionsList.children.length;
+
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'option-item';
+        optionDiv.innerHTML = `
+            <input type="text" class="form-control option-text me-2" placeholder="Enter option ${optionIndex + 1}">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-option">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        optionsList.appendChild(optionDiv);
+
+        // Add to correct answer dropdown
+        updateCorrectAnswerOptions(questionElement); // Update dropdown after adding
+
+        // Set up remove option button
+        const removeOptionBtn = optionDiv.querySelector('.remove-option');
+        removeOptionBtn.addEventListener('click', function () {
+            if (optionsList.children.length > 1) {
+                optionDiv.remove();
+                updateCorrectAnswerOptions(questionElement);
+            } else {
+                alert('A question must have at least one option');
+            }
+        });
+
+        // Update option text in dropdown when input changes
+        const optionTextInput = optionDiv.querySelector('.option-text');
+        optionTextInput.addEventListener('input', function () {
+            updateCorrectAnswerOptions(questionElement); // Update dropdown on text change
+        });
+    }
+
+    function updateCorrectAnswerOptions(questionElement) {
+        const optionsList = questionElement.querySelector('.options-list');
+        const correctAnswerSelect = questionElement.querySelector('.correct-answer');
+
+        if (!optionsList || !correctAnswerSelect) {
+            return;
+        }
+
+        // Store current selection
+        const currentSelection = correctAnswerSelect.value;
+
+        // Rebuild options
+        correctAnswerSelect.innerHTML = '<option value="">Select correct answer</option>';
+
+        Array.from(optionsList.children).forEach((optionDiv, index) => {
+            const optionTextInput = optionDiv.querySelector('.option-text');
+            if (optionTextInput) {
+                const optionText = optionTextInput.value.trim(); // Get the actual text value
+                const displayText = optionText || `Option ${index + 1}`; // Use actual text or fallback
+                const optionElement = document.createElement('option');
+                optionElement.value = index;
+                optionElement.textContent = displayText; // Use displayText instead of just optionText
+                correctAnswerSelect.appendChild(optionElement);
+            }
+        });
+
+        // Restore selection if it still exists
+        if (currentSelection && correctAnswerSelect.querySelector(`option[value="${currentSelection}"]`)) {
+            correctAnswerSelect.value = currentSelection;
+        }
+    }
+
+    function setupTrueFalse(questionElement) {
+        const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+        if (!correctAnswerSection) return;
+
+        correctAnswerSection.innerHTML = `
+            <select class="form-select correct-answer" required>
+                <option value="">Select correct answer</option>
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+        `;
+    }
+
+    function setupShortAnswer(questionElement) {
+        const correctAnswerSection = questionElement.querySelector('.correct-answer-input');
+        if (!correctAnswerSection) return;
+
+        correctAnswerSection.innerHTML = '<input type="text" class="form-control correct-answer" placeholder="Enter correct answer" required>';
+    }
+
+    function updateQuestionNumbers() {
+        const questionsContainer = document.getElementById('questionsContainer');
+        if (!questionsContainer) return;
+
+        const questions = questionsContainer.children;
+        Array.from(questions).forEach((question, index) => {
+            const numberElement = question.querySelector('.question-number');
+            if (numberElement) {
+                numberElement.textContent = index + 1;
+                question.setAttribute('data-question-index', index + 1);
+            }
+        });
+    }
+
+    function prepareFormData(e) {
+        const questionsContainer = document.getElementById('questionsContainer');
+        if (!questionsContainer) {
+            e.preventDefault();
+            alert('No questions container found');
+            return;
+        }
+
+        const questions = [];
+        const questionElements = questionsContainer.children;
+
+        // Check if there are any questions
+        if (questionElements.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one question to the exam.');
+            return;
+        }
+
+        let hasErrors = false;
+
+        Array.from(questionElements).forEach((questionElement, index) => {
+            const typeSelect = questionElement.querySelector('.question-type');
+            const questionTextInput = questionElement.querySelector('.question-text');
+            const correctAnswerElement = questionElement.querySelector('.correct-answer');
+
+            if (!typeSelect || !questionTextInput || !correctAnswerElement) {
+                console.error('Required elements not found in question', index);
+                hasErrors = true;
+                return;
+            }
+
+            const type = typeSelect.value;
+            const questionText = questionTextInput.value.trim();
+
+            if (!questionText) {
+                e.preventDefault();
+                alert(`Please enter question text for question ${index + 1}`);
+                hasErrors = true;
+                return;
+            }
+
+            if (!correctAnswerElement.value) {
+                e.preventDefault();
+                alert(`Please select a correct answer for question ${index + 1}`);
+                hasErrors = true;
+                return;
+            }
+
+            const question = {
+                type: type,
+                question: questionText,
+                points: 1
+            };
+
+            if (type === 'multiple_choice') {
+                const options = [];
+                const optionElements = questionElement.querySelectorAll('.option-text');
+
+                optionElements.forEach(optionElement => {
+                    if (optionElement.value.trim()) {
+                        options.push(optionElement.value.trim());
+                    }
+                });
+
+                // Validate multiple choice question
+                if (options.length < 2) {
+                    e.preventDefault();
+                    alert(`Multiple choice questions must have at least 2 options for question ${index + 1}`);
+                    hasErrors = true;
+                    return;
+                }
+
+                question.options = options;
+                question.correctAnswer = parseInt(correctAnswerElement.value);
+            } else if (type === 'true_false') {
+                question.correctAnswer = correctAnswerElement.value === 'true';
+            } else if (type === 'short_answer') {
+                question.correctAnswer = correctAnswerElement.value.trim();
+            }
+
+            questions.push(question);
+        });
+
+        if (!hasErrors) {
+            const questionsJsonField = document.getElementById('questionsJson');
+            if (questionsJsonField) {
+                questionsJsonField.value = JSON.stringify(questions);
+                console.log('Questions to save:', questions);
+            }
+        }
+    }
+</script>
+</body>
+
+</html>

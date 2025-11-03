@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Rich Text Editor CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!-- Drawing Canvas CSS -->
+    <link href="https://unpkg.com/perfect-freehand@1.2.0/dist/style.css" rel="stylesheet">
+    <style>
+        .material-card {
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .material-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-icon {
+            font-size: 2.5rem;
+            margin-right: 15px;
+        }
+
+        .badge-custom {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .class-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Note Taking Styles */
+        .notes-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .note-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .note-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .drawing-canvas {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            cursor: crosshair;
+            background: white;
+        }
+
+        .toolbar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .tool-btn {
+            margin: 2px;
+            border: none;
+            background: white;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tool-btn:hover {
+            background: #e9ecef;
+        }
+
+        .tool-btn.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            margin: 0 2px;
+        }
+
+        /* Rich Text Editor Custom Styles */
+        .ql-editor {
+            min-height: 200px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .notes-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .note-actions {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .note-card:hover .note-actions {
+            opacity: 1;
+        }
+
+        .note-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .note-type-badge {
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- Class Header -->
+                <div class="class-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-book me-2"></i>Learning Materials & Notes</h2>
+                            <p class="mb-0">
+                                <%= classData.name %> - <%= classData.grade %>-<%= classData.section %>
+                            </p>
+                        </div>
+                        <a href="/student/dashboard" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Interactive Notes Section -->
+                <div class="notes-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-sticky-note me-2"></i>Class Notes</h4>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newNoteModal"
+                            onclick="resetNoteModal()">
+                            <i class="fas fa-plus me-1"></i> New Note
+                        </button>
+                    </div>
+
+                    <!-- Notes Display Area -->
+                    <div class="notes-container" id="notesContainer">
+                        <!-- Notes will be loaded here via JavaScript -->
+                        <div class="text-center text-muted py-4" id="noNotesMessage">
+                            <i class="fas fa-sticky-note fa-3x mb-3"></i>
+                            <p>No notes yet. Create your first note to get started!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Materials Section -->
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Available Learning Materials
+                            <span class="badge bg-primary ms-2">
+                                <%= materials.length %>
+                            </span>
+                        </h5>
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#quickNoteModal">
+                            <i class="fas fa-pen me-1"></i> Quick Note
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <% if (materials && materials.length> 0) { %>
+                            <div class="row">
+                                <% materials.forEach(function(material) { %>
+                                    <div class="col-lg-6 mb-4">
+                                        <div class="card material-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="file-icon text-primary">
+                                                        <% const fileType=material.type ? material.type.toLowerCase()
+                                                            : '' ; let iconClass='fas fa-file' ; if
+                                                            (fileType.includes('pdf')) {
+                                                            iconClass='fas fa-file-pdf text-danger' ; } else if
+                                                            (fileType.includes('word') || fileType.includes('doc')) {
+                                                            iconClass='fas fa-file-word text-primary' ; } else if
+                                                            (fileType.includes('excel') || fileType.includes('sheet')) {
+                                                            iconClass='fas fa-file-excel text-success' ; } else if
+                                                            (fileType.includes('image') || fileType.includes('jpg') ||
+                                                            fileType.includes('png')) {
+                                                            iconClass='fas fa-file-image text-info' ; } else if
+                                                            (fileType.includes('video')) {
+                                                            iconClass='fas fa-file-video text-warning' ; } else if
+                                                            (fileType.includes('audio')) {
+                                                            iconClass='fas fa-file-audio text-secondary' ; } else if
+                                                            (fileType.includes('zip') || fileType.includes('rar')) {
+                                                            iconClass='fas fa-file-archive text-dark' ; } %>
+                                                            <i class="<%= iconClass %>"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="card-title">
+                                                            <%= material.title %>
+                                                        </h6>
+                                                        <% if (material.description) { %>
+                                                            <p class="card-text text-muted small">
+                                                                <%= material.description %>
+                                                            </p>
+                                                            <% } %>
+                                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                                    <span class="badge bg-light text-dark badge-custom">
+                                                                        <i class="fas fa-tag me-1"></i>
+                                                                        <%= material.type || 'File' %>
+                                                                    </span>
+                                                                    <% if (material.createdAt) { %>
+                                                                        <span
+                                                                            class="badge bg-light text-dark badge-custom">
+                                                                            <i class="fas fa-calendar me-1"></i>
+                                                                            <%= new
+                                                                                Date(material.createdAt).toLocaleDateString()
+                                                                                %>
+                                                                        </span>
+                                                                        <% } %>
+                                                                            <% if (material.category) { %>
+                                                                                <span
+                                                                                    class="badge bg-info badge-custom">
+                                                                                    <i class="fas fa-folder me-1"></i>
+                                                                                    <%= material.category %>
+                                                                                </span>
+                                                                                <% } %>
+                                                                </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <% if (material.createdAt) { %>
+                                                        Uploaded: <%= new Date(material.createdAt).toLocaleDateString() %>
+                                                            <% } %>
+                                                </small>
+                                                <div>
+                                                    <!-- FIXED DOWNLOAD LINK -->
+                                                    <a href="/download/material/<%= material.id %>" class="btn btn-primary btn-sm" target="_blank">
+                                                        <i class="fas fa-download me-1"></i> Download
+                                                    </a>
+                                                    <button class="btn btn-outline-info btn-sm ms-1"
+                                                        onclick="addMaterialToNotes('<%= material.title %>', '<%= material.fileUrl %>')">
+                                                        <i class="fas fa-sticky-note me-1"></i> Take Notes
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } else { %>
+                                <div class="empty-state">
+                                    <i class="fas fa-folder-open fa-4x mb-3"></i>
+                                    <h4>No Materials Available</h4>
+                                    <p class="text-muted">Your teacher hasn't uploaded any materials for this class yet.
+                                    </p>
+                                </div>
+                                <% } %>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-primary">
+                                    <%= materials.length %>
+                                </h3>
+                                <p class="text-muted mb-0">Total Materials</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <% const pdfCount=materials.filter(m=> m.type &&
+                                    m.type.toLowerCase().includes('pdf')).length; %>
+                                    <h3 class="text-success">
+                                        <%= pdfCount %>
+                                    </h3>
+                                    <p class="text-muted mb-0">PDF Documents</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <% const recentCount=materials.filter(m=> {
+                                    if (!m.createdAt) return false;
+                                    const sevenDaysAgo = new Date();
+                                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                    return new Date(m.createdAt) > sevenDaysAgo;
+                                    }).length; %>
+                                    <h3 class="text-info">
+                                        <%= recentCount %>
+                                    </h3>
+                                    <p class="text-muted mb-0">Recent Uploads</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-warning" id="notesCount">0</h3>
+                                <p class="text-muted mb-0">My Notes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- New Note Modal -->
+        <div class="modal fade" id="newNoteModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="noteModalTitle">Create New Note</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editNoteId" value="">
+                        <ul class="nav nav-tabs" id="noteTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="text-tab" data-bs-toggle="tab"
+                                    data-bs-target="#text" type="button">
+                                    <i class="fas fa-font me-1"></i> Rich Text
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="drawing-tab" data-bs-toggle="tab" data-bs-target="#drawing"
+                                    type="button">
+                                    <i class="fas fa-paint-brush me-1"></i> Drawing
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="mixed-tab" data-bs-toggle="tab" data-bs-target="#mixed"
+                                    type="button">
+                                    <i class="fas fa-blender me-1"></i> Mixed Mode
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content mt-3">
+                            <!-- Rich Text Editor Tab -->
+                            <div class="tab-pane fade show active" id="text" role="tabpanel">
+                                <div class="mb-3">
+                                    <label class="form-label">Note Title</label>
+                                    <input type="text" class="form-control" id="noteTitle"
+                                        placeholder="Enter note title...">
+                                </div>
+                                <div id="textEditor" style="height: 400px;"></div>
+                            </div>
+
+                            <!-- Drawing Tab -->
+                            <div class="tab-pane fade" id="drawing" role="tabpanel">
+                                <div class="mb-3">
+                                    <label class="form-label">Drawing Title</label>
+                                    <input type="text" class="form-control" id="drawingTitle"
+                                        placeholder="Enter drawing title...">
+                                </div>
+                                <div class="toolbar">
+                                    <button class="tool-btn active" data-tool="pen">
+                                        <i class="fas fa-pen"></i> Pen
+                                    </button>
+                                    <button class="tool-btn" data-tool="eraser">
+                                        <i class="fas fa-eraser"></i> Eraser
+                                    </button>
+                                    <input type="range" id="brushSize" min="1" max="50" value="5" class="mx-2">
+                                    <input type="color" id="brushColor" value="#000000" class="color-picker">
+                                    <button class="btn btn-sm btn-outline-danger" id="clearCanvas">
+                                        <i class="fas fa-trash"></i> Clear
+                                    </button>
+                                </div>
+                                <canvas id="drawingCanvas" width="800" height="400"
+                                    class="drawing-canvas w-100"></canvas>
+                            </div>
+
+                            <!-- Mixed Mode Tab -->
+                            <div class="tab-pane fade" id="mixed" role="tabpanel">
+                                <div class="mb-3">
+                                    <label class="form-label">Mixed Note Title</label>
+                                    <input type="text" class="form-control" id="mixedNoteTitle"
+                                        placeholder="Enter note title...">
+                                </div>
+                                <div id="mixedTextEditor" style="height: 200px;" class="mb-3"></div>
+                                <div class="toolbar">
+                                    <small class="text-muted">Add drawing below:</small>
+                                    <button class="tool-btn btn-sm active" data-tool="pen">
+                                        <i class="fas fa-pen"></i> Pen
+                                    </button>
+                                    <button class="tool-btn btn-sm" data-tool="eraser">
+                                        <i class="fas fa-eraser"></i> Eraser
+                                    </button>
+                                    <input type="color" id="mixedBrushColor" value="#000000" class="color-picker">
+                                </div>
+                                <canvas id="mixedCanvas" width="800" height="200" class="drawing-canvas w-100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveNote">Save Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Note Modal -->
+        <div class="modal fade" id="quickNoteModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quick Note</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="quickNoteTitle" placeholder="Quick note...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Content</label>
+                            <textarea class="form-control" id="quickNoteContent" rows="6"
+                                placeholder="Type your quick note here..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveQuickNote">Save Quick Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Rich Text Editor -->
+        <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+        <!-- Drawing Library -->
+        <script src="https://unpkg.com/perfect-freehand@1.2.0/dist/perfect-freehand.js"></script>
+
+        <script>
+            // Debug logging
+            console.log('🔄 Script started executing');
+
+            // Initialize Quill editors
+            let textEditor, mixedTextEditor;
+            try {
+                textEditor = new Quill('#textEditor', {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['link', 'image', 'video'],
+                            ['clean']
+                        ]
+                    },
+                    placeholder: 'Start writing your notes here...'
+                });
+
+                mixedTextEditor = new Quill('#mixedTextEditor', {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['link']
+                        ]
+                    },
+                    placeholder: 'Write your text here...'
+                });
+                console.log('✅ Quill editors initialized');
+            } catch (error) {
+                console.error('❌ Failed to initialize Quill editors:', error);
+            }
+
+            // Drawing functionality
+            class DrawingApp {
+                constructor(canvasId) {
+                    try {
+                        this.canvas = document.getElementById(canvasId);
+                        if (!this.canvas) {
+                            throw new Error(`Canvas element not found: ${canvasId}`);
+                        }
+                        this.ctx = this.canvas.getContext('2d');
+                        this.isDrawing = false;
+                        this.currentTool = 'pen';
+                        this.brushSize = 5;
+                        this.brushColor = '#000000';
+                        this.lastX = 0;
+                        this.lastY = 0;
+
+                        this.init();
+                        console.log(`✅ DrawingApp initialized for: ${canvasId}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to initialize DrawingApp for ${canvasId}:`, error);
+                    }
+                }
+
+                init() {
+                    this.ctx.lineJoin = 'round';
+                    this.ctx.lineCap = 'round';
+                    this.ctx.lineWidth = this.brushSize;
+                    this.ctx.strokeStyle = this.brushColor;
+
+                    this.canvas.addEventListener('mousedown', this.startDrawing.bind(this));
+                    this.canvas.addEventListener('mousemove', this.draw.bind(this));
+                    this.canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
+                    this.canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
+
+                    // Touch support
+                    this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
+                    this.canvas.addEventListener('touchmove', this.handleTouch.bind(this));
+                    this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
+                }
+
+                startDrawing(e) {
+                    this.isDrawing = true;
+                    const pos = this.getMousePos(e);
+                    [this.lastX, this.lastY] = [pos.x, pos.y];
+                }
+
+                draw(e) {
+                    if (!this.isDrawing) return;
+
+                    const pos = this.getMousePos(e);
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.lastX, this.lastY);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+
+                    [this.lastX, this.lastY] = [pos.x, pos.y];
+                }
+
+                stopDrawing() {
+                    this.isDrawing = false;
+                }
+
+                handleTouch(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+
+                    if (e.type === 'touchstart') {
+                        this.startDrawing(mouseEvent);
+                    } else if (e.type === 'touchmove') {
+                        this.draw(mouseEvent);
+                    }
+                }
+
+                getMousePos(e) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    return {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
+                }
+
+                setTool(tool) {
+                    this.currentTool = tool;
+                    if (tool === 'eraser') {
+                        this.ctx.strokeStyle = '#ffffff';
+                    } else {
+                        this.ctx.strokeStyle = this.brushColor;
+                    }
+                }
+
+                setBrushSize(size) {
+                    this.brushSize = size;
+                    this.ctx.lineWidth = size;
+                }
+
+                setBrushColor(color) {
+                    this.brushColor = color;
+                    if (this.currentTool === 'pen') {
+                        this.ctx.strokeStyle = color;
+                    }
+                }
+
+                clearCanvas() {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+
+                getImageData() {
+                    return this.canvas.toDataURL('image/png');
+                }
+
+                loadImageData(imageData) {
+                    if (!imageData) return;
+
+                    const img = new Image();
+                    img.onload = () => {
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                    };
+                    img.src = imageData;
+                }
+            }
+
+            // Initialize drawing apps with error handling
+            let mainDrawingApp, mixedDrawingApp;
+            try {
+                mainDrawingApp = new DrawingApp('drawingCanvas');
+                mixedDrawingApp = new DrawingApp('mixedCanvas');
+                console.log('✅ Drawing apps initialized');
+            } catch (error) {
+                console.error('❌ Failed to initialize drawing apps:', error);
+            }
+
+            // Toolbar event listeners with safe element checking
+            function initializeToolbars() {
+                const toolButtons = document.querySelectorAll('.tool-btn');
+                if (toolButtons.length === 0) {
+                    console.warn('⚠️ No tool buttons found');
+                    return;
+                }
+
+                toolButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const tool = e.currentTarget.dataset.tool;
+                        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                        e.currentTarget.classList.add('active');
+
+                        if (e.currentTarget.closest('#drawing') && mainDrawingApp) {
+                            mainDrawingApp.setTool(tool);
+                        } else if (mixedDrawingApp) {
+                            mixedDrawingApp.setTool(tool);
+                        }
+                    });
+                });
+
+                // Brush size
+                const brushSize = document.getElementById('brushSize');
+                if (brushSize && mainDrawingApp) {
+                    brushSize.addEventListener('input', (e) => {
+                        mainDrawingApp.setBrushSize(parseInt(e.target.value));
+                    });
+                }
+
+                // Brush colors
+                const brushColor = document.getElementById('brushColor');
+                if (brushColor && mainDrawingApp) {
+                    brushColor.addEventListener('input', (e) => {
+                        mainDrawingApp.setBrushColor(e.target.value);
+                    });
+                }
+
+                const mixedBrushColor = document.getElementById('mixedBrushColor');
+                if (mixedBrushColor && mixedDrawingApp) {
+                    mixedBrushColor.addEventListener('input', (e) => {
+                        mixedDrawingApp.setBrushColor(e.target.value);
+                    });
+                }
+
+                // Clear canvas
+                const clearCanvas = document.getElementById('clearCanvas');
+                if (clearCanvas && mainDrawingApp) {
+                    clearCanvas.addEventListener('click', () => {
+                        mainDrawingApp.clearCanvas();
+                    });
+                }
+
+                console.log('✅ Toolbars initialized');
+            }
+
+            // Enhanced API Service with better error handling
+            class NoteAPIService {
+                constructor() {
+                    this.baseURL = '/student/api';
+                    this.retryCount = 0;
+                    this.maxRetries = 3;
+                    console.log('🔧 NoteAPIService initialized with baseURL:', this.baseURL);
+                }
+
+                async makeRequest(url, options = {}) {
+                    try {
+                        const response = await fetch(url, {
+                            ...options,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...options.headers
+                            }
+                        });
+
+                        // Handle non-JSON responses
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const errorText = await response.text();
+                            console.error('❌ Non-JSON response:', errorText.substring(0, 500));
+
+                            // If it's an HTML response, the server might be returning an error page
+                            if (response.status >= 400) {
+                                throw new Error(`Server error ${response.status}. Please check if the server is running properly.`);
+                            }
+
+                            throw new Error(`Invalid response format from server. Expected JSON but got: ${contentType}`);
+                        }
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(`HTTP ${response.status}: ${errorData.message || response.statusText}`);
+                        }
+
+                        return await response.json();
+                    } catch (error) {
+                        console.error(`❌ Request failed for ${url}:`, error);
+
+                        // Retry logic for transient failures
+                        if (this.retryCount < this.maxRetries && error.message.includes('fetch')) {
+                            this.retryCount++;
+                            console.log(`🔄 Retrying request (${this.retryCount}/${this.maxRetries})...`);
+                            await new Promise(resolve => setTimeout(resolve, 1000 * this.retryCount));
+                            return this.makeRequest(url, options);
+                        }
+
+                        throw error;
+                    }
+                }
+
+                async getNotes(classId) {
+                    try {
+                        const numericClassId = parseInt(classId);
+                        if (isNaN(numericClassId)) {
+                            throw new Error(`Invalid class ID: ${classId}`);
+                        }
+
+                        const url = `${this.baseURL}/class/${numericClassId}/notes`;
+                        console.log('📡 Fetching notes from:', url);
+
+                        const data = await this.makeRequest(url);
+                        console.log('✅ Notes fetched successfully:', data);
+                        return data;
+                    } catch (error) {
+                        console.error('❌ Failed to fetch notes:', error);
+                        // Return a fallback response instead of throwing
+                        return {
+                            success: false,
+                            message: error.message,
+                            notes: []
+                        };
+                    }
+                }
+
+                async saveNote(classId, noteData) {
+                    try {
+                        const numericClassId = parseInt(classId);
+                        if (isNaN(numericClassId)) {
+                            throw new Error(`Invalid class ID: ${classId}`);
+                        }
+
+                        const url = `${this.baseURL}/class/${numericClassId}/notes`;
+                        console.log('💾 Saving note to:', url, noteData);
+
+                        const data = await this.makeRequest(url, {
+                            method: 'POST',
+                            body: JSON.stringify(noteData)
+                        });
+
+                        console.log('✅ Note saved successfully:', data);
+                        return data;
+                    } catch (error) {
+                        console.error('❌ Failed to save note:', error);
+                        return {
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                }
+
+                async updateNote(noteId, noteData) {
+                    try {
+                        const url = `${this.baseURL}/notes/${noteId}`;
+                        console.log('📡 Updating note at:', url, noteData);
+
+                        const data = await this.makeRequest(url, {
+                            method: 'PUT',
+                            body: JSON.stringify(noteData)
+                        });
+
+                        console.log('✅ Note updated successfully:', data);
+                        return data;
+                    } catch (error) {
+                        console.error('❌ Error updating note:', error);
+                        return {
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                }
+
+                async deleteNote(noteId) {
+                    try {
+                        const url = `${this.baseURL}/notes/${noteId}`;
+                        console.log('📡 Deleting note at:', url);
+
+                        const data = await this.makeRequest(url, {
+                            method: 'DELETE'
+                        });
+
+                        console.log('✅ Note deleted successfully:', data);
+                        return data;
+                    } catch (error) {
+                        console.error('❌ Error deleting note:', error);
+                        return {
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                }
+            }
+
+            // Enhanced NoteManager with edit functionality
+            class NoteManager {
+                constructor(classId) {
+                    this.classId = classId;
+                    this.apiService = new NoteAPIService();
+                    this.notes = [];
+                    this.isLoading = false;
+                    this.initialized = false;
+                    this.currentEditNote = null;
+
+                    console.log('🚀 NoteManager created for class:', classId);
+                    this.initialize();
+                }
+
+                async initialize() {
+                    if (this.initialized) {
+                        console.log('⚠️ NoteManager already initialized');
+                        return;
+                    }
+
+                    try {
+                        await this.loadNotes();
+                        this.initialized = true;
+                        console.log('✅ NoteManager initialized successfully');
+                    } catch (error) {
+                        console.error('❌ NoteManager initialization failed:', error);
+                        this.showError('Failed to initialize notes system: ' + error.message);
+                    }
+                }
+
+                async loadNotes() {
+                    if (this.isLoading) {
+                        console.log('⚠️ Notes are already loading, skipping...');
+                        return;
+                    }
+
+                    this.isLoading = true;
+                    this.showLoadingState();
+
+                    try {
+                        const result = await this.apiService.getNotes(this.classId);
+
+                        if (result.success) {
+                            this.notes = result.notes || [];
+                            this.updateNotesDisplay();
+                            console.log(`✅ Loaded ${this.notes.length} notes`);
+                        } else {
+                            this.showError('Failed to load notes: ' + (result.message || 'Unknown error'));
+                            this.notes = [];
+                            this.updateNotesDisplay();
+                        }
+                    } catch (error) {
+                        console.error('❌ Error loading notes:', error);
+                        this.showError('Failed to load notes: ' + error.message);
+                        this.notes = [];
+                        this.updateNotesDisplay();
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+
+                async saveNote(noteData, isEdit = false) {
+                    if (this.isLoading) {
+                        this.showError('Please wait, another operation is in progress');
+                        return null;
+                    }
+
+                    console.log(isEdit ? '📝 Updating note:' : '💾 Saving note:', noteData);
+                    this.isLoading = true;
+
+                    try {
+                        let result;
+                        if (isEdit && this.currentEditNote) {
+                            // Update existing note
+                            result = await this.apiService.updateNote(this.currentEditNote.id, noteData);
+                        } else {
+                            // Create new note
+                            result = await this.apiService.saveNote(this.classId, noteData);
+                        }
+
+                        if (result.success && result.note) {
+                            if (isEdit) {
+                                // Update the note in the local array
+                                const index = this.notes.findIndex(n => n.id === this.currentEditNote.id);
+                                if (index !== -1) {
+                                    this.notes[index] = result.note;
+                                }
+                                this.showSuccess('Note updated successfully!');
+                            } else {
+                                // Add new note to the beginning of the array
+                                this.notes.unshift(result.note);
+                                this.showSuccess('Note saved successfully!');
+                            }
+
+                            this.updateNotesDisplay();
+                            this.currentEditNote = null;
+
+                            return result.note;
+                        } else {
+                            this.showError(result.message || (isEdit ? 'Failed to update note' : 'Failed to save note'));
+                            return null;
+                        }
+                    } catch (error) {
+                        console.error('❌ Error saving note:', error);
+                        this.showError('Failed to save note: ' + error.message);
+                        return null;
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+
+                async updateNote(noteId, noteData) {
+                    this.isLoading = true;
+
+                    try {
+                        const result = await this.apiService.updateNote(noteId, noteData);
+                        if (result.success) {
+                            const index = this.notes.findIndex(note => note.id === noteId);
+                            if (index !== -1) {
+                                this.notes[index] = result.note;
+                                this.updateNotesDisplay();
+                            }
+                            this.showSuccess('Note updated successfully!');
+                            return result.note;
+                        } else {
+                            this.showError(result.message || 'Failed to update note');
+                            return null;
+                        }
+                    } catch (error) {
+                        console.error('Error updating note:', error);
+                        this.showError('Failed to update note. Please try again.');
+                        return null;
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+
+                async deleteNote(noteId) {
+                    if (!confirm('Are you sure you want to delete this note?')) {
+                        return;
+                    }
+
+                    this.isLoading = true;
+
+                    try {
+                        const result = await this.apiService.deleteNote(noteId);
+                        if (result.success) {
+                            this.notes = this.notes.filter(note => note.id !== parseInt(noteId));
+                            this.updateNotesDisplay();
+                            this.showSuccess('Note deleted successfully!');
+                        } else {
+                            this.showError(result.message || 'Failed to delete note');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting note:', error);
+                        this.showError('Failed to delete note. Please try again.');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+
+                // Open modal for editing a note
+                openEditNoteModal(noteId) {
+                    const note = this.notes.find(n => n.id === noteId);
+                    if (!note) {
+                        console.error('Note not found:', noteId);
+                        return;
+                    }
+
+                    this.currentEditNote = note;
+
+                    // Set modal title
+                    document.getElementById('noteModalTitle').textContent = 'Edit Note';
+                    document.getElementById('editNoteId').value = note.id;
+
+                    // Populate fields based on note type
+                    switch (note.type) {
+                        case 'text':
+                            // Activate text tab
+                            document.getElementById('text-tab').click();
+                            document.getElementById('noteTitle').value = note.title;
+                            if (textEditor) {
+                                textEditor.root.innerHTML = note.content || '';
+                            }
+                            break;
+
+                        case 'drawing':
+                            // Activate drawing tab
+                            document.getElementById('drawing-tab').click();
+                            document.getElementById('drawingTitle').value = note.title;
+                            // Load drawing image
+                            if (mainDrawingApp) {
+                                mainDrawingApp.loadImageData(note.content);
+                            }
+                            break;
+
+                        case 'mixed':
+                            // Activate mixed tab
+                            document.getElementById('mixed-tab').click();
+                            document.getElementById('mixedNoteTitle').value = note.title;
+
+                            // Handle mixed content (could be object or string)
+                            let textContent = '';
+                            let drawingContent = '';
+
+                            if (typeof note.content === 'object' && note.content !== null) {
+                                textContent = note.content.text || '';
+                                drawingContent = note.content.drawing || '';
+                            } else if (typeof note.content === 'string') {
+                                try {
+                                    const parsedContent = JSON.parse(note.content);
+                                    textContent = parsedContent.text || '';
+                                    drawingContent = parsedContent.drawing || '';
+                                } catch (e) {
+                                    textContent = note.content;
+                                }
+                            }
+
+                            if (mixedTextEditor) {
+                                mixedTextEditor.root.innerHTML = textContent;
+                            }
+                            if (mixedDrawingApp && drawingContent) {
+                                mixedDrawingApp.loadImageData(drawingContent);
+                            }
+                            break;
+
+                        case 'quick':
+                            // For quick notes, use text tab
+                            document.getElementById('text-tab').click();
+                            document.getElementById('noteTitle').value = note.title;
+                            if (textEditor) {
+                                textEditor.root.innerHTML = note.content || '';
+                            }
+                            break;
+                    }
+
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('newNoteModal'));
+                    modal.show();
+                }
+
+                updateNotesDisplay() {
+                    const container = document.getElementById('notesContainer');
+                    const noNotesMessage = document.getElementById('noNotesMessage');
+                    const notesCount = document.getElementById('notesCount');
+
+                    if (!container) {
+                        console.error('❌ Notes container not found');
+                        return;
+                    }
+
+                    // Update notes count
+                    if (notesCount) {
+                        notesCount.textContent = this.notes.length;
+                    }
+
+                    // Handle empty state
+                    if (this.notes.length === 0) {
+                        container.innerHTML = `
+                        <div class="text-center text-muted py-4" id="noNotesMessage">
+                            <i class="fas fa-sticky-note fa-3x mb-3"></i>
+                            <p>No notes yet. Create your first note to get started!</p>
+                        </div>
+                    `;
+                        return;
+                    }
+
+                    // Render notes with edit functionality
+                    container.innerHTML = this.notes.map(note => {
+                        const content = note.content;
+                        const typeBadge = this.getTypeBadge(note.type);
+                        return `
+                        <div class="card note-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title">
+                                            ${this.escapeHtml(note.title)}
+                                            ${typeBadge}
+                                        </h6>
+                                        <div class="note-content">
+                                            ${this.renderNoteContent(note.type, content)}
+                                        </div>
+                                        <small class="text-muted">
+                                            Created: ${new Date(note.createdAt).toLocaleString()}
+                                            ${note.updatedAt && note.updatedAt !== note.createdAt ?
+                                ` • Updated: ${new Date(note.updatedAt).toLocaleString()}` : ''}
+                                        </small>
+                                    </div>
+                                    <div class="note-actions btn-group ms-2">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="noteManager.openEditNoteModal(${note.id})">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="noteManager.deleteNote(${note.id})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                }
+
+                getTypeBadge(noteType) {
+                    const typeConfig = {
+                        'text': { class: 'bg-primary', text: 'Text', icon: 'fa-font' },
+                        'drawing': { class: 'bg-success', text: 'Drawing', icon: 'fa-paint-brush' },
+                        'mixed': { class: 'bg-info', text: 'Mixed', icon: 'fa-blender' },
+                        'quick': { class: 'bg-warning', text: 'Quick', icon: 'fa-bolt' }
+                    };
+
+                    const config = typeConfig[noteType] || { class: 'bg-secondary', text: noteType, icon: 'fa-sticky-note' };
+
+                    return `<span class="badge ${config.class} note-type-badge">
+                        <i class="fas ${config.icon} me-1"></i>${config.text}
+                    </span>`;
+                }
+
+                escapeHtml(unsafe) {
+                    if (!unsafe) return '';
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                renderNoteContent(type, content) {
+                    try {
+                        switch (type) {
+                            case 'text':
+                                return content || '<p class="text-muted">No content</p>';
+                            case 'drawing':
+                                return content ? `<img src="${content}" alt="Drawing" style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 4px;">` : '<p class="text-muted">No drawing</p>';
+                            case 'mixed':
+                                if (typeof content === 'object' && content !== null) {
+                                    return `
+                                    <div>${content.text || '<p class="text-muted">No text content</p>'}</div>
+                                    ${content.drawing ? `<div class="mt-2"><img src="${content.drawing}" alt="Drawing" style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 4px;"></div>` : ''}
+                                `;
+                                } else if (typeof content === 'string') {
+                                    try {
+                                        const parsed = JSON.parse(content);
+                                        return `
+                                        <div>${parsed.text || '<p class="text-muted">No text content</p>'}</div>
+                                        ${parsed.drawing ? `<div class="mt-2"><img src="${parsed.drawing}" alt="Drawing" style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 4px;"></div>` : ''}
+                                    `;
+                                    } catch {
+                                        return content || '<p class="text-muted">No content</p>';
+                                    }
+                                }
+                                return content || '<p class="text-muted">No content</p>';
+                            case 'quick':
+                                return content ? `<p>${this.escapeHtml(content)}</p>` : '<p class="text-muted">No content</p>';
+                            default:
+                                return typeof content === 'string' ? this.escapeHtml(content) : '<p class="text-muted">No content</p>';
+                        }
+                    } catch (error) {
+                        console.error('Error rendering note content:', error);
+                        return '<p class="text-danger">Error displaying content</p>';
+                    }
+                }
+
+                showLoadingState() {
+                    const container = document.getElementById('notesContainer');
+                    if (container) {
+                        container.innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading notes...</p>
+                        </div>
+                    `;
+                    }
+                }
+
+                showSuccess(message) {
+                    this.showAlert(message, 'success');
+                }
+
+                showError(message) {
+                    this.showAlert(message, 'danger');
+                }
+
+                showAlert(message, type) {
+                    // Remove existing alerts
+                    document.querySelectorAll('.custom-alert').forEach(alert => alert.remove());
+
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${type} alert-dismissible fade show custom-alert`;
+                    alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                    const container = document.querySelector('.container');
+                    if (container) {
+                        container.insertBefore(alertDiv, container.firstChild);
+
+                        setTimeout(() => {
+                            if (alertDiv.parentNode) {
+                                const bsAlert = new bootstrap.Alert(alertDiv);
+                                bsAlert.close();
+                            }
+                        }, type === 'success' ? 3000 : 5000);
+                    }
+                }
+            }
+
+            // Global note manager instance
+            let noteManager = null;
+
+            // Reset modal when creating new note
+            function resetNoteModal() {
+                document.getElementById('noteModalTitle').textContent = 'Create New Note';
+                document.getElementById('editNoteId').value = '';
+                document.getElementById('noteTitle').value = '';
+                document.getElementById('drawingTitle').value = '';
+                document.getElementById('mixedNoteTitle').value = '';
+
+                if (textEditor) textEditor.root.innerHTML = '';
+                if (mixedTextEditor) mixedTextEditor.root.innerHTML = '';
+                if (mainDrawingApp) mainDrawingApp.clearCanvas();
+                if (mixedDrawingApp) mixedDrawingApp.clearCanvas();
+
+                // Reset to text tab
+                document.getElementById('text-tab').click();
+            }
+
+            // Enhanced initialization with retry logic
+            function initializeApp() {
+                console.log('🚀 Initializing application...');
+
+                try {
+                    // Initialize toolbars first
+                    initializeToolbars();
+
+                    // Get class ID from EJS
+                    const classId = '<%= classData.id %>';
+                    console.log('🏫 Class ID from EJS:', classId);
+
+                    const parsedClassId = parseInt(classId);
+                    if (!classId || classId === 'null' || classId === 'undefined' || isNaN(parsedClassId)) {
+                        console.error('❌ Invalid class ID:', classId);
+                        const container = document.getElementById('notesContainer');
+                        if (container) {
+                            container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Unable to load notes: Invalid class information. Please contact support.
+                            </div>
+                        `;
+                        }
+                        return;
+                    }
+
+                    // Initialize note manager
+                    noteManager = new NoteManager(parsedClassId);
+                    console.log('✅ Application initialized successfully');
+
+                } catch (error) {
+                    console.error('❌ Application initialization failed:', error);
+                    const container = document.getElementById('notesContainer');
+                    if (container) {
+                        container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Failed to initialize application: ${error.message}
+                        </div>
+                    `;
+                    }
+                }
+            }
+
+            // Enhanced save note handler
+            async function handleSaveNote() {
+                    if (!noteManager) {
+                        alert('Note system not ready. Please wait and try again.');
+                        return;
+                    }
+
+                    const editNoteId = document.getElementById('editNoteId').value;
+                    const isEdit = !!editNoteId;
+                    const activeTab = document.querySelector('.nav-link.active').id;
+                    let noteData = {};
+
+                    try {
+                        switch (activeTab) {
+                            case 'text-tab':
+                                const title = document.getElementById('noteTitle').value || 'Untitled Note';
+                                const content = textEditor.root.innerHTML;
+                                if (!content.trim()) {
+                                    alert('Please add some content to your note.');
+                                    return;
+                                }
+                                noteData = { title, type: 'text', content };
+                                break;
+
+                            case 'drawing-tab':
+                                const drawingTitle = document.getElementById('drawingTitle').value || 'Untitled Drawing';
+                                const drawingContent = mainDrawingApp.getImageData();
+                                const blankCanvas = document.createElement('canvas');
+                                blankCanvas.width = mainDrawingApp.canvas.width;
+                                blankCanvas.height = mainDrawingApp.canvas.height;
+                                if (drawingContent === blankCanvas.toDataURL('image/png')) {
+                                    alert('Please draw something before saving.');
+                                    return;
+                                }
+                                noteData = { title: drawingTitle, type: 'drawing', content: drawingContent };
+                                break;
+
+                            case 'mixed-tab':
+                                const mixedTitle = document.getElementById('mixedNoteTitle').value || 'Mixed Note';
+                                const textContent = mixedTextEditor.root.innerHTML;
+                                const drawingMixedContent = mixedDrawingApp.getImageData();
+                                const blankCanvasMixed = document.createElement('canvas');
+                                blankCanvasMixed.width = mixedDrawingApp.canvas.width;
+                                blankCanvasMixed.height = mixedDrawingApp.canvas.height;
+
+                                if (!textContent.trim() && drawingMixedContent === blankCanvasMixed.toDataURL('image/png')) {
+                                    alert('Please add either text content or a drawing before saving.');
+                                    return;
+                                }
+
+                                noteData = {
+                                    title: mixedTitle,
+                                    type: 'mixed',
+                                    content: { text: textContent, drawing: drawingMixedContent }
+                                };
+                                break;
+                        }
+
+                        const savedNote = await noteManager.saveNote(noteData, isEdit);
+                        if (savedNote) {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('newNoteModal'));
+                            if (modal) modal.hide();
+
+                            console.log('✅ Note ' + (isEdit ? 'updated' : 'saved') + ' successfully');
+
+                            // ADD THIS: Show success message and reload page after a short delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000); // Reload after 1 second to show success message
+                        }
+                    } catch (error) {
+                        console.error('❌ Error in handleSaveNote:', error);
+                        alert('Failed to save note: ' + error.message);
+                    }
+                }
+
+            // Quick note functionality
+            async function handleSaveQuickNote() {
+                if (!noteManager) {
+                    alert('Note system not ready. Please wait and try again.');
+                    return;
+                }
+
+                const title = document.getElementById('quickNoteTitle').value || 'Quick Note';
+                const content = document.getElementById('quickNoteContent').value;
+
+                if (!content.trim()) {
+                    alert('Please enter some content for your quick note.');
+                    return;
+                }
+
+                try {
+                    const noteData = { title, type: 'quick', content };
+                    const savedNote = await noteManager.saveNote(noteData);
+
+                    if (savedNote) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('quickNoteModal'));
+                        if (modal) modal.hide();
+
+                        document.getElementById('quickNoteTitle').value = '';
+                        document.getElementById('quickNoteContent').value = '';
+
+                        console.log('✅ Quick note saved successfully');
+                    }
+                } catch (error) {
+                    console.error('❌ Error saving quick note:', error);
+                    alert('Failed to save quick note: ' + error.message);
+                }
+            }
+
+            // Helper function to add material reference to notes
+            function addMaterialToNotes(materialTitle, fileUrl) {
+                const reference = `Material: ${materialTitle}\nURL: ${fileUrl}\n\n`;
+                const currentContent = document.getElementById('quickNoteContent').value;
+                document.getElementById('quickNoteContent').value = reference + currentContent;
+
+                const quickNoteModal = new bootstrap.Modal(document.getElementById('quickNoteModal'));
+                quickNoteModal.show();
+                document.getElementById('quickNoteTitle').focus();
+            }
+
+            // Set up event listeners when DOM is fully loaded
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('📄 DOM fully loaded');
+
+                // Initialize the application
+                initializeApp();
+
+                // Set up save note button
+                const saveNoteBtn = document.getElementById('saveNote');
+                if (saveNoteBtn) {
+                    saveNoteBtn.addEventListener('click', handleSaveNote);
+                }
+
+                // Set up quick note button
+                const saveQuickNoteBtn = document.getElementById('saveQuickNote');
+                if (saveQuickNoteBtn) {
+                    saveQuickNoteBtn.addEventListener('click', handleSaveQuickNote);
+                }
+
+                // Set up modal reset handlers
+                const newNoteModal = document.getElementById('newNoteModal');
+                if (newNoteModal) {
+                    newNoteModal.addEventListener('hidden.bs.modal', function () {
+                        // Reset form when modal is closed
+                        resetNoteModal();
+                    });
+                }
+
+                const quickNoteModal = document.getElementById('quickNoteModal');
+                if (quickNoteModal) {
+                    quickNoteModal.addEventListener('hidden.bs.modal', function () {
+                        document.getElementById('quickNoteTitle').value = '';
+                        document.getElementById('quickNoteContent').value = '';
+                    });
+                }
+
+                console.log('✅ All event listeners set up');
+            });
+
+            // Add a global error handler for uncaught errors
+            window.addEventListener('error', function (event) {
+                console.error('🚨 Global error caught:', event.error);
+            });
+
+            // Add a handler for unhandled promise rejections
+            window.addEventListener('unhandledrejection', function (event) {
+                console.error('🚨 Unhandled promise rejection:', event.reason);
+            });
+        </script>
+</body>
+
+</html>

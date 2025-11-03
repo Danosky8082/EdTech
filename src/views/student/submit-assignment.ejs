@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .assignment-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .upload-box {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+
+        .upload-box:hover {
+            border-color: #007bff;
+            background-color: #e9ecef;
+        }
+
+        .file-info {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- Assignment Header -->
+                <div class="assignment-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-upload me-2"></i>Submit Assignment</h2>
+                            <p class="mb-0">
+                                <%= assignment.title %> - <%= assignment.class.name %>
+                            </p>
+                        </div>
+                        <a href="/student/assignments/<%= assignment.class.id %>" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Assignments
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Assignment Details -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>Assignment Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Title:</strong>
+                                    <%= assignment.title %>
+                                </p>
+                                <% if (assignment.description) { %>
+                                    <p class="mb-2"><strong>Description:</strong>
+                                        <%= assignment.description %>
+                                    </p>
+                                    <% } %>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Due Date:</strong>
+                                    <%= new Date(assignment.dueDate).toLocaleDateString() %> at <%= new
+                                            Date(assignment.dueDate).toLocaleTimeString() %>
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Status:</strong>
+                                    <span class="badge bg-<%= hasSubmission ? 'success' : 'warning' %>">
+                                        <%= hasSubmission ? 'Already Submitted' : 'Not Submitted' %>
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submission Form -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-upload me-2"></i>
+                            Upload Your Submission
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (new Date()> new Date(assignment.dueDate)) { %>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                This assignment is past the due date. Late submissions may not be accepted.
+                            </div>
+                            <% } %>
+
+                                <% if (hasSubmission) { %>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        You have already submitted this assignment. You can resubmit if needed.
+                                    </div>
+                                    <% } %>
+
+                                        <form action="/student/assignments/<%= assignment.id %>/submit" method="POST"
+                                            enctype="multipart/form-data">
+                                            <div class="upload-box" id="uploadBox">
+                                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                                <h5>Drag & Drop your file here</h5>
+                                                <p class="text-muted">or</p>
+                                                <label for="submissionFile" class="btn btn-primary">
+                                                    <i class="fas fa-file me-1"></i> Browse Files
+                                                </label>
+                                                <input type="file" class="d-none" id="submissionFile"
+                                                    name="submissionFile" required>
+                                                <div class="file-info" id="fileInfo">
+                                                    <p class="mb-1"><strong>Selected file:</strong> <span
+                                                            id="fileName">No file selected</span></p>
+                                                    <p class="mb-0 text-muted small" id="fileSize">-</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-4">
+                                                <label for="comments" class="form-label">Additional Comments
+                                                    (Optional)</label>
+                                                <textarea class="form-control" id="comments" name="comments" rows="3"
+                                                    placeholder="Add any comments about your submission..."></textarea>
+                                            </div>
+
+                                            <div class="mt-4">
+                                                <button type="submit" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-paper-plane me-1"></i>
+                                                    <%= hasSubmission ? 'Resubmit Assignment' : 'Submit Assignment' %>
+                                                </button>
+                                                <a href="/student/assignments/<%= assignment.class.id %>"
+                                                    class="btn btn-secondary ms-2">
+                                                    Cancel
+                                                </a>
+                                            </div>
+                                        </form>
+                    </div>
+                </div>
+
+                <!-- Previous Submission (if exists) -->
+                <% if (hasSubmission) { %>
+                    <div class="card mt-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                Previous Submission
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="mb-1"><strong>Submitted on:</strong>
+                                        <%= new Date(assignment.submissions[0].submittedAt).toLocaleDateString() %> at
+                                            <%= new Date(assignment.submissions[0].submittedAt).toLocaleTimeString() %>
+                                    </p>
+                                    <% if (assignment.submissions[0].grade !==null) { %>
+                                        <p class="mb-0"><strong>Grade:</strong> <span class="text-success fw-bold">
+                                                <%= assignment.submissions[0].grade %>/100
+                                            </span></p>
+                                        <% } else { %>
+                                            <p class="mb-0 text-muted">Not graded yet</p>
+                                            <% } %>
+                                </div>
+                                <% if (assignment.submissions[0].fileUrl) { %>
+                                    <a href="<%= assignment.submissions[0].fileUrl %>"
+                                        class="btn btn-outline-primary btn-sm" download>
+                                        <i class="fas fa-download me-1"></i> Download Previous Submission
+                                    </a>
+                                    <% } %>
+                            </div>
+                            <% if (assignment.submissions[0].feedback) { %>
+                                <div class="mt-3">
+                                    <label class="form-label"><strong>Teacher Feedback:</strong></label>
+                                    <div class="alert alert-light border">
+                                        <%= assignment.submissions[0].feedback %>
+                                    </div>
+                                </div>
+                                <% } %>
+                        </div>
+                    </div>
+                    <% } %>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const fileInput = document.getElementById('submissionFile');
+                const fileInfo = document.getElementById('fileInfo');
+                const fileName = document.getElementById('fileName');
+                const fileSize = document.getElementById('fileSize');
+                const uploadBox = document.getElementById('uploadBox');
+
+                // Handle file selection
+                fileInput.addEventListener('change', function (e) {
+                    if (this.files.length > 0) {
+                        const file = this.files[0];
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatFileSize(file.size);
+                        fileInfo.style.display = 'block';
+                    }
+                });
+
+                // Drag and drop functionality
+                uploadBox.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#007bff';
+                    this.style.backgroundColor = '#e9ecef';
+                });
+
+                uploadBox.addEventListener('dragleave', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#dee2e6';
+                    this.style.backgroundColor = '#f8f9fa';
+                });
+
+                uploadBox.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#dee2e6';
+                    this.style.backgroundColor = '#f8f9fa';
+
+                    if (e.dataTransfer.files.length > 0) {
+                        fileInput.files = e.dataTransfer.files;
+                        const file = e.dataTransfer.files[0];
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatFileSize(file.size);
+                        fileInfo.style.display = 'block';
+                    }
+                });
+
+                // Format file size
+                function formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                }
+            });
+        </script>
+</body>
+
+</html>

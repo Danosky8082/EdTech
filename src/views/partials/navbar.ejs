@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech Navigation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+            --hover-bg: rgba(255, 255, 255, 0.15);
+            --active-bg: rgba(255, 255, 255, 0.2);
+            --text-light: rgba(255, 255, 255, 0.9);
+        }
+
+        .navbar-custom {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand i {
+            margin-right: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .navbar-brand:hover i {
+            transform: rotate(-10deg);
+        }
+
+        .nav-link {
+            font-weight: 500;
+            padding: 0.6rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link i {
+            margin-right: 8px;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--hover-bg);
+            transform: translateY(-2px);
+        }
+
+        .nav-link:hover i {
+            transform: scale(1.2);
+        }
+
+        .nav-link.active {
+            background-color: var(--active-bg);
+            font-weight: 600;
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .navbar-text {
+            color: var(--text-light) !important;
+            font-weight: 500;
+        }
+
+        .navbar-toggler {
+            border: none;
+            color: var(--text-light);
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-nav.me-auto {
+            margin-right: 2rem !important;
+        }
+
+        .welcome-section {
+            margin-left: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-nav .nav-item {
+                margin: 0.2rem 0;
+            }
+
+            .nav-link {
+                margin: 0.1rem 0;
+                justify-content: flex-start;
+            }
+
+            .welcome-section {
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                width: 100%;
+            }
+
+            .notification-wrapper {
+                margin: 0.5rem 0;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+
+            .notification-bell {
+                width: auto;
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+            }
+
+            .notification-badge {
+                top: -5px;
+                right: -5px;
+            }
+        }
+
+        .profile-img-nav {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            margin-right: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-img-nav:hover {
+            transform: scale(1.1);
+        }
+
+        /* Notification styles */
+        .notification-wrapper {
+            position: relative;
+            margin-right: 15px;
+        }
+
+        .notification-bell {
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.6rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            text-decoration: none !important;
+        }
+
+        .notification-bell:hover {
+            background-color: var(--hover-bg);
+            transform: translateY(-2px);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border: 2px solid #6a11cb;
+        }
+
+        .notification-dropdown {
+            width: 380px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .notification-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            font-weight: 600;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            display: flex;
+            align-items: flex-start;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item.unread {
+            background-color: #f0f7ff;
+            border-left: 4px solid #6a11cb;
+        }
+
+        .notification-item.read {
+            opacity: 0.8;
+        }
+
+        .notification-item:hover {
+            background-color: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .notification-icon {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            color: #6a11cb;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            color: #2d3436;
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: #636e72;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: #747d8c;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #747d8c;
+        }
+
+        .notification-empty i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .mark-all-read {
+            padding: 10px 15px;
+            border-top: 1px solid #f1f2f6;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #6a11cb;
+            transition: background-color 0.2s;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .mark-all-read:hover {
+            background-color: #e9ecef;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .notification-action-btn {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .mark-as-read-btn {
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+        }
+
+        .mark-as-read-btn:hover {
+            background-color: #5a0fb8;
+        }
+
+        /* Blinking animation for unread notifications */
+        .blink {
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .notification-dropdown {
+                width: 300px;
+                margin-left: -100px;
+            }
+        }
+
+        /* NEW: Dropdown on hover */
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+
+        /* Notification dropdown show/hide */
+        .notification-dropdown.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-graduation-cap"></i>EdTech
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <% if (typeof user !=='undefined' && user) { %>
+                        <% if (user.role==='student' ) { %>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/student/dashboard">
+                                    <i class="fas fa-tachometer-alt"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/student/classes">
+                                    <i class="fas fa-chalkboard"></i>My Classes
+                                </a>
+                            </li>
+                            <% } else if (user.role==='teacher' ) { %>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/dashboard">
+                                        <i class="fas fa-tachometer-alt"></i>Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/classes">
+                                        <i class="fas fa-chalkboard"></i>Classes
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/students">
+                                        <i class="fas fa-users"></i>Students
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/assignments">
+                                        <i class="fas fa-tasks"></i>Assignments
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/materials">
+                                        <i class="fas fa-book"></i>Materials
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/exams">
+                                        <i class="fas fa-file-alt"></i>Exams
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/teacher/grading">
+                                        <i class="fas fa-check-circle"></i>Grading
+                                    </a>
+                                </li>
+                                <% } else if (user.role==='admin' ) { %>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin/dashboard">
+                                            <i class="fas fa-tachometer-alt"></i>Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin/users">
+                                            <i class="fas fa-user-cog"></i>User Management
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin/classes">
+                                            <i class="fas fa-chalkboard"></i>Class Management
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin/analytics">
+                                            <i class="fas fa-chart-line"></i>Analytics
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin/activities">
+                                            <i class="fas fa-history"></i>Activities
+                                        </a>
+                                    </li>
+                                    <% } %>
+                                        <% } %>
+                </ul>
+
+                <!-- Notification Bell -->
+                <div class="notification-wrapper">
+                    <div class="dropdown">
+                        <a class="notification-bell dropdown-toggle" href="#" role="button" id="notificationDropdown"
+                            onmouseover="showNotifications()" onmouseout="hideNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <% if (typeof notificationCount !=='undefined' && notificationCount> 0) { %>
+                                <span class="notification-badge blink" id="notificationBadge">
+                                    <%= notificationCount> 9 ? '9+' : notificationCount %>
+                                </span>
+                                <% } %>
+                        </a>
+                        <ul class="dropdown-menu notification-dropdown" aria-labelledby="notificationDropdown" id="notificationDropdownMenu">
+                            <li class="notification-header">
+                                <span>Notifications</span>
+                                <% if (typeof notificationCount !=='undefined' && notificationCount> 0) { %>
+                                    <span class="badge bg-primary rounded-pill" id="notificationCountBadge">
+                                        <%= notificationCount %>
+                                    </span>
+                                    <% } %>
+                            </li>
+                            <% if (typeof notifications !=='undefined' && notifications.length> 0) { %>
+                                <% notifications.forEach(function(notification, index) { %>
+                                    <li class="notification-item <%= notification.read ? 'read' : 'unread' %>"
+                                        data-notification-id="<%= notification.id %>"
+                                        onclick="handleNotificationClick('<%= notification.id %>', '<%= notification.type %>', '<%= notification.relatedId %>')">
+                                        <div class="notification-icon">
+                                            <i class="fas <%= notification.icon || 'fa-info-circle' %>"></i>
+                                        </div>
+                                        <div class="notification-content">
+                                            <div class="notification-title">
+                                                <%= notification.title %>
+                                                    <% if (!notification.read) { %>
+                                                        <span class="badge bg-danger ms-1">New</span>
+                                                        <% } %>
+                                            </div>
+                                            <div class="notification-message">
+                                                <%= notification.message %>
+                                            </div>
+                                            <div class="notification-time">
+                                                <%= notification.time %>
+                                            </div>
+                                            <% if (!notification.read) { %>
+                                                <div class="notification-actions">
+                                                    <button class="notification-action-btn mark-as-read-btn"
+                                                        onclick="event.stopPropagation(); markNotificationAsRead('<%= notification.id %>')">
+                                                        Mark as read
+                                                    </button>
+                                                </div>
+                                                <% } %>
+                                        </div>
+                                    </li>
+                                    <% }); %>
+                                        <li class="mark-all-read" onclick="markAllNotificationsAsRead()">
+                                            <i class="fas fa-check-double me-1"></i> Mark all as read
+                                        </li>
+                                        <% } else { %>
+                                            <li class="notification-empty" style="display: block;">
+                                                <i class="fas fa-bell-slash"></i>
+                                                <p>No notifications</p>
+                                            </li>
+                                            <% } %>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Welcome section with dropdown -->
+                <div class="welcome-section">
+                    <ul class="navbar-nav">
+                        <% if (typeof user !=='undefined' && user) { %>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <% if (user.avatar) { %>
+                                        <img src="/<%= user.avatar %>" alt="Profile" class="profile-img-nav"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                        <i class="fas fa-user me-1" style="display: none;"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-user-circle me-1"></i>
+                                            <% } %>
+                                                <span class="navbar-text">Welcome, <%= user.firstName %></span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="/auth/change-password">
+                                            <i class="fas fa-key me-2"></i> Change Password
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/auth/logout">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <% } else { %>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/auth/login">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                </li>
+                                <% } %>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Notification dropdown functionality
+    let notificationTimeout;
+    let isHoveringNotifications = false;
+
+    function showNotifications() {
+        clearTimeout(notificationTimeout);
+        isHoveringNotifications = true;
+        document.getElementById('notificationDropdownMenu').classList.add('show');
+    }
+
+    function hideNotifications() {
+        isHoveringNotifications = false;
+        notificationTimeout = setTimeout(() => {
+            if (!isHoveringNotifications) {
+                document.getElementById('notificationDropdownMenu').classList.remove('show');
+            }
+        }, 500);
+    }
+
+    // Keep dropdown open when hovering over it
+    document.addEventListener('DOMContentLoaded', function () {
+        const notificationMenu = document.getElementById('notificationDropdownMenu');
+        const notificationBell = document.getElementById('notificationDropdown');
+
+        if (notificationMenu) {
+            notificationMenu.addEventListener('mouseover', () => {
+                isHoveringNotifications = true;
+                clearTimeout(notificationTimeout);
+            });
+
+            notificationMenu.addEventListener('mouseout', () => {
+                isHoveringNotifications = false;
+                notificationTimeout = setTimeout(() => {
+                    if (!isHoveringNotifications) {
+                        notificationMenu.classList.remove('show');
+                    }
+                }, 500);
+            });
+        }
+
+        if (notificationBell) {
+            notificationBell.addEventListener('click', function (e) {
+                e.preventDefault();
+                const menu = document.getElementById('notificationDropdownMenu');
+                if (menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                } else {
+                    menu.classList.add('show');
+                }
+            });
+        }
+    });
+
+    // Notification functions
+        async function markNotificationAsRead(notificationId) {
+                console.log('Marking notification as read:', notificationId);
+
+                try {
+                    const response = await fetch('/api/notifications/mark-as-read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ notificationId: notificationId })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('Notification marked as read successfully');
+
+                        // Remove from UI
+                        const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                        if (notificationElement) {
+                            notificationElement.style.opacity = '0';
+                            notificationElement.style.transition = 'opacity 0.3s ease';
+
+                            setTimeout(() => {
+                                notificationElement.remove();
+                                updateNotificationCount();
+                                checkEmptyState();
+                            }, 300);
+                        }
+                    } else {
+                        console.error('Failed to mark notification as read:', result.error);
+                        alert('Failed to mark notification as read');
+                    }
+                } catch (error) {
+                    console.error('Error marking notification as read:', error);
+                    alert('Error marking notification as read');
+                }
+            }
+
+        async function markAllNotificationsAsRead() {
+                console.log('Marking all notifications as read');
+
+                try {
+                    const response = await fetch('/api/notifications/mark-all-read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('All notifications marked as read successfully');
+
+                        // Remove all unread notifications from UI
+                        const unreadNotifications = document.querySelectorAll('.notification-item.unread');
+                        unreadNotifications.forEach((item, index) => {
+                            item.style.opacity = '0';
+                            item.style.transition = 'opacity 0.3s ease';
+
+                            setTimeout(() => {
+                                item.remove();
+                                if (index === unreadNotifications.length - 1) {
+                                    updateNotificationCount();
+                                    checkEmptyState();
+                                }
+                            }, 300 + (index * 100));
+                        });
+
+                        // If no unread notifications, still update count
+                        if (unreadNotifications.length === 0) {
+                            updateNotificationCount();
+                            checkEmptyState();
+                        }
+                    } else {
+                        console.error('Failed to mark all notifications as read:', result.error);
+                        alert('Failed to mark all notifications as read');
+                    }
+                } catch (error) {
+                    console.error('Error marking all notifications as read:', error);
+                    alert('Error marking all notifications as read');
+                }
+            }
+
+        // Store notification count for page consistency
+        function updateStoredNotificationCount() {
+            const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+            sessionStorage.setItem('notificationCount', unreadCount);
+            console.log('Stored notification count updated:', unreadCount);
+        }
+
+        function getStoredNotificationCount() {
+            return parseInt(sessionStorage.getItem('notificationCount')) || 0;
+        }
+
+        // Update the notification count display
+        function updateNotificationCount() {
+            console.log('Updating notification count');
+
+            const unreadNotifications = document.querySelectorAll('.notification-item.unread');
+            const unreadCount = unreadNotifications.length;
+            const badge = document.getElementById('notificationBadge');
+            const countBadge = document.getElementById('notificationCountBadge');
+
+            // Update session storage
+            sessionStorage.setItem('notificationCount', unreadCount);
+
+            console.log('Unread count:', unreadCount);
+
+            if (unreadCount > 0) {
+                if (badge) {
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    badge.classList.add('blink');
+                    console.log('Badge updated:', badge.textContent);
+                }
+                if (countBadge) {
+                    countBadge.textContent = unreadCount;
+                    console.log('Count badge updated:', countBadge.textContent);
+                }
+            } else {
+                if (badge) {
+                    badge.remove();
+                    console.log('Badge removed');
+                }
+                if (countBadge) {
+                    countBadge.remove();
+                    console.log('Count badge removed');
+                }
+            }
+        }
+
+        function checkEmptyState() {
+            console.log('Checking empty state');
+
+            const notificationItems = document.querySelectorAll('.notification-item');
+            const emptyState = document.querySelector('.notification-empty');
+            const markAllRead = document.querySelector('.mark-all-read');
+            const notificationHeader = document.querySelector('.notification-header');
+
+            console.log('Notification items count:', notificationItems.length);
+
+            if (notificationItems.length === 0) {
+                console.log('Showing empty state');
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                }
+                if (markAllRead) {
+                    markAllRead.style.display = 'none';
+                }
+                if (notificationHeader) {
+                    const countBadge = notificationHeader.querySelector('.badge');
+                    if (countBadge) {
+                        countBadge.remove();
+                    }
+                }
+            } else {
+                console.log('Hiding empty state');
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+                if (markAllRead) {
+                    markAllRead.style.display = 'block';
+                }
+            }
+        }
+
+        function handleNotificationClick(notificationId, type, relatedId) {
+            console.log('Notification clicked:', notificationId, type, relatedId);
+
+            // Mark as read first
+            markNotificationAsRead(notificationId);
+
+            // Handle navigation based on notification type
+            switch (type) {
+                case 'assignment':
+                    window.location.href = `/student/assignments/${relatedId}`;
+                    break;
+                case 'grade':
+                    window.location.href = `/student/grades`;
+                    break;
+                case 'material':
+                    window.location.href = `/student/materials/${relatedId}`;
+                    break;
+                default:
+                    // Do nothing or handle default case
+                    console.log('No specific action for notification type:', type);
+                    break;
+            }
+        }
+
+        // Close notifications when clicking outside
+        document.addEventListener('click', function (event) {
+            const notificationMenu = document.getElementById('notificationDropdownMenu');
+            const notificationBell = document.getElementById('notificationDropdown');
+
+            if (notificationMenu && notificationBell) {
+                if (!notificationMenu.contains(event.target) && !notificationBell.contains(event.target)) {
+                    notificationMenu.classList.remove('show');
+                }
+            }
+        });
+
+        // Initialize notification functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Notification system initialized');
+
+            const storedCount = getStoredNotificationCount();
+            const actualCount = document.querySelectorAll('.notification-item.unread').length;
+
+            console.log('Stored count:', storedCount, 'Actual count:', actualCount);
+
+            // it means we need to update the UI to match what the user has done
+            if (storedCount !== actualCount && storedCount >= 0) {
+                console.log('Updating UI to match stored count');
+                updateNotificationCount();
+            }
+
+            // Initial check for empty state
+            checkEmptyState();
+
+            // Make sure the count is accurate on page load
+            updateNotificationCount();
+        });
+</script>
+</body>
+
+</html>

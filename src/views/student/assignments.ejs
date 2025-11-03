@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .assignment-card {
+            border-left: 4px solid #28a745;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .assignment-card.overdue {
+            border-left-color: #dc3545;
+        }
+
+        .assignment-card.submitted {
+            border-left-color: #6c757d;
+        }
+
+        .assignment-card.graded {
+            border-left-color: #17a2b8;
+        }
+
+        .assignment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .due-date {
+            font-weight: 500;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .class-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .progress {
+            height: 8px;
+        }
+
+        /* Enhanced Submission Styles */
+        .submission-options {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .submission-type-btn {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            height: 100%;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .submission-type-btn:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+        }
+
+        .submission-type-btn.active {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- Class Header -->
+                <div class="class-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-tasks me-2"></i>Class Assignments</h2>
+                            <p class="mb-0">
+                                <%= classData.name %> - <%= classData.grade %>-<%= classData.section %>
+                            </p>
+                        </div>
+                        <a href="/student/dashboard" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Information -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-chalkboard-teacher me-2"></i>Teacher Information</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <p class="mb-1"><strong>
+                                        <%= classData.teacher.user.firstName %>
+                                            <%= classData.teacher.user.lastName %>
+                                    </strong></p>
+                                <p class="mb-0 text-muted">
+                                    <%= classData.subject || "General Subject" %>
+                                </p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-primary">Teacher</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h3 class="text-primary">
+                                    <%= assignments.length %>
+                                </h3>
+                                <p class="text-muted mb-0">Total Assignments</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <% const pendingCount=assignments.filter(a=> {
+                                    const hasSubmission = a.submissions && a.submissions.length > 0;
+                                    return !hasSubmission && new Date() <= new Date(a.dueDate); }).length; %>
+                                        <h3 class="text-warning">
+                                            <%= pendingCount %>
+                                        </h3>
+                                        <p class="text-muted mb-0">Pending</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <% const submittedCount=assignments.filter(a=> {
+                                    return a.submissions && a.submissions.length > 0;
+                                    }).length; %>
+                                    <h3 class="text-success">
+                                        <%= submittedCount %>
+                                    </h3>
+                                    <p class="text-muted mb-0">Submitted</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <% const gradedCount=assignments.filter(a=> {
+                                    return a.submissions && a.submissions.length > 0 && a.submissions[0].grade !== null;
+                                    }).length; %>
+                                    <h3 class="text-info">
+                                        <%= gradedCount %>
+                                    </h3>
+                                    <p class="text-muted mb-0">Graded</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Assignment Completion</h6>
+                            <span class="text-muted">
+                                <%= submittedCount %>/<%= assignments.length %>
+                            </span>
+                        </div>
+                        <div class="progress">
+                            <% const progressWidth=assignments.length> 0 ? (submittedCount / assignments.length * 100) :
+                                0; %>
+                                <div class="progress-bar" role="progressbar" style="width: <%= progressWidth %>%;"
+                                    aria-valuenow="<%= submittedCount %>" aria-valuemin="0"
+                                    aria-valuemax="<%= assignments.length %>">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Submission Options Info -->
+                <div class="submission-options">
+                    <h5><i class="fas fa-rocket me-2"></i>Enhanced Submission Options</h5>
+                    <p class="text-muted mb-3">Choose the submission method that works best for your assignment:</p>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="javascript:void(0);" class="submission-type-btn"
+                                onclick="showSubmissionInfo('text')">
+                                <div class="feature-icon text-primary">
+                                    <i class="fas fa-keyboard"></i>
+                                </div>
+                                <h6>Rich Text Editor</h6>
+                                <small class="text-muted">Format your work with styles, images, and links. Perfect for
+                                    essays and reports.</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="javascript:void(0);" class="submission-type-btn"
+                                onclick="showSubmissionInfo('drawing')">
+                                <div class="feature-icon text-success">
+                                    <i class="fas fa-paint-brush"></i>
+                                </div>
+                                <h6>Drawing Canvas</h6>
+                                <small class="text-muted">Create diagrams, sketches, and illustrations. Great for art
+                                    and design assignments.</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="javascript:void(0);" class="submission-type-btn"
+                                onclick="showSubmissionInfo('file')">
+                                <div class="feature-icon text-info">
+                                    <i class="fas fa-file-upload"></i>
+                                </div>
+                                <h6>File Upload</h6>
+                                <small class="text-muted">Upload documents, images, PDFs, or any files. Supports all
+                                    file types.</small>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Submission Info Display -->
+                    <div class="mt-4" id="submission-info" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 id="info-title" class="card-title"></h6>
+                                <p id="info-description" class="card-text"></p>
+                                <div id="info-actions"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignments Section -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            Assignments
+                            <span class="badge bg-primary ms-2">
+                                <%= assignments.length %>
+                            </span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (assignments && assignments.length> 0) { %>
+                            <div class="row">
+                                <% assignments.forEach(function(assignment) { const now=new Date(); const dueDate=new
+                                    Date(assignment.dueDate); const isOverdue=now> dueDate;
+                                    const hasSubmission = assignment.submissions && assignment.submissions.length > 0;
+                                    const isGraded = hasSubmission && assignment.submissions[0].grade !== null;
+                                    let statusClass = "";
+                                    let statusText = "";
+                                    let statusColor = "bg-primary";
+
+                                    if (isOverdue && !hasSubmission) {
+                                    statusClass = "overdue";
+                                    statusText = "Overdue";
+                                    statusColor = "bg-danger";
+                                    } else if (hasSubmission && isGraded) {
+                                    statusClass = "graded";
+                                    statusText = `Graded: ${assignment.submissions[0].grade}/100`;
+                                    statusColor = "bg-info";
+                                    } else if (hasSubmission) {
+                                    statusClass = "submitted";
+                                    statusText = "Submitted";
+                                    statusColor = "bg-secondary";
+                                    } else {
+                                    statusText = "Pending";
+                                    statusColor = "bg-primary";
+                                    }
+                                    %>
+                                    <div class="col-12 mb-4">
+                                        <div class="card assignment-card h-100 <%= statusClass %>">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <h5 class="card-title mb-0">
+                                                        <%= assignment.title %>
+                                                    </h5>
+                                                    <span class="badge <%= statusColor %> status-badge">
+                                                        <%= statusText %>
+                                                    </span>
+                                                </div>
+
+                                                <% if (assignment.description) { %>
+                                                    <p class="card-text">
+                                                        <%= assignment.description %>
+                                                    </p>
+                                                    <% } %>
+
+                                                        <div class="row mt-3">
+                                                            <div class="col-md-6">
+                                                                <div class="d-flex flex-wrap gap-3">
+                                                                    <span class="due-date text-muted">
+                                                                        <i class="fas fa-clock me-1"></i>
+                                                                        Due: <%= dueDate.toLocaleDateString() %> at <%=
+                                                                                dueDate.toLocaleTimeString([],
+                                                                                {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                    </span>
+                                                                    <span class="text-muted">
+                                                                        <i class="fas fa-file me-1"></i>
+                                                                        <%= hasSubmission ? 'Submitted'
+                                                                            : 'Not submitted' %>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6 text-md-end">
+                                                                <% if (isGraded) { %>
+                                                                    <span class="text-success fw-bold">
+                                                                        <i class="fas fa-check-circle me-1"></i>
+                                                                        Grade: <%= assignment.submissions[0].grade %>
+                                                                            /100
+                                                                    </span>
+                                                                    <% } else if (hasSubmission) { %>
+                                                                        <span class="text-warning">
+                                                                            <i class="fas fa-clock me-1"></i>
+                                                                            Awaiting grade
+                                                                        </span>
+                                                                        <% } %>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Enhanced Submission Options -->
+                                                        <% if (!hasSubmission && now <=dueDate) { %>
+                                                            <div class="mt-3 p-3 bg-light rounded">
+                                                                <h6 class="mb-2">Submit Your Work:</h6>
+                                                                <div class="btn-group">
+                                                                    <a href="/student/assignments/<%= assignment.id %>/submit-enhanced?type=text"
+                                                                        class="btn btn-outline-primary btn-sm">
+                                                                        <i class="fas fa-keyboard me-1"></i> Rich Text
+                                                                    </a>
+                                                                    <a href="/student/assignments/<%= assignment.id %>/submit-enhanced?type=drawing"
+                                                                        class="btn btn-outline-success btn-sm">
+                                                                        <i class="fas fa-paint-brush me-1"></i> Drawing
+                                                                    </a>
+                                                                    <a href="/student/assignments/<%= assignment.id %>/submit"
+                                                                        class="btn btn-outline-info btn-sm">
+                                                                        <i class="fas fa-file-upload me-1"></i> File
+                                                                        Upload
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            <% } %>
+                                            </div>
+                                            <div
+                                                class="card-footer bg-white d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <% if (isOverdue && !hasSubmission) { %>
+                                                        <i class="fas fa-exclamation-triangle me-1 text-danger"></i>
+                                                        This assignment is overdue
+                                                        <% } else if (hasSubmission) { %>
+                                                            <i class="fas fa-paper-plane me-1 text-success"></i>
+                                                            Submitted on <%= new
+                                                                Date(assignment.submissions[0].submittedAt).toLocaleDateString()
+                                                                %>
+                                                                <% } else { %>
+                                                                    <i
+                                                                        class="fas fa-hourglass-half me-1 text-primary"></i>
+                                                                    <% const daysLeft=Math.ceil((dueDate - now) / (1000
+                                                                        * 60 * 60 * 24)); %>
+                                                                        Due in <%= daysLeft %> day<%= daysLeft !==1
+                                                                                ? 's' : '' %>
+                                                                                <% } %>
+                                                </small>
+                                                <div>
+                                                    <% if (!hasSubmission && now <=dueDate) { %>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-primary btn-sm dropdown-toggle"
+                                                                type="button" data-bs-toggle="dropdown">
+                                                                <i class="fas fa-upload me-1"></i> Submit
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="/student/assignments/<%= assignment.id %>/submit-enhanced?type=text">
+                                                                        <i class="fas fa-keyboard me-2"></i>Rich Text
+                                                                        Editor
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="/student/assignments/<%= assignment.id %>/submit-enhanced?type=drawing">
+                                                                        <i class="fas fa-paint-brush me-2"></i>Drawing
+                                                                        Canvas
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="/student/assignments/<%= assignment.id %>/submit">
+                                                                        <i class="fas fa-file-upload me-2"></i>File
+                                                                        Upload
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <hr class="dropdown-divider">
+                                                                </li>
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="/student/assignments/<%= assignment.id %>/submit-enhanced">
+                                                                        <i class="fas fa-ellipsis-h me-2"></i>All
+                                                                        Options
+                                                                    </a>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                        <% } else if (hasSubmission && now <=dueDate) { %>
+                                                            <a href="/student/assignments/<%= assignment.id %>/submit-enhanced"
+                                                                class="btn btn-outline-primary btn-sm">
+                                                                <i class="fas fa-sync me-1"></i> Resubmit
+                                                            </a>
+                                                            <% } %>
+                                                                <% if (hasSubmission &&
+                                                                    assignment.submissions[0].feedback) { %>
+                                                                    <button class="btn btn-info btn-sm ms-1"
+                                                                        data-bs-toggle="tooltip"
+                                                                        title="<%= assignment.submissions[0].feedback %>">
+                                                                        <i class="fas fa-comment me-1"></i> Feedback
+                                                                    </button>
+                                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } else { %>
+                                <div class="empty-state">
+                                    <i class="fas fa-clipboard-list fa-4x mb-3"></i>
+                                    <h4>No Assignments</h4>
+                                    <p class="text-muted">Your teacher hasn't created any assignments for this class
+                                        yet.</p>
+                                </div>
+                                <% } %>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Enhanced submission type buttons functionality
+            function showSubmissionInfo(type) {
+                // Remove active class from all buttons
+                document.querySelectorAll('.submission-type-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Add active class to clicked button
+                event.currentTarget.classList.add('active');
+
+                // Show submission info
+                const infoDiv = document.getElementById('submission-info');
+                const infoTitle = document.getElementById('info-title');
+                const infoDescription = document.getElementById('info-description');
+                const infoActions = document.getElementById('info-actions');
+
+                infoDiv.style.display = 'block';
+
+                switch (type) {
+                    case 'text':
+                        infoTitle.innerHTML = '<i class="fas fa-keyboard me-2 text-primary"></i>Rich Text Editor';
+                        infoDescription.textContent = 'Use our advanced text editor to create beautifully formatted assignments with images, links, and various styling options. Perfect for essays, reports, and written assignments.';
+                        infoActions.innerHTML = `
+                            <div class="mt-3">
+                                <strong>Features:</strong>
+                                <ul class="mb-3">
+                                    <li>Bold, italic, underline text formatting</li>
+                                    <li>Insert images and links</li>
+                                    <li>Bullet points and numbered lists</li>
+                                    <li>Different heading styles</li>
+                                    <li>Text colors and highlights</li>
+                                </ul>
+                                <small class="text-muted">Click on any assignment to try the Rich Text Editor</small>
+                            </div>
+                        `;
+                        break;
+
+                    case 'drawing':
+                        infoTitle.innerHTML = '<i class="fas fa-paint-brush me-2 text-success"></i>Drawing Canvas';
+                        infoDescription.textContent = 'Create diagrams, sketches, and illustrations using our drawing tools. Perfect for art assignments, diagrams, math problems, and visual presentations.';
+                        infoActions.innerHTML = `
+                            <div class="mt-3">
+                                <strong>Features:</strong>
+                                <ul class="mb-3">
+                                    <li>Multiple brush sizes and colors</li>
+                                    <li>Eraser tool for corrections</li>
+                                    <li>Shape tools (circles, rectangles, lines)</li>
+                                    <li>Undo/redo functionality</li>
+                                    <li>Save as high-quality image</li>
+                                </ul>
+                                <small class="text-muted">Click on any assignment to try the Drawing Canvas</small>
+                            </div>
+                        `;
+                        break;
+
+                    case 'file':
+                        infoTitle.innerHTML = '<i class="fas fa-file-upload me-2 text-info"></i>File Upload';
+                        infoDescription.textContent = 'Upload any type of file for your assignment submission. Supports documents, images, PDFs, presentations, and more.';
+                        infoActions.innerHTML = `
+                            <div class="mt-3">
+                                <strong>Supported File Types:</strong>
+                                <ul class="mb-3">
+                                    <li>Documents: PDF, DOC, DOCX, TXT</li>
+                                    <li>Images: JPG, PNG, GIF, SVG</li>
+                                    <li>Presentations: PPT, PPTX</li>
+                                    <li>Spreadsheets: XLS, XLSX, CSV</li>
+                                    <li>And many more file types</li>
+                                </ul>
+                                <small class="text-muted">Click on any assignment to upload files</small>
+                            </div>
+                        `;
+                        break;
+                }
+            }
+
+            // Show first submission option by default
+            document.addEventListener('DOMContentLoaded', function () {
+                // Show text submission info by default
+                showSubmissionInfo('text');
+            });
+        </script>
+</body>
+
+</html>

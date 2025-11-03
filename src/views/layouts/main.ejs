@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - <%= typeof title !=='undefined' ? title : 'EdTech' %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <% if (typeof hideNavbar==='undefined' || !hideNavbar) { %>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="/">EdTech</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <% if (typeof user !=='undefined' && user) { %>
+                            <% if (user.role==='student' ) { %>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/student/dashboard">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/student/classes">My Classes</a>
+                                </li>
+                                <% } else if (user.role==='teacher' ) { %>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/teacher/dashboard">Dashboard</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/teacher/classes">My Classes</a>
+                                    </li>
+                                    <% } else if (user.role==='admin' ) { %>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="/admin/dashboard">Dashboard</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="/admin/users">User Management</a>
+                                        </li>
+                                        <% } %>
+                                            <% } %>
+                    </ul>
+                    <ul class="navbar-nav">
+                        <% if (typeof user !=='undefined' && user) { %>
+                            <li class="nav-item">
+                                <span class="navbar-text me-3">Welcome, <%= user.firstName %></span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/auth/change-password">Change Password</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/auth/logout">Logout</a>
+                            </li>
+                            <% } else { %>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/auth/login">Login</a>
+                                </li>
+                                <% } %>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <% } %>
+
+            <div class="container mt-4">
+                <% if (typeof success !=='undefined' && success) { %>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <%= success %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <% } %>
+                        <% if (typeof error !=='undefined' && error) { %>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error %>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            <% } %>
+
+                                <%- body %>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
