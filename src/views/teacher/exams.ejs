@@ -108,6 +108,176 @@
             background-position: right calc(0.375em + 0.1875rem) center;
             background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
         }
+
+        /* Score Summary Styles */
+        .score-summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .progress {
+            height: 8px;
+            margin-top: 5px;
+        }
+
+        .score-distribution-bar {
+            height: 30px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .score-A {
+            background-color: #28a745;
+        }
+
+        .score-B {
+            background-color: #20c997;
+        }
+
+        .score-C {
+            background-color: #ffc107;
+        }
+
+        .score-D {
+            background-color: #fd7e14;
+        }
+
+        .score-F {
+            background-color: #dc3545;
+        }
+
+        .student-score-row:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .score-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .print-section,
+            .print-section * {
+                visibility: visible;
+            }
+
+            .print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+            }
+
+            .score-summary-card {
+                background: white !important;
+                color: black !important;
+                border: 2px solid #000 !important;
+            }
+
+            .stat-card {
+                background: #f8f9fa !important;
+                color: black !important;
+                border: 1px solid #dee2e6 !important;
+            }
+
+            .btn,
+            .navbar,
+            .alert,
+            .modal,
+            .empty-state i {
+                display: none !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+            }
+
+            .score-distribution-bar {
+                border: 1px solid #000 !important;
+            }
+
+            .table {
+                border: 1px solid #000 !important;
+            }
+
+            .table th,
+            .table td {
+                border: 1px solid #000 !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            .badge {
+                border: 1px solid #000 !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                color: black !important;
+            }
+
+            .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #000;
+            }
+
+            .print-footer {
+                text-align: center;
+                margin-top: 20px;
+                padding-top: 10px;
+                border-top: 1px solid #000;
+                font-size: 0.8rem;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        }
+
+        .print-controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
     </style>
 </head>
 
@@ -131,142 +301,725 @@
                         </div>
                         <% } %>
 
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h2>Exam Management</h2>
-                                <button class="btn btn-primary" data-bs-toggle="modal"
-                                    data-bs-target="#createExamModal">
-                                    <i class="fas fa-plus"></i> Create Exam
-                                </button>
-                            </div>
+                            <!-- Score Summary Section for Exam Results Page -->
+                            <% if (typeof examResults !=='undefined' && examResults && examResults.length> 0) {
+                                // Calculate statistics
+                                const totalStudents = examResults.length;
+                                const submittedResults = examResults.filter(result => result.submitted);
+                                const pendingResults = examResults.filter(result => !result.submitted);
+                                const gradedResults = submittedResults.filter(result => result.score !== null &&
+                                result.score !== undefined);
 
-                            <div class="row">
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header bg-primary text-white">
-                                            <h5 class="mb-0">Upcoming Exams</h5>
+                                let averageScore = 0;
+                                let highestScore = 0;
+                                let lowestScore = 100;
+                                let scoreDistribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+
+                                if (gradedResults.length > 0) {
+                                // Calculate scores
+                                const totalScore = gradedResults.reduce((sum, result) => sum + result.score, 0);
+                                averageScore = totalScore / gradedResults.length;
+                                highestScore = Math.max(...gradedResults.map(result => result.score));
+                                lowestScore = Math.min(...gradedResults.map(result => result.score));
+
+                                // Calculate score distribution
+                                gradedResults.forEach(result => {
+                                const percentage = (result.score / result.totalMarks) * 100;
+                                if (percentage >= 90) scoreDistribution.A++;
+                                else if (percentage >= 80) scoreDistribution.B++;
+                                else if (percentage >= 70) scoreDistribution.C++;
+                                else if (percentage >= 60) scoreDistribution.D++;
+                                else scoreDistribution.F++;
+                                });
+                                }
+                                %>
+
+                                <!-- Print Controls -->
+                                <div class="print-controls">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h5 class="mb-0"><i class="fas fa-print me-2"></i>Print Exam Results</h5>
+                                            <small class="text-muted">Generate printable reports of exam scores and
+                                                performance</small>
                                         </div>
-                                        <div class="card-body">
-                                            <% if (upcomingExams && upcomingExams.length> 0) { %>
-                                                <% upcomingExams.forEach(exam=> { %>
-                                                    <div class="border-start border-4 border-primary ps-3 mb-3">
-                                                        <h6>
-                                                            <%= exam.title %>
-                                                        </h6>
-                                                        <p class="mb-1 text-muted">
-                                                            <strong>Class:</strong>
-                                                            <%= exam.class.name %><br>
-                                                                <strong>Date:</strong>
-                                                                <%= new Date(exam.date).toLocaleString() %><br>
-                                                                    <strong>Duration:</strong>
-                                                                    <%= exam.duration %> minutes
-                                                        </p>
-                                                    </div>
-                                                    <% }) %>
-                                                        <% } else { %>
-                                                            <p class="text-muted">No upcoming exams scheduled.</p>
-                                                            <% } %>
+                                        <div class="col-md-4 text-end">
+                                            <button class="btn btn-primary me-2" onclick="printScoreSummary()">
+                                                <i class="fas fa-chart-bar me-1"></i> Print Summary
+                                            </button>
+                                            <button class="btn btn-success" onclick="printFullResults()">
+                                                <i class="fas fa-file-alt me-1"></i> Full Results
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header bg-success text-white">
-                                            <h5 class="mb-0">Recent Exams</h5>
+                                <!-- Printable Score Summary -->
+                                <div id="printableScoreSummary" class="print-section" style="display: none;">
+                                    <div class="print-header">
+                                        <h1>Exam Score Summary Report</h1>
+                                        <p class="mb-1"><strong>Exam:</strong>
+                                            <%= examResults[0].exam.title %>
+                                        </p>
+                                        <p class="mb-1"><strong>Class:</strong>
+                                            <%= examResults[0].exam.class.name %>
+                                        </p>
+                                        <p class="mb-1"><strong>Report Date:</strong> <span id="scoreReportDate"></span>
+                                        </p>
+                                        <p><strong>Total Students:</strong>
+                                            <%= totalStudents %>
+                                        </p>
+                                    </div>
+
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h4 class="mb-0">Overall Statistics</h4>
                                         </div>
                                         <div class="card-body">
-                                            <% if (recentExams && recentExams.length> 0) { %>
-                                                <% recentExams.forEach(exam=> { %>
-                                                    <div class="border-start border-4 border-success ps-3 mb-3">
-                                                        <h6>
-                                                            <%= exam.title %>
-                                                        </h6>
-                                                        <p class="mb-1 text-muted">
-                                                            <strong>Class:</strong>
-                                                            <%= exam.class.name %><br>
-                                                                <strong>Completed:</strong>
-                                                                <%= new Date(exam.date).toLocaleDateString() %>
+                                            <div class="row text-center">
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= totalStudents %>
                                                         </p>
-                                                        <a href="/teacher/exam/<%= exam.id %>/results"
-                                                            class="btn btn-sm btn-outline-success">
-                                                            View Results
-                                                        </a>
+                                                        <p class="stat-label">Total Students</p>
                                                     </div>
-                                                    <% }) %>
-                                                        <% } else { %>
-                                                            <p class="text-muted">No recent exams found.</p>
-                                                            <% } %>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= submittedResults.length %>
+                                                        </p>
+                                                        <p class="stat-label">Submitted</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= pendingResults.length %>
+                                                        </p>
+                                                        <p class="stat-label">Pending</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= averageScore> 0 ? averageScore.toFixed(1) : 'N/A' %>
+                                                        </p>
+                                                        <p class="stat-label">Average Score</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-4">
+                                                <div class="col-md-6">
+                                                    <h5>Score Distribution</h5>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>A (90-100%)</span>
+                                                            <span>
+                                                                <%= scoreDistribution.A %> (<%= gradedResults.length> 0
+                                                                        ? ((scoreDistribution.A / gradedResults.length)
+                                                                        * 100).toFixed(1) : 0 %>%)
+                                                            </span>
+                                                        </div>
+                                                        <div class="score-distribution-bar score-A"
+                                                            style="width: <%= gradedResults.length > 0 ? (scoreDistribution.A / gradedResults.length) * 100 : 0 %>%">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>B (80-89%)</span>
+                                                            <span>
+                                                                <%= scoreDistribution.B %> (<%= gradedResults.length> 0
+                                                                        ? ((scoreDistribution.B / gradedResults.length)
+                                                                        * 100).toFixed(1) : 0 %>%)
+                                                            </span>
+                                                        </div>
+                                                        <div class="score-distribution-bar score-B"
+                                                            style="width: <%= gradedResults.length > 0 ? (scoreDistribution.B / gradedResults.length) * 100 : 0 %>%">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>C (70-79%)</span>
+                                                            <span>
+                                                                <%= scoreDistribution.C %> (<%= gradedResults.length> 0
+                                                                        ? ((scoreDistribution.C / gradedResults.length)
+                                                                        * 100).toFixed(1) : 0 %>%)
+                                                            </span>
+                                                        </div>
+                                                        <div class="score-distribution-bar score-C"
+                                                            style="width: <%= gradedResults.length > 0 ? (scoreDistribution.C / gradedResults.length) * 100 : 0 %>%">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>D (60-69%)</span>
+                                                            <span>
+                                                                <%= scoreDistribution.D %> (<%= gradedResults.length> 0
+                                                                        ? ((scoreDistribution.D / gradedResults.length)
+                                                                        * 100).toFixed(1) : 0 %>%)
+                                                            </span>
+                                                        </div>
+                                                        <div class="score-distribution-bar score-D"
+                                                            style="width: <%= gradedResults.length > 0 ? (scoreDistribution.D / gradedResults.length) * 100 : 0 %>%">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>F (0-59%)</span>
+                                                            <span>
+                                                                <%= scoreDistribution.F %> (<%= gradedResults.length> 0
+                                                                        ? ((scoreDistribution.F / gradedResults.length)
+                                                                        * 100).toFixed(1) : 0 %>%)
+                                                            </span>
+                                                        </div>
+                                                        <div class="score-distribution-bar score-F"
+                                                            style="width: <%= gradedResults.length > 0 ? (scoreDistribution.F / gradedResults.length) * 100 : 0 %>%">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h5>Performance Metrics</h5>
+                                                    <div class="list-group">
+                                                        <div
+                                                            class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>Highest Score</span>
+                                                            <span class="badge bg-success">
+                                                                <%= highestScore> 0 ? highestScore : 'N/A' %>/<%=
+                                                                        examResults[0].totalMarks %>
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>Lowest Score</span>
+                                                            <span class="badge bg-danger">
+                                                                <%= lowestScore < 100 ? lowestScore : 'N/A' %>/<%=
+                                                                        examResults[0].totalMarks %>
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>Submission Rate</span>
+                                                            <span class="badge bg-info">
+                                                                <%= ((submittedResults.length / totalStudents) *
+                                                                    100).toFixed(1) %>%
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <span>Pass Rate (≥60%)</span>
+                                                            <span class="badge bg-success">
+                                                                <%= gradedResults.length> 0 ? (((scoreDistribution.A +
+                                                                    scoreDistribution.B + scoreDistribution.C +
+                                                                    scoreDistribution.D) / gradedResults.length) *
+                                                                    100).toFixed(1) : 0 %>%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4>All Exams</h4>
+                                    <div class="print-footer">
+                                        <p>Generated on <span id="scorePrintDate"></span> | EdTech Exam System</p>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <% if (exams && exams.length> 0) { %>
-                                        <div class="table-responsive">
-                                            <table class="table table-striped">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Title</th>
-                                                        <th>Class</th>
-                                                        <th>Date & Time</th>
-                                                        <th>Duration</th>
-                                                        <th>Status</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <% exams.forEach(exam=> { %>
+
+                                <!-- Printable Full Results -->
+                                <div id="printableFullResults" class="print-section" style="display: none;">
+                                    <div class="print-header">
+                                        <h1>Complete Exam Results</h1>
+                                        <p class="mb-1"><strong>Exam:</strong>
+                                            <%= examResults[0].exam.title %>
+                                        </p>
+                                        <p class="mb-1"><strong>Class:</strong>
+                                            <%= examResults[0].exam.class.name %>
+                                        </p>
+                                        <p class="mb-1"><strong>Total Marks:</strong>
+                                            <%= examResults[0].totalMarks %>
+                                        </p>
+                                        <p class="mb-1"><strong>Report Date:</strong> <span id="fullResultsDate"></span>
+                                        </p>
+                                        <p><strong>Total Students:</strong>
+                                            <%= totalStudents %> | <strong>Submitted:</strong>
+                                                <%= submittedResults.length %>
+                                        </p>
+                                    </div>
+
+                                    <!-- Include the same summary as above -->
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h4 class="mb-0">Overall Statistics</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row text-center">
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= totalStudents %>
+                                                        </p>
+                                                        <p class="stat-label">Total Students</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= submittedResults.length %>
+                                                        </p>
+                                                        <p class="stat-label">Submitted</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= pendingResults.length %>
+                                                        </p>
+                                                        <p class="stat-label">Pending</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="stat-card">
+                                                        <p class="stat-number">
+                                                            <%= averageScore> 0 ? averageScore.toFixed(1) : 'N/A' %>
+                                                        </p>
+                                                        <p class="stat-label">Average Score</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Student Results Table -->
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4 class="mb-0">Student Results</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered">
+                                                    <thead class="table-dark">
                                                         <tr>
-                                                            <td>
-                                                                <%= exam.title %>
-                                                            </td>
-                                                            <td>
-                                                                <%= exam.class.name %>
-                                                            </td>
-                                                            <td>
-                                                                <%= new Date(exam.date).toLocaleString() %>
-                                                            </td>
-                                                            <td>
-                                                                <%= exam.duration %> minutes
-                                                            </td>
-                                                            <td>
-                                                                <span class="badge bg-<%= 
+                                                            <th>Student Name</th>
+                                                            <th>ID Number</th>
+                                                            <th>Score</th>
+                                                            <th>Percentage</th>
+                                                            <th>Grade</th>
+                                                            <th>Status</th>
+                                                            <th>Submitted At</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% examResults.forEach(result=> {
+                                                            const percentage = result.score !== null ? (result.score /
+                                                            result.totalMarks) * 100 : null;
+                                                            let grade = 'N/A';
+                                                            let gradeClass = 'secondary';
+
+                                                            if (percentage !== null) {
+                                                            if (percentage >= 90) { grade = 'A'; gradeClass = 'success';
+                                                            }
+                                                            else if (percentage >= 80) { grade = 'B'; gradeClass =
+                                                            'info'; }
+                                                            else if (percentage >= 70) { grade = 'C'; gradeClass =
+                                                            'warning'; }
+                                                            else if (percentage >= 60) { grade = 'D'; gradeClass =
+                                                            'warning'; }
+                                                            else { grade = 'F'; gradeClass = 'danger'; }
+                                                            }
+                                                            %>
+                                                            <tr>
+                                                                <td>
+                                                                    <%= result.student.user.firstName %>
+                                                                        <%= result.student.user.lastName %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= result.student.user.idNumber %>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <% if (result.score !==null) { %>
+                                                                        <strong>
+                                                                            <%= result.score %>/<%= result.totalMarks %>
+                                                                        </strong>
+                                                                        <% } else { %>
+                                                                            <span class="text-muted">-</span>
+                                                                            <% } %>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <% if (percentage !==null) { %>
+                                                                        <span class="badge bg-<%= gradeClass %>">
+                                                                            <%= percentage.toFixed(1) %>%
+                                                                        </span>
+                                                                        <% } else { %>
+                                                                            <span class="badge bg-secondary">N/A</span>
+                                                                            <% } %>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge bg-<%= gradeClass %>">
+                                                                        <%= grade %>
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <% if (result.submitted) { %>
+                                                                        <% if (result.score !==null) { %>
+                                                                            <span class="badge bg-success">Graded</span>
+                                                                            <% } else { %>
+                                                                                <span class="badge bg-warning">Pending
+                                                                                    Grade</span>
+                                                                                <% } %>
+                                                                                    <% } else { %>
+                                                                                        <span
+                                                                                            class="badge bg-secondary">Not
+                                                                                            Submitted</span>
+                                                                                        <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (result.submittedAt) { %>
+                                                                        <%= new
+                                                                            Date(result.submittedAt).toLocaleString() %>
+                                                                            <% } else { %>
+                                                                                <span class="text-muted">-</span>
+                                                                                <% } %>
+                                                                </td>
+                                                            </tr>
+                                                            <% }); %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="print-footer">
+                                        <p>Generated on <span id="fullResultsPrintDate"></span> | EdTech Exam System -
+                                            Confidential</p>
+                                    </div>
+                                </div>
+
+                                <!-- Main Score Summary Display -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="card score-summary-card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                                    <h4 class="card-title mb-0">
+                                                        <i class="fas fa-chart-bar me-2"></i>Exam Score Summary
+                                                    </h4>
+                                                    <button class="btn btn-light btn-sm" onclick="printScoreSummary()">
+                                                        <i class="fas fa-print me-1"></i> Print
+                                                    </button>
+                                                </div>
+
+                                                <div class="row text-center">
+                                                    <div class="col-md-3 mb-3">
+                                                        <div class="stat-card">
+                                                            <p class="stat-number">
+                                                                <%= totalStudents %>
+                                                            </p>
+                                                            <p class="stat-label">Total Students</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <div class="stat-card">
+                                                            <p class="stat-number">
+                                                                <%= submittedResults.length %>
+                                                            </p>
+                                                            <p class="stat-label">Submitted</p>
+                                                            <div class="progress">
+                                                                <div class="progress-bar bg-success"
+                                                                    style="width: <%= (submittedResults.length / totalStudents) * 100 %>%">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <div class="stat-card">
+                                                            <p class="stat-number">
+                                                                <%= pendingResults.length %>
+                                                            </p>
+                                                            <p class="stat-label">Pending</p>
+                                                            <div class="progress">
+                                                                <div class="progress-bar bg-warning"
+                                                                    style="width: <%= (pendingResults.length / totalStudents) * 100 %>%">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 mb-3">
+                                                        <div class="stat-card">
+                                                            <p class="stat-number">
+                                                                <%= averageScore> 0 ? averageScore.toFixed(1) : 'N/A' %>
+                                                            </p>
+                                                            <p class="stat-label">Average Score</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Score Distribution -->
+                                                <div class="row mt-4">
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-3">Score Distribution</h6>
+                                                        <div class="mb-2">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>A (90-100%)</span>
+                                                                <span>
+                                                                    <%= scoreDistribution.A %> (<%=
+                                                                            gradedResults.length> 0 ?
+                                                                            ((scoreDistribution.A /
+                                                                            gradedResults.length) * 100).toFixed(1) : 0
+                                                                            %>%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="score-distribution-bar score-A"
+                                                                style="width: <%= gradedResults.length > 0 ? (scoreDistribution.A / gradedResults.length) * 100 : 0 %>%">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>B (80-89%)</span>
+                                                                <span>
+                                                                    <%= scoreDistribution.B %> (<%=
+                                                                            gradedResults.length> 0 ?
+                                                                            ((scoreDistribution.B /
+                                                                            gradedResults.length) * 100).toFixed(1) : 0
+                                                                            %>%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="score-distribution-bar score-B"
+                                                                style="width: <%= gradedResults.length > 0 ? (scoreDistribution.B / gradedResults.length) * 100 : 0 %>%">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>C (70-79%)</span>
+                                                                <span>
+                                                                    <%= scoreDistribution.C %> (<%=
+                                                                            gradedResults.length> 0 ?
+                                                                            ((scoreDistribution.C /
+                                                                            gradedResults.length) * 100).toFixed(1) : 0
+                                                                            %>%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="score-distribution-bar score-C"
+                                                                style="width: <%= gradedResults.length > 0 ? (scoreDistribution.C / gradedResults.length) * 100 : 0 %>%">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>D (60-69%)</span>
+                                                                <span>
+                                                                    <%= scoreDistribution.D %> (<%=
+                                                                            gradedResults.length> 0 ?
+                                                                            ((scoreDistribution.D /
+                                                                            gradedResults.length) * 100).toFixed(1) : 0
+                                                                            %>%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="score-distribution-bar score-D"
+                                                                style="width: <%= gradedResults.length > 0 ? (scoreDistribution.D / gradedResults.length) * 100 : 0 %>%">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>F (0-59%)</span>
+                                                                <span>
+                                                                    <%= scoreDistribution.F %> (<%=
+                                                                            gradedResults.length> 0 ?
+                                                                            ((scoreDistribution.F /
+                                                                            gradedResults.length) * 100).toFixed(1) : 0
+                                                                            %>%)
+                                                                </span>
+                                                            </div>
+                                                            <div class="score-distribution-bar score-F"
+                                                                style="width: <%= gradedResults.length > 0 ? (scoreDistribution.F / gradedResults.length) * 100 : 0 %>%">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-3">Performance Metrics</h6>
+                                                        <div class="list-group">
+                                                            <div
+                                                                class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span>Highest Score</span>
+                                                                <span class="badge bg-success">
+                                                                    <%= highestScore> 0 ? highestScore : 'N/A' %>/<%=
+                                                                            examResults[0].totalMarks %>
+                                                                </span>
+                                                            </div>
+                                                            <div
+                                                                class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span>Lowest Score</span>
+                                                                <span class="badge bg-danger">
+                                                                    <%= lowestScore < 100 ? lowestScore : 'N/A' %>/<%=
+                                                                            examResults[0].totalMarks %>
+                                                                </span>
+                                                            </div>
+                                                            <div
+                                                                class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span>Submission Rate</span>
+                                                                <span class="badge bg-info">
+                                                                    <%= ((submittedResults.length / totalStudents) *
+                                                                        100).toFixed(1) %>%
+                                                                </span>
+                                                            </div>
+                                                            <div
+                                                                class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span>Pass Rate (≥60%)</span>
+                                                                <span class="badge bg-success">
+                                                                    <%= gradedResults.length> 0 ? (((scoreDistribution.A
+                                                                        + scoreDistribution.B + scoreDistribution.C +
+                                                                        scoreDistribution.D) / gradedResults.length) *
+                                                                        100).toFixed(1) : 0 %>%
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h2>Exam Management</h2>
+                                        <button class="btn btn-primary" data-bs-toggle="modal"
+                                            data-bs-target="#createExamModal">
+                                            <i class="fas fa-plus"></i> Create Exam
+                                        </button>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card">
+                                                <div class="card-header bg-primary text-white">
+                                                    <h5 class="mb-0">Upcoming Exams</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <% if (upcomingExams && upcomingExams.length> 0) { %>
+                                                        <% upcomingExams.forEach(exam=> { %>
+                                                            <div class="border-start border-4 border-primary ps-3 mb-3">
+                                                                <h6>
+                                                                    <%= exam.title %>
+                                                                </h6>
+                                                                <p class="mb-1 text-muted">
+                                                                    <strong>Class:</strong>
+                                                                    <%= exam.class.name %><br>
+                                                                        <strong>Date:</strong>
+                                                                        <%= new Date(exam.date).toLocaleString() %><br>
+                                                                            <strong>Duration:</strong>
+                                                                            <%= exam.duration %> minutes
+                                                                </p>
+                                                            </div>
+                                                            <% }) %>
+                                                                <% } else { %>
+                                                                    <p class="text-muted">No upcoming exams scheduled.
+                                                                    </p>
+                                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card">
+                                                <div class="card-header bg-success text-white">
+                                                    <h5 class="mb-0">Recent Exams</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <% if (recentExams && recentExams.length> 0) { %>
+                                                        <% recentExams.forEach(exam=> { %>
+                                                            <div class="border-start border-4 border-success ps-3 mb-3">
+                                                                <h6>
+                                                                    <%= exam.title %>
+                                                                </h6>
+                                                                <p class="mb-1 text-muted">
+                                                                    <strong>Class:</strong>
+                                                                    <%= exam.class.name %><br>
+                                                                        <strong>Completed:</strong>
+                                                                        <%= new Date(exam.date).toLocaleDateString() %>
+                                                                </p>
+                                                                <a href="/teacher/exam/<%= exam.id %>/results"
+                                                                    class="btn btn-sm btn-outline-success">
+                                                                    View Results
+                                                                </a>
+                                                            </div>
+                                                            <% }) %>
+                                                                <% } else { %>
+                                                                    <p class="text-muted">No recent exams found.</p>
+                                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4>All Exams</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (exams && exams.length> 0) { %>
+                                                <div class="table-responsive">
+                                                    <table class="table table-striped">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Title</th>
+                                                                <th>Class</th>
+                                                                <th>Date & Time</th>
+                                                                <th>Duration</th>
+                                                                <th>Status</th>
+                                                                <th>Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% exams.forEach(exam=> { %>
+                                                                <tr>
+                                                                    <td>
+                                                                        <%= exam.title %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= exam.class.name %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= new Date(exam.date).toLocaleString() %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= exam.duration %> minutes
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-<%= 
                                                 new Date() > new Date(exam.date) ? 'secondary' : 'success' 
                                             %>">
-                                                                    <%= new Date()> new Date(exam.date) ? 'Completed' :
-                                                                        'Upcoming'
-                                                                        %>
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div class="btn-group">
-                                                                    <a href="/teacher/exam/<%= exam.id %>"
-                                                                        class="btn btn-sm btn-outline-primary">View</a>
-                                                                    <a href="/teacher/exam/<%= exam.id %>/edit"
-                                                                        class="btn btn-sm btn-outline-warning">Edit</a>
-                                                                    <a href="/teacher/exam/<%= exam.id %>/results"
-                                                                        class="btn btn-sm btn-outline-info">Results</a>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                        <% }) %>
-                                                </tbody>
-                                            </table>
+                                                                            <%= new Date()> new Date(exam.date) ?
+                                                                                'Completed' :
+                                                                                'Upcoming'
+                                                                                %>
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="btn-group">
+                                                                            <a href="/teacher/exam/<%= exam.id %>"
+                                                                                class="btn btn-sm btn-outline-primary">View</a>
+                                                                            <a href="/teacher/exam/<%= exam.id %>/edit"
+                                                                                class="btn btn-sm btn-outline-warning">Edit</a>
+                                                                            <a href="/teacher/exam/<%= exam.id %>/results"
+                                                                                class="btn btn-sm btn-outline-info">Results</a>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <% }) %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <% } else { %>
+                                                    <div class="text-center py-4">
+                                                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                                        <h5>No exams created yet</h5>
+                                                        <p class="text-muted">Create your first exam to get started.</p>
+                                                    </div>
+                                                    <% } %>
                                         </div>
-                                        <% } else { %>
-                                            <div class="text-center py-4">
-                                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                                                <h5>No exams created yet</h5>
-                                                <p class="text-muted">Create your first exam to get started.</p>
-                                            </div>
-                                            <% } %>
-                                </div>
-                            </div>
+                                    </div>
         </div>
 
         <!-- Create Exam Modal -->
@@ -584,6 +1337,53 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
+            // Print functions for exam results
+            function printScoreSummary() {
+                // Set the current date
+                const now = new Date();
+                document.getElementById('scoreReportDate').textContent = now.toLocaleDateString();
+                document.getElementById('scorePrintDate').textContent = now.toLocaleString();
+
+                // Show the printable section
+                const printableElement = document.getElementById('printableScoreSummary');
+                printableElement.style.display = 'block';
+
+                // Print
+                window.print();
+
+                // Hide the printable section after printing
+                setTimeout(() => {
+                    printableElement.style.display = 'none';
+                }, 500);
+            }
+
+            function printFullResults() {
+                // Set the current date
+                const now = new Date();
+                document.getElementById('fullResultsDate').textContent = now.toLocaleDateString();
+                document.getElementById('fullResultsPrintDate').textContent = now.toLocaleString();
+
+                // Show the printable section
+                const printableElement = document.getElementById('printableFullResults');
+                printableElement.style.display = 'block';
+
+                // Print
+                window.print();
+
+                // Hide the printable section after printing
+                setTimeout(() => {
+                    printableElement.style.display = 'none';
+                }, 500);
+            }
+
+            // Add event listener for after print
+            window.addEventListener('afterprint', (event) => {
+                // Hide all printable sections
+                document.querySelectorAll('.print-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+            });
+
             let questionCount = 0;
 
             // Initialize event listeners

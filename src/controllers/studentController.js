@@ -1506,18 +1506,34 @@ const submitExam = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get exam with questions - UPDATED QUERY
+    // Get exam with questions - FIXED QUERY
     const exam = await prisma.exam.findUnique({
-      where: { id: examId },
-      ...(isSuperAdmin ? {} : {
-        include: {
+      where: { 
+        id: examId,
+        // Add school filter to the where clause instead of include
+        ...(isSuperAdmin ? {} : {
           teacher: {
             user: {
               school: userSchool
             }
           }
+        })
+      },
+      // Only include what you need for the exam logic
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                school: true
+              }
+            }
+          }
         }
-      })
+      }
     });
 
     if (!exam) {
