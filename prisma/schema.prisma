@@ -1,6 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// schema.prisma (CORRECTED VERSION)
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,284 +8,639 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model TuitionPayment {
-  id            Int      @id @default(autoincrement())
-  receiptNumber String   @unique
-  amount        Float
-  paymentDate   DateTime @default(now())
-  status        String   @default("verified") // verified, pending, rejected
-  verifiedBy    Int?     // Admin ID who verified
-  verifiedAt    DateTime?
-  studentId     Int
-  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  semester      String   // e.g., "2024-1", "2024-2"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum UserRole {
+  student
+  teacher
+  admin
+  parent
+  cashier
+  accountant
+}
 
-  @@map("tuition_payments")
+enum TuitionStatus {
+  paid
+  partial
+  unpaid
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  idNumber    String   @unique
-  password    String
-  role        String // student, teacher, admin
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  avatar      String?
-  dateOfBirth DateTime?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Add these new fields for password security
-  isTemporaryPassword Boolean @default(true)
-  passwordChangedAt   DateTime?
-  lastLoginAt        DateTime?
-
-  // Add school field for school-based access control
-  school      String?
-
-  // Keep existing relationships
-  student       Student?
-  teacher       Teacher?
-  admin         Admin?
-  materialViews MaterialView[]
-  notifications Notification[]
+  id                           String                 @id @default(cuid())
+  idNumber                     String                 @unique
+  email                        String?
+  firstName                    String
+  lastName                     String
+  password                     String
+  role                         UserRole
+  phone                        String?
+  dateOfBirth                  DateTime?
+  avatar                       String?
+  school                       String?
+  isActive                     Boolean                @default(true)
+  isTemporaryPassword          Boolean                @default(false)
+  passwordChangedAt            DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  
+  // Relations
+  accountant                   Accountant?
+  admin                        Admin?
+  cashier                      Cashier?
+  dailyTransactionsCollected   DailyTransaction[]    @relation("Collector")
+  cashierConfirmedPayments     ParentPayment[]       @relation("CashierConfirmed")
+  financialTransactionsCreated FinancialTransaction[]
+  materialViews                MaterialView[]
+  notifications                Notification[]
+  parent                       Parent?
+  student                      Student?
+  teacher                      Teacher?
 
   @@map("users")
 }
 
 model Student {
-  id           Int           @id @default(autoincrement())
-  userId       Int           @unique
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grade        String
-  section      String
-  enrollments  Enrollment[]
-  submissions  Submission[]
-  examAttempts ExamAttempt[]
-  studentNotes StudentNote[]
-  tuitionPayments TuitionPayment[] // Add this relationship
-  tuitionStatus String @default("unpaid") // unpaid, partial, paid
-  canChangePassword Boolean @default(false) // Controls password change ability
-  tempPasswordExpiry DateTime? // When temporary password expires
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  grade                   String
+  section                 String
+  tuitionStatus           TuitionStatus            @default(unpaid)
+  canChangePassword       Boolean                  @default(false)
+  tempPasswordExpiry      DateTime?
+  
+  // Relations
+  parents                 StudentParent[]
+  classWorkSubmissions    ClassWorkSubmission[]
+  dailyTransactions       DailyTransaction[]
+  enrollments             Enrollment[]
+  examAttempts            ExamAttempt[]
+  liveSessionParticipants LiveSessionParticipant[]
+  parentComments          ParentComment[]
+  studentNotes            StudentNote[]
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissions             Submission[]
+  tuitionPayments         TuitionPayment[]
+  parentPayments          ParentPayment[]
 
   @@map("students")
 }
 
+model Parent {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  
+  // Relations
+  students          StudentParent[]
+  dailyTransactions DailyTransaction[]
+  comments          ParentComment[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet            Wallet?
+  savingsGoals      SavingsGoal[]
+  payments          ParentPayment[]
+
+  @@map("parents")
+}
+
+model StudentParent {
+  id           String   @id @default(cuid())
+  parentId     String
+  studentId    String
+  relationship String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@map("student_parents")
+}
+
+model SavingsGoal {
+  id           String           @id @default(cuid())
+  parentId     String
+  name         String
+  targetAmount Float
+  currentAmount Float            @default(0)
+  targetDate   DateTime?
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  
+  // Relations
+  parent       Parent           @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  deposits     SavingsDeposit[]
+
+  @@map("savings_goals")
+}
+
+model SavingsDeposit {
+  id             String      @id @default(cuid())
+  savingsGoalId  String
+  amount         Float
+  description    String?
+  status         String      @default("completed")
+  createdAt      DateTime    @default(now())
+  
+  // Relations
+  savingsGoal    SavingsGoal @relation(fields: [savingsGoalId], references: [id], onDelete: Cascade)
+
+  @@map("savings_deposits")
+}
+
+model ParentPayment {
+  id             String   @id @default(cuid())
+  parentId       String
+  studentId      String
+  amount         Float
+  feeType        String   @default("tuition") 
+  description    String?
+  paymentMethod  String
+  status         String   @default("pending")
+  receiptNumber  String   @unique
+  confirmedBy    String?
+  confirmedAt    DateTime?
+  rejectedAt     DateTime?
+  reason         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  parent         Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  cashier        User?    @relation("CashierConfirmed", fields: [confirmedBy], references: [id])
+
+  @@index([parentId])
+  @@index([studentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("parent_payments")
+}
+
+model Wallet {
+  id           String        @id @default(cuid())
+  parentId     String        @unique
+  balance      Float         @default(0)
+  
+  // Relations
+  transactions Transaction[]
+  parent       Parent        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  amount      Float
+  type        String   // deposit, withdrawal, payment, savings_deposit, savings_transfer, refund
+  description String?
+  status      String   @default("completed")
+  referenceId String?  // Links to payment ID, savings deposit ID, etc.
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+model TuitionPayment {
+  id            String   @id @default(cuid())
+  receiptNumber String   @unique
+  amount        Float
+  paymentDate   DateTime @default(now())
+  status        String   @default("verified")
+  verifiedBy    String?
+  verifiedAt    DateTime?
+  studentId     String
+  semester      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("tuition_payments")
+}
+
+model ParentComment {
+  id        String   @id @default(cuid())
+  parentId  String
+  studentId String
+  comment   String
+  type      String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  parent    Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("parent_comments")
+}
+
 model Teacher {
-  id           Int           @id @default(autoincrement())
-  userId       Int           @unique
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject      String
-  classes      Class[]       @relation("TeacherClasses")
-  assignments  Assignment[]
-  exams        Exam[]
-  materials    Material[]
-  liveSessions LiveSession[]
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  subject            String
+  
+  // Relations
+  assignments        Assignment[]
+  classWorks         ClassWork[]
+  classes            Class[]       @relation("TeacherClasses")
   gradedExamAttempts ExamAttempt[] @relation("GradedAttempts")
+  exams              Exam[]
+  liveSessions       LiveSession[]
+  materials          Material[]
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("teachers")
 }
 
 model Admin {
-  id        Int    @id @default(autoincrement())
-  userId    Int    @unique
+  id        String @id @default(cuid())
+  userId    String @unique
+  roleLevel String @default("principal")
+  
+  // Relations
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roleLevel String @default("principal") // principal, headteacher, administrator, superadmin
 
   @@map("admins")
 }
 
 model Class {
-  id           Int           @id @default(autoincrement())
+  id           String        @id @default(cuid())
   name         String
   grade        String
   section      String
-  teacherId    Int
+  teacherId    String
+  
+  // Relations
+  assignments  Assignment[]
+  classWorks   ClassWork[]
   teacher      Teacher       @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]
-  materials    Material[]
-  assignments  Assignment[]
   exams        Exam[]
   liveSessions LiveSession[]
+  materials    Material[]
   studentNotes StudentNote[]
 
+  @@unique([grade, section, teacherId, name])
   @@map("classes")
 }
 
 model Enrollment {
-  id         Int      @id @default(autoincrement())
-  studentId  Int
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  classId    Int
-  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  studentId  String
+  classId    String
   enrolledAt DateTime @default(now())
+  
+  // Relations
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
   @@map("enrollments")
 }
 
 model Material {
-  id          Int            @id @default(autoincrement())
+  id          String         @id @default(cuid())
   title       String
   description String?
-  type        String // textbook, video, document, etc.
+  type        String
   fileUrl     String
   thumbnail   String?
   category    String?
   tags        String[]
-  classId     Int?
-  class       Class?         @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacherId   Int?
-  teacher     Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId     String?
+  teacherId   String?
   isPublic    Boolean        @default(false)
   createdAt   DateTime       @default(now())
+  
+  // Relations
   views       MaterialView[]
+  class       Class?         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("materials")
 }
 
 model MaterialView {
-  id         Int      @id @default(autoincrement())
-  materialId Int
-  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  materialId String
+  userId     String
   viewedAt   DateTime @default(now())
+  
+  // Relations
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("material_views")
 }
 
 model Assignment {
-  id          Int          @id @default(autoincrement())
+  id          String       @id @default(cuid())
   title       String
   description String?
   dueDate     DateTime
-  classId     Int
-  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacherId   Int
-  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId     String
+  teacherId   String
   createdAt   DateTime     @default(now())
+  points      Int?         @default(100)
+  
+  // Relations
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   submissions Submission[]
-  points      Int?         @default(100) // Total points for the assignment
 
   @@map("assignments")
 }
 
 model Submission {
-  id            Int         @id @default(autoincrement())
-  assignmentId  Int
-  studentId     Int
-  fileUrl       String?     // For file uploads (now optional)
-  submittedAt   DateTime    @default(now())
-  grade         Int?        // Grade out of 100
-  feedback      String?
+  id             String     @id @default(cuid())
+  assignmentId   String
+  studentId      String
+  fileUrl        String?
+  submittedAt    DateTime   @default(now())
+  grade          Int?       // Keep as Int? for now
+  feedback       String?
+  submissionType String?    @default("file")
+  content        String?
+  drawingData    String?
+  textTitle      String?
+  wordCount      Int?
+  status         String?    @default("submitted")
   
-  // Enhanced submission fields
-  submissionType String?    @default("file") // "file", "text", "drawing"
-  content        String?    // For rich text submissions (HTML)
-  drawingData    String?    // For drawing submissions (base64 image)
-  textTitle      String?    // Title for text/drawing submissions
-  wordCount      Int?       // Word count for text submissions
-  status         String?    @default("submitted") // "draft", "submitted"
+  // ADD THESE FIELDS FOR BETTER GRADING:
+  score          Float?     // Add this for decimal scores
+  gradedAt       DateTime?  // Add this to track when graded
+  
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   
   // Relations
-  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, studentId])
   @@map("submissions")
 }
 
 model Exam {
-  id          Int           @id @default(autoincrement())
+  id          String        @id @default(cuid())
   title       String
   description String?
-  classId     Int
-  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacherId   Int
-  teacher     Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId     String
+  teacherId   String
   date        DateTime
-  duration    Int // in minutes
-  questions   Json? // Store questions as JSON array
+  duration    Int
+  questions   Json?
   maxAttempts Int           @default(1)
   showResults Boolean       @default(true)
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
-  attempts    ExamAttempt[]
   totalMarks  Int           @default(100)
+  
+  // Relations
+  attempts    ExamAttempt[]
+  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("exams")
 }
 
 model ExamAttempt {
-  id          Int       @id @default(autoincrement())
-  examId      Int
-  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId   Int
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  startedAt   DateTime  @default(now())
-  submittedAt DateTime?
-  answers     Json? // Store student answers as JSON
-  score       Float?
-  status      String    @default("in_progress") // in_progress, submitted, graded, published
-  timeSpent   Int?      @default(0) // in seconds
+  id              String    @id @default(cuid())
+  examId          String
+  studentId       String
+  startedAt       DateTime  @default(now())
+  submittedAt     DateTime?
+  answers         Json?
+  score           Float?
+  status          String    @default("in_progress")
+  timeSpent       Int?      @default(0)
   teacherFeedback String?
-  gradedAt    DateTime?
-  gradedBy    Int?      // Teacher ID who graded this attempt
-  grader      Teacher?  @relation("GradedAttempts", fields: [gradedBy], references: [id])
+  gradedAt        DateTime?
+  gradedBy        String?
+  
+  // Relations
+  exam            Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  grader          Teacher?  @relation("GradedAttempts", fields: [gradedBy], references: [id])
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId, id])
   @@map("exam_attempts")
 }
 
+model ClassWork {
+  id          String                @id @default(cuid())
+  title       String
+  description String?
+  type        String                @default("quiz")
+  questions   Json?
+  points      Int                   @default(10)
+  dueDate     DateTime?
+  classId     String
+  teacherId   String
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  
+  // Relations
+  submissions ClassWorkSubmission[]
+  class       Class                 @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher               @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("class_works")
+  @@index([classId])
+  @@index([teacherId])
+}
+
+model ClassWorkSubmission {
+  id            String    @id @default(cuid())
+  classWorkId   String
+  studentId     String
+  answers       Json?
+  score         Float?
+  submittedAt   DateTime?
+  gradedAt      DateTime?
+  feedback      String?
+  status        String    @default("submitted")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  classWork     ClassWork @relation(fields: [classWorkId], references: [id], onDelete: Cascade)
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Composite unique key
+  @@unique([classWorkId, studentId])
+  @@map("class_work_submissions")
+}
+
 model LiveSession {
-  id        Int       @id @default(autoincrement())
-  classId   Int
-  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacherId Int
-  teacher   Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  startTime DateTime
-  endTime   DateTime?
-  isActive  Boolean   @default(true)
+  id           String                   @id @default(cuid())
+  title        String
+  description  String?
+  classId      String
+  teacherId    String
+  startTime    DateTime
+  endTime      DateTime?
+  meetingLink  String
+  status       String                   @default("scheduled")
+  isActive     Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  
+  // Relations
+  participants LiveSessionParticipant[]
+  class        Class                    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher      Teacher                  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("live_sessions")
 }
 
+model LiveSessionParticipant {
+  id            String      @id @default(cuid())
+  liveSessionId String
+  studentId     String
+  joinedAt      DateTime    @default(now())
+  leftAt        DateTime?
+  duration      Int?
+  
+  // Relations
+  liveSession   LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([liveSessionId, studentId])
+  @@map("live_session_participants")
+}
+
 model Notification {
-  id          Int      @id @default(autoincrement())
-  title       String
-  message     String
-  icon        String?
-  read        Boolean  @default(false)
-  readAt      DateTime?
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime?
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  title     String
+  message   String
+  icon      String?
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  userId    String
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
 
 model StudentNote {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   title     String
-  content   String   // Can be text, base64 image, or JSON for mixed content
-  type      String   // text, drawing, mixed, quick
-  studentId Int
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  classId   Int
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  content   String
+  type      String
+  studentId String
+  classId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Relations
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("student_notes")
+}
+
+model FinancialTransaction {
+  id            String   @id @default(cuid())
+  type          String
+  title         String
+  description   String?
+  amount        Float
+  date          DateTime @default(now())
+  collector     String?
+  destination   String?
+  category      String
+  receiptNumber String?
+  status        String   @default("completed")
+  school        String?
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  creator       User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("financial_transactions")
+}
+
+model DailyTransaction {
+  id            String   @id @default(cuid())
+  type          String   // fee_payment, other_income, expense
+  studentId     String?
+  parentId      String?
+  amount        Float
+  paymentMethod String   @default("cash")
+  receiptNumber String?  @unique
+  description   String?
+  status        String   @default("completed")
+  collectedBy   String
+  school        String?
+  tuitionStatus String?  // partial, full
+  semester      String?
+  academicYear  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  collector     User     @relation("Collector", fields: [collectedBy], references: [id], onDelete: Cascade)
+  parent        Parent?  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student       Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([parentId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([school])
+  @@map("daily_transactions")
+}
+
+model FeeStructure {
+  id           String   @id @default(cuid())
+  grade        String
+  section      String?
+  amount       Float
+  semester     String
+  academicYear String
+  description  String?
+  school       String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([grade, section, semester, academicYear, school])
+  @@map("fee_structures")
+}
+
+model Cashier {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String   @unique
+  employeeId String?
+  isActive   Boolean  @default(true)
+  
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cashiers")
+}
+
+model Accountant {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String   @unique
+  employeeId String?
+  isActive   Boolean  @default(true)
+  
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accountants")
 }

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h4 class="mb-0"><i class="fas fa-video me-2"></i>Schedule Live Session</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="createLiveSessionForm">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Session Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description"
+                                        rows="3"></textarea>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classId" class="form-label">Class *</label>
+                                        <select class="form-control" id="classId" name="classId" required>
+                                            <option value="">Select a class</option>
+                                            <% classes.forEach(cls=> { %>
+                                                <option value="<%= cls.id %>">
+                                                    <%= cls.name %>
+                                                </option>
+                                                <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="meetingLink" class="form-label">Meeting Link</label>
+                                        <input type="text" class="form-control" id="meetingLink" name="meetingLink"
+                                            placeholder="https://meet.google.com/abc-defg-hij">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="startTime" class="form-label">Start Time *</label>
+                                        <input type="datetime-local" class="form-control" id="startTime"
+                                            name="startTime" required>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="endTime" class="form-label">End Time (Optional)</label>
+                                        <input type="datetime-local" class="form-control" id="endTime" name="endTime">
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <a href="/teacher/live-sessions" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-info text-white">
+                                        <i class="fas fa-calendar-plus me-1"></i> Schedule Session
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const form = document.getElementById('createLiveSessionForm');
+
+                // Set default meeting link if empty
+                const meetingLinkInput = document.getElementById('meetingLink');
+                if (!meetingLinkInput.value) {
+                    meetingLinkInput.value = `https://meet.google.com/${Math.random().toString(36).substr(2, 9)}`;
+                }
+
+                // Set default start time to now + 1 hour
+                const startTimeInput = document.getElementById('startTime');
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+                startTimeInput.value = now.toISOString().slice(0, 16);
+
+                // Handle form submission
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        const response = await fetch('/teacher/live-sessions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            alert('Live session scheduled successfully!');
+                            window.location.href = '/teacher/live-sessions';
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        alert('Error scheduling live session: ' + error.message);
+                    }
+                });
+            });
+        </script>
+</body>
+
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .class-work-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .class-work-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .quiz-card {
+            border-left-color: #0d6efd;
+        }
+
+        .assignment-card {
+            border-left-color: #198754;
+        }
+
+        .discussion-card {
+            border-left-color: #ffc107;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .take-btn {
+            transition: all 0.3s ease;
+        }
+
+        .take-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool %>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <!-- Back button -->
+                        <div class="mb-4">
+                            <a href="/student/classes" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Classes
+                            </a>
+                        </div>
+
+                        <!-- Class header -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h2 class="mb-1">
+                                    <i class="fas fa-tasks me-2"></i>Class Works
+                                </h2>
+                                <% if (classData) { %>
+                                    <h5 class="text-muted">
+                                        <i class="fas fa-chalkboard-teacher me-2"></i>
+                                        <%= classData.name %> - <%= classData.teacher.user.firstName %>
+                                                <%= classData.teacher.user.lastName %>
+                                    </h5>
+                                    <% } %>
+                            </div>
+                        </div>
+
+                        <!-- Class works list -->
+                        <div class="row">
+                            <% if (classWorks && classWorks.length> 0) { %>
+                                <% classWorks.forEach(classWork=> {
+                                    // Determine status
+                                    let status = 'Not Started';
+                                    let statusClass = 'secondary';
+                                    let hasSubmission = false;
+
+                                    if (classWork.submissions && classWork.submissions.length > 0) {
+                                    const submission = classWork.submissions[0];
+                                    if (submission.status === 'submitted') {
+                                    status = 'Submitted';
+                                    statusClass = 'info';
+                                    hasSubmission = true;
+                                    } else if (submission.status === 'graded') {
+                                    status = 'Graded';
+                                    statusClass = 'success';
+                                    hasSubmission = true;
+                                    }
+                                    }
+
+                                    // Check if due date is passed
+                                    const now = new Date();
+                                    const dueDate = classWork.dueDate ? new Date(classWork.dueDate) : null;
+                                    const isOverdue = dueDate && now > dueDate && !hasSubmission;
+
+                                    // Determine card class based on type
+                                    let cardClass = '';
+                                    switch(classWork.type) {
+                                    case 'quiz':
+                                    cardClass = 'quiz-card';
+                                    break;
+                                    case 'assignment':
+                                    cardClass = 'assignment-card';
+                                    break;
+                                    case 'discussion':
+                                    cardClass = 'discussion-card';
+                                    break;
+                                    default:
+                                    cardClass = 'quiz-card';
+                                    }
+                                    %>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card class-work-card h-100 <%= cardClass %>">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h5 class="card-title">
+                                                            <%= classWork.title %>
+                                                        </h5>
+                                                        <span class="badge bg-<%= 
+                                                classWork.type === 'quiz' ? 'primary' : 
+                                                classWork.type === 'assignment' ? 'success' : 
+                                                'warning' 
+                                            %> me-2">
+                                                            <%= classWork.type ? classWork.type.charAt(0).toUpperCase()
+                                                                + classWork.type.slice(1) : 'Class Work' %>
+                                                        </span>
+                                                        <span
+                                                            class="badge <%= isOverdue ? 'bg-danger' : 'bg-' + statusClass %>">
+                                                            <%= isOverdue ? 'Overdue' : status %>
+                                                        </span>
+                                                    </div>
+                                                    <% if (classWork.points) { %>
+                                                        <div class="text-end">
+                                                            <small class="text-muted">Points</small>
+                                                            <h5 class="mb-0">
+                                                                <%= classWork.points %>
+                                                            </h5>
+                                                        </div>
+                                                        <% } %>
+                                                </div>
+
+                                                <% if (classWork.description) { %>
+                                                    <p class="card-text mb-3">
+                                                        <%= classWork.description %>
+                                                    </p>
+                                                    <% } %>
+
+                                                        <div class="row mb-3">
+                                                            <% if (classWork.dueDate) { %>
+                                                                <div class="col-6">
+                                                                    <small class="text-muted d-block">Due Date</small>
+                                                                    <strong>
+                                                                        <%= new
+                                                                            Date(classWork.dueDate).toLocaleDateString()
+                                                                            %>
+                                                                    </strong>
+                                                                    <br>
+                                                                    <small class="text-muted">
+                                                                        <%= new
+                                                                            Date(classWork.dueDate).toLocaleTimeString([],
+                                                                            {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                    </small>
+                                                                </div>
+                                                                <% } %>
+                                                                    <% if (hasSubmission) { %>
+                                                                        <div class="col-6">
+                                                                            <small
+                                                                                class="text-muted d-block">Submitted</small>
+                                                                            <strong>
+                                                                                <%= new
+                                                                                    Date(classWork.submissions[0].submittedAt).toLocaleDateString()
+                                                                                    %>
+                                                                            </strong>
+                                                                            <% if (classWork.submissions[0].score
+                                                                                !==null) { %>
+                                                                                <br>
+                                                                                <small class="text-muted">
+                                                                                    Score: <strong>
+                                                                                        <%= classWork.submissions[0].score
+                                                                                            %>/<%= classWork.points
+                                                                                                || '--' %>
+                                                                                    </strong>
+                                                                                </small>
+                                                                                <% } %>
+                                                                        </div>
+                                                                        <% } %>
+                                                        </div>
+
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <% if (hasSubmission) { %>
+                                                                <% if (classWork.submissions[0].status==='graded' ) { %>
+                                                                    <a href="/student/class-works/<%= classWork.id %>/results"
+                                                                        class="btn btn-outline-success take-btn">
+                                                                        <i class="fas fa-chart-bar me-1"></i> View
+                                                                        Results
+                                                                    </a>
+                                                                    <% } else { %>
+                                                                        <button class="btn btn-outline-info" disabled>
+                                                                            <i class="fas fa-check me-1"></i> Submitted
+                                                                        </button>
+                                                                        <% } %>
+                                                                            <% } else { %>
+                                                                                <% if (isOverdue) { %>
+                                                                                    <button
+                                                                                        class="btn btn-outline-danger"
+                                                                                        disabled>
+                                                                                        <i
+                                                                                            class="fas fa-clock me-1"></i>
+                                                                                        Overdue
+                                                                                    </button>
+                                                                                    <% } else { %>
+                                                                                        <a href="/student/class-works/<%= classWork.id %>/take"
+                                                                                            class="btn btn-primary take-btn">
+                                                                                            <i
+                                                                                                class="fas fa-play me-1"></i>
+                                                                                            Take Now
+                                                                                        </a>
+                                                                                        <% } %>
+                                                                                            <% } %>
+
+                                                                                                <small
+                                                                                                    class="text-muted">
+                                                                                                    <i
+                                                                                                        class="fas fa-calendar me-1"></i>
+                                                                                                    <%= new
+                                                                                                        Date(classWork.createdAt).toLocaleDateString()
+                                                                                                        %>
+                                                                                                </small>
+                                                        </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-body text-center py-5">
+                                                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                                                        <h4>No Class Works Available</h4>
+                                                        <p class="text-muted">There are no class works assigned for this
+                                                            class yet.</p>
+                                                        <p class="text-muted small">Check back later or ask your teacher
+                                                            for updates.</p>
+                                                        <a href="/student/classes" class="btn btn-primary">
+                                                            <i class="fas fa-arrow-left me-1"></i> Back to Classes
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% } %>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Auto-refresh overdue status
+            function updateOverdueStatus() {
+                const now = new Date();
+                document.querySelectorAll('.class-work-card').forEach(card => {
+                    const dueDateText = card.querySelector('.due-date')?.textContent;
+                    if (dueDateText) {
+                        const dueDate = new Date(dueDateText);
+                        if (now > dueDate) {
+                            const statusBadge = card.querySelector('.status-badge');
+                            if (statusBadge && statusBadge.textContent === 'Not Started') {
+                                statusBadge.className = 'badge bg-danger';
+                                statusBadge.textContent = 'Overdue';
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Update every minute
+            setInterval(updateOverdueStatus, 60000);
+        </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const flash = require('express-flash');
 const path = require('path');
 const dotenv = require('dotenv');
 const methodOverride = require('method-override');
@@ -7,6 +8,9 @@ const notificationRoutes = require('./routes/notifications');
 const fetch = require('node-fetch');
 const teacherController = require('./controllers/teacherController');
 const studentController = require('./controllers/studentController');
+const prisma = require('./config/database');
+const activityTracker = require('./middleware/activityTracker');
+const noCache = require('./middleware/noCache');          // <-- NEW: import no-cache
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +21,9 @@ const studentRoutes = require('./routes/student');
 const teacherRoutes = require('./routes/teacher');
 const adminRoutes = require('./routes/admin');
 const { setSchoolContext } = require('./middleware/auth');
+const parentRoutes = require('./routes/parent');
+const accountantRoutes = require('./routes/accountant');
+const cashierRoutes = require('./routes/cashier');
 
 // Initialize express app
 const app = express();
@@ -29,7 +36,7 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
-// Middleware - IMPORTANT: These must be before routes
+// Middleware
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
@@ -37,14 +44,124 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // Set to true in production with HTTPS
+  cookie: { secure: false }
 }));
+app.use(activityTracker());
 
-// Add user to all views
+app.use(flash());
+
+// =============================================
+// Apply no-cache to ALL authenticated routes
+// (this prevents the browser from storing any page under these prefixes)
+// =============================================
+app.use('/student', noCache);
+app.use('/teacher', noCache);
+app.use('/admin', noCache);
+app.use('/parent', noCache);
+app.use('/accountant', noCache);
+app.use('/cashier', noCache);
+
+// =============================================
+// NEW: Add user context to all views
+// =============================================
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+    // Make user available in all views
+    if (req.session && req.session.user) {
+        res.locals.user = req.session.user;
+    } else {
+        res.locals.user = null;
+    }
+    
+    // Add other context variables
+    res.locals.isSuperAdmin = req.isSuperAdmin || false;
+    res.locals.userSchool = req.userSchool || null;
+    res.locals.adminInfo = req.user?.admin || null;
+    
+    next();
+});
+
+// =============================================
+// NEW: Updated notification middleware with safe handling
+// =============================================
+app.use(async (req, res, next) => {
+  // Preserve the user from the previous middleware
+  if (!res.locals.user && req.session.user) {
+    res.locals.user = req.session.user;
+  }
+  
+  // Only fetch notifications if user is authenticated
+  if (req.session && req.session.user) {
+    try {
+      // Get notification count
+      const notificationCount = await prisma.notification.count({
+        where: {
+          userId: req.session.user.id,
+          read: false,
+          OR: [
+            { expiresAt: { gt: new Date() } },
+            { expiresAt: null }
+          ]
+        }
+      });
+      res.locals.unreadNotifications = notificationCount;
+      
+      // Get recent notifications for the navbar
+      const notifications = await prisma.notification.findMany({
+        where: {
+          userId: req.session.user.id,
+          OR: [
+            { expiresAt: { gt: new Date() } },
+            { expiresAt: null }
+          ]
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 10
+      });
+      
+      // Format notifications for display
+      const formatTimeAgo = (date) => {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) {
+          return 'Just now';
+        } else if (diffInSeconds < 3600) {
+          const minutes = Math.floor(diffInSeconds / 60);
+          return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+        } else if (diffInSeconds < 86400) {
+          const hours = Math.floor(diffInSeconds / 3600);
+          return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+        } else if (diffInSeconds < 2592000) {
+          const days = Math.floor(diffInSeconds / 86400);
+          return `${days} day${days !== 1 ? 's' : ''} ago`;
+        } else {
+          return date.toLocaleDateString();
+        }
+      };
+      
+      res.locals.notificationsData = notifications.map(notif => ({
+        id: notif.id,
+        title: notif.title,
+        message: notif.message,
+        icon: notif.icon,
+        read: notif.read,
+        createdAt: notif.createdAt,
+        time: formatTimeAgo(notif.createdAt)
+      }));
+    } catch (error) {
+      console.error('Error getting notification count:', error);
+      res.locals.unreadNotifications = 0;
+      res.locals.notificationsData = [];
+    }
+  } else {
+    res.locals.unreadNotifications = 0;
+    res.locals.notificationsData = [];
+  }
   next();
 });
+
 app.use('/api/notifications', notificationRoutes);
 
 // Routes
@@ -52,14 +169,19 @@ app.use('/auth', authRoutes);
 app.use('/student', studentRoutes);
 app.use('/teacher', teacherRoutes);
 app.use('/admin', adminRoutes);
+app.use('/parent', parentRoutes);
+app.use('/accountant', accountantRoutes);
+app.use('/cashier', cashierRoutes);
 
 app.use('/uploads/materials', express.static('uploads/materials'));
 app.use('/uploads/profiles', express.static('uploads/profiles'));
 
-// Apply to all routes that need school context
+// Apply school context middleware
 app.use('/teacher', setSchoolContext);
 app.use('/student', setSchoolContext);
 app.use('/admin', setSchoolContext);
+app.use('/accountant', setSchoolContext);
+app.use('/cashier', setSchoolContext);
 
 // Home route
 app.get('/', (req, res) => {
@@ -71,6 +193,12 @@ app.get('/', (req, res) => {
       res.redirect('/teacher/dashboard');
     } else if (req.session.user.role === 'admin') {
       res.redirect('/admin/dashboard');
+    } else if (req.session.user.role === 'parent') {
+      res.redirect('/parent/dashboard');
+    } else if (req.session.user.role === 'accountant') {
+      res.redirect('/accountant/dashboard');
+    } else if (req.session.user.role === 'cashier') {
+      res.redirect('/cashier/dashboard');
     } else {
       res.redirect('/auth/login');
     }
@@ -86,10 +214,16 @@ app.get('/download/material/:materialId', (req, res) => {
   } else if (req.session.user.role === 'student') {
     return studentController.downloadMaterial(req, res);
   } else {
-    return res.status(403).render('error/403', { title: 'Access Denied' });
+    return res.status(403).render('error/403', { 
+      title: 'Access Denied',
+      user: res.locals.user,
+      isSuperAdmin: res.locals.isSuperAdmin,
+      userSchool: res.locals.userSchool,
+      adminInfo: res.locals.adminInfo,
+      message: 'You do not have permission to download this material.'
+    });
   }
 });
-
 
 // ReasonLabs proxy route
 app.get('/api/proxy/reasonlabs', async (req, res) => {
@@ -162,6 +296,12 @@ app.get('/debug-routes', (req, res) => {
     routes.push({ path: '/teacher/exam', methods: ['GET'] });
     routes.push({ path: '/teacher/exam/viewExam', methods: ['POST'] });
     
+    // Parent routes
+    routes.push({ path: '/parent/dashboard', methods: ['GET'] });
+    routes.push({ path: '/parent/student/:studentId', methods: ['GET'] });
+    routes.push({ path: '/parent/payment', methods: ['POST'] });
+    routes.push({ path: '/parent/wallet/add-funds', methods: ['POST'] });
+    
     // Add the new ReasonLabs proxy route
     routes.push({ path: '/api/proxy/reasonlabs', methods: ['GET'] });
     
@@ -172,17 +312,6 @@ app.get('/debug-routes', (req, res) => {
     console.error('Error in debug-routes:', error);
     res.status(500).json({ error: 'Failed to get routes' });
   }
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).render('error/404', { title: 'Page Not Found' });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('error/500', { title: 'Server Error' });
 });
 
 const ensureStudentData = (req, res, next) => {
@@ -202,6 +331,67 @@ app.get('/health/student-session', (req, res) => {
         user: req.session.user,
         studentId: req.session.user?.studentId,
         classId: req.params.classId
+    });
+});
+
+// =============================================
+// UPDATED: Error handling middleware
+// =============================================
+
+// 404 handler - Updated to include message
+app.use((req, res) => {
+    const user = req.session?.user || null;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const userSchool = req.userSchool || null;
+    
+    res.status(404).render('error/404', {
+        title: 'Page Not Found',
+        message: 'The page you are looking for could not be found.',
+        user: user,
+        isSuperAdmin: isSuperAdmin,
+        userSchool: userSchool,
+        adminInfo: user?.admin || null
+    });
+});
+
+// Error handler - UPDATED to always include message
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', err);
+    
+    // Get user context
+    const user = req.session?.user || null;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const userSchool = req.userSchool || null;
+    
+    // Determine status code
+    const statusCode = err.status || 500;
+    
+    // Set appropriate message based on status code
+    let message = 'An unexpected error occurred. Please try again later.';
+    if (statusCode === 400) {
+        message = 'Bad Request. Please check your input and try again.';
+    } else if (statusCode === 401) {
+        message = 'You are not authorized to access this page.';
+    } else if (statusCode === 403) {
+        message = 'You do not have permission to access this resource.';
+    } else if (statusCode === 404) {
+        message = 'The requested resource could not be found.';
+    }
+    
+    // Override with error message if available and in development
+    if (process.env.NODE_ENV === 'development' && err.message) {
+        message = err.message;
+    }
+    
+    // Render error page with all required variables
+    res.status(statusCode).render(`error/${statusCode}`, {
+        title: statusCode === 404 ? 'Page Not Found' : 'Server Error',
+        message: message,
+        user: user,
+        isSuperAdmin: isSuperAdmin,
+        userSchool: userSchool,
+        error: process.env.NODE_ENV === 'development' ? err : null,
+        adminInfo: user?.admin || null
     });
 });
 

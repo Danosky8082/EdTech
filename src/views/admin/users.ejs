@@ -34,6 +34,47 @@
         th[data-sort]:hover {
             background-color: #f8f9fa;
         }
+
+        .parent-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .parent-id {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* New styles for parent modal */
+        .parent-modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .parent-card {
+            border-left: 4px solid #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .parent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .relationship-badge {
+            font-size: 0.75em;
+        }
+
+        .wallet-balance {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #198754;
+        }
     </style>
 </head>
 
@@ -52,8 +93,8 @@
                                 <% if (isSuperAdmin) { %>
                                     Super Administrator Access - All Schools
                                     <% } else if (userSchool) { %>
-                                        <%= adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() + adminInfo.roleLevel.slice(1)
-                                            : 'Administrator' %> Access - <%= userSchool %>
+                                        <%= adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() +
+                                            adminInfo.roleLevel.slice(1) : 'Administrator' %> Access - <%= userSchool %>
                                                 <% } else { %>
                                                     Administrator Access - No School Assigned
                                                     <% } %>
@@ -62,15 +103,17 @@
                                 <% if (isSuperAdmin) { %>
                                     You can view and manage all users across all schools
                                     <% } else if (userSchool) { %>
-                                        You can view and manage all users in <%= userSchool %> (teachers, students, and administrators)
+                                        You can view and manage all users in <%= userSchool %> (teachers, students, and
+                                            administrators)
                                             <% } else { %>
                                                 You have administrator access but no school is assigned
                                                 <% } %>
                             </small>
                         </div>
                         <span class="badge bg-<%= isSuperAdmin ? 'danger' : userSchool ? 'warning' : 'secondary' %>">
-                            <%= isSuperAdmin ? 'Super Admin' : userSchool ? (adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() +
-                                adminInfo.roleLevel.slice(1) : 'School Admin' ) : 'No School' %>
+                            <%= isSuperAdmin ? 'Super Admin' : userSchool ? (adminInfo ?
+                                adminInfo.roleLevel.charAt(0).toUpperCase() + adminInfo.roleLevel.slice(1)
+                                : 'School Admin' ) : 'No School' %>
                         </span>
                     </div>
                 </div>
@@ -84,7 +127,7 @@
 
                 <!-- Access Status Summary -->
                 <div class="row mb-4">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card text-white bg-success">
                             <div class="card-body text-center">
                                 <h4>
@@ -94,7 +137,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card text-white bg-warning">
                             <div class="card-body text-center">
                                 <h4>
@@ -104,7 +147,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card text-white bg-danger">
                             <div class="card-body text-center">
                                 <h4>
@@ -114,13 +157,33 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card text-white bg-secondary">
                             <div class="card-body text-center">
                                 <h4>
                                     <%= typeof expiredStudents !=='undefined' ? expiredStudents : 0 %>
                                 </h4>
                                 <p>Access Expired</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-info">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof parentCount !=='undefined' ? parentCount : 0 %>
+                                </h4>
+                                <p>Parents</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-white bg-dark">
+                            <div class="card-body text-center">
+                                <h4>
+                                    <%= typeof walletBalance !=='undefined' ? walletBalance : 0 %>
+                                </h4>
+                                <p>Total Wallet Balance</p>
                             </div>
                         </div>
                     </div>
@@ -146,6 +209,9 @@
                                     <option value="student">Student</option>
                                     <option value="teacher">Teacher</option>
                                     <option value="admin">Admin</option>
+                                    <option value="parent">Parent</option>
+                                    <option value="cashier">Cashier</option> 
+                                    <option value="accountant">Accountant</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -279,6 +345,7 @@
                                                 <td class="user-name">
                                                     <%= user.firstName %>
                                                         <%= user.lastName %>
+                                                            <!-- Removed inline parent info - now shown in modal -->
                                                 </td>
                                                 <td class="user-email">
                                                     <%= user.email || 'N/A' %>
@@ -293,7 +360,8 @@
                                                 <td class="user-role">
                                                     <span class="badge bg-<%= 
                                                     user.role === 'admin' ? 'danger' : 
-                                                    user.role === 'teacher' ? 'warning' : 'info' 
+                                                    user.role === 'teacher' ? 'warning' : 
+                                                    user.role === 'parent' ? 'info' : 'primary' 
                                                 %>">
                                                         <%= user.role %>
                                                     </span>
@@ -324,9 +392,17 @@
                                                                             user.student.tuitionPayments[0].receiptNumber
                                                                             %></small>
                                                                     <% } %>
-                                                                        <% } else { %>
-                                                                            <span class="badge bg-secondary">N/A</span>
-                                                                            <% } %>
+                                                                        <% } else if (user.role==='parent' &&
+                                                                            user.parent && user.parent.wallet) { %>
+                                                                            <span class="badge bg-dark">
+                                                                                Wallet: =N=<%=
+                                                                                    user.parent.wallet.balance.toFixed(2)
+                                                                                    %>
+                                                                            </span>
+                                                                            <% } else { %>
+                                                                                <span
+                                                                                    class="badge bg-secondary">N/A</span>
+                                                                                <% } %>
                                                         </td>
                                                         <td class="access-status">
                                                             <% if (user.role==='student' && user.student) { %>
@@ -380,12 +456,25 @@
                                                                     onclick="toggleUserStatus('<%= user.id %>', <%= user.isActive %>)">
                                                                     <%= user.isActive ? 'Deactivate' : 'Activate' %>
                                                                 </button>
-                                                                <% if (user.role==='student' && user.student) { %>
-                                                                    <button class="btn btn-sm btn-outline-info"
-                                                                        onclick="manageTuition('<%= user.id %>')">
-                                                                        <i class="fas fa-money-bill"></i>
+                                                            <% if (user.role==='student' && user.student) { %>
+                                                                <button class="btn btn-sm btn-outline-info" onclick="manageTuition('<%= user.student.id %>')">
+                                                                    <i class="fas fa-money-bill"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-warning" onclick="manageParent('<%= user.student.id %>')">
+                                                                    <i class="fas fa-users"></i>
+                                                                </button>
+                                                                <!-- Parent Info Button -->
+                                                                <% if (user.student.parents && user.student.parents.length> 0) { %>
+                                                                    <button class="btn btn-sm btn-outline-success view-parent-btn" data-student-id="<%= user.student.id %>"
+                                                                        data-student-name="<%= user.firstName %> <%= user.lastName %>">
+                                                                        <i class="fas fa-eye"></i> Parent
                                                                     </button>
                                                                     <% } %>
+                                                                        <% } else if (user.role==='parent' && user.parent) { %>
+                                                                            <button class="btn btn-sm btn-outline-dark" onclick="manageParentAccount('<%= user.id %>')">
+                                                                                <i class="fas fa-wallet"></i>
+                                                                            </button>
+                                                                            <% } %>
                                                             </div>
                                                         </td>
                                             </tr>
@@ -475,100 +564,128 @@
                                 </div>
                             </div>
 
-                            <!-- Add school filter for super admin -->
-                            <% if (isSuperAdmin) { %>
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h6 class="card-title"><i class="fas fa-filter me-2"></i>School Filter
-                                                </h6>
-                                                <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-outline-primary active"
-                                                        data-filter="all">All Schools</button>
-                                                    <button type="button" class="btn btn-outline-secondary"
-                                                        data-filter="null">No School</button>
-                                                    <!-- School filters will be dynamically added -->
-                                                </div>
+                            <div class="mb-3">
+                                <label class="form-label">Role *</label>
+                                <select class="form-select" name="role" required onchange="toggleRoleFields()">
+                                    <option value="">Select Role</option>
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="parent">Parent</option>
+                                    <option value="cashier">Cashier</option>
+                                    <option value="accountant">Accountant</option>
+                                </select>
+                            </div>
+
+                            <!-- Student Fields -->
+                            <div id="studentFields" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Grade *</label>
+                                        <input type="text" class="form-control" name="grade">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Section *</label>
+                                        <input type="text" class="form-control" name="section">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Tuition Status *</label>
+                                        <select class="form-select" name="tuitionStatus" required
+                                            onchange="toggleTuitionFields()">
+                                            <option value="unpaid">Unpaid</option>
+                                            <option value="partial">Partial Payment</option>
+                                            <option value="paid">Fully Paid</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Access Duration (Partial Payment)</label>
+                                        <select class="form-select" name="accessDuration" id="accessDuration">
+                                            <option value="7">7 Days</option>
+                                            <option value="15">15 Days</option>
+                                            <option value="30" selected>30 Days</option>
+                                            <option value="60">60 Days</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Receipt Number (If Paid)</label>
+                                        <input type="text" class="form-control" name="receiptNumber" id="receiptNumber">
+                                    </div>
+                                </div>
+
+                                <!-- Parent Information for Student -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Parent Information (Optional)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Parent First Name</label>
+                                                <input type="text" class="form-control" name="parentFirstName">
                                             </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Parent Last Name</label>
+                                                <input type="text" class="form-control" name="parentLastName">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Parent Email</label>
+                                                <input type="email" class="form-control" name="parentEmail">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Relationship</label>
+                                                <select class="form-select" name="parentRelationship">
+                                                    <option value="father">Father</option>
+                                                    <option value="mother">Mother</option>
+                                                    <option value="guardian">Guardian</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-text">
+                                            If provided, a parent account will be automatically created with access to
+                                            this student's progress.
                                         </div>
                                     </div>
                                 </div>
-                                <% } %>
+                            </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label">Role *</label>
-                                        <select class="form-select" name="role" required onchange="toggleRoleFields()">
-                                            <option value="">Select Role</option>
-                                            <option value="student">Student</option>
-                                            <option value="teacher">Teacher</option>
-                                            <option value="admin">Admin</option>
-                                        </select>
-                                    </div>
+                            <!-- Teacher Fields -->
+                            <div id="teacherFields" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Subject *</label>
+                                    <input type="text" class="form-control" name="subject">
+                                </div>
+                            </div>
 
-                                    <!-- Student Fields -->
-                                    <div id="studentFields" style="display: none;">
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Grade *</label>
-                                                <input type="text" class="form-control" name="grade">
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Section *</label>
-                                                <input type="text" class="form-control" name="section">
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Tuition Status *</label>
-                                                <select class="form-select" name="tuitionStatus" required
-                                                    onchange="toggleTuitionFields()">
-                                                    <option value="unpaid">Unpaid</option>
-                                                    <option value="partial">Partial Payment</option>
-                                                    <option value="paid">Fully Paid</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Access Duration (Partial Payment)</label>
-                                                <select class="form-select" name="accessDuration" id="accessDuration">
-                                                    <option value="7">7 Days</option>
-                                                    <option value="15">15 Days</option>
-                                                    <option value="30" selected>30 Days</option>
-                                                    <option value="60">60 Days</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-12 mb-3">
-                                                <label class="form-label">Receipt Number (If Paid)</label>
-                                                <input type="text" class="form-control" name="receiptNumber"
-                                                    id="receiptNumber">
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Teacher Fields -->
-                                    <div id="teacherFields" style="display: none;">
-                                        <div class="mb-3">
-                                            <label class="form-label">Subject *</label>
-                                            <input type="text" class="form-control" name="subject">
-                                        </div>
-                                    </div>
-
-                                <!-- Admin Fields -->
-                                <div id="adminFields" style="display: none;">
-                                    <div class="mb-3">
-                                        <label class="form-label">Role Level</label>
-                                        <select class="form-select" name="roleLevel">
-                                            <option value="principal">Principal</option>
-                                            <option value="headteacher">Head Teacher</option>
-                                            <option value="administrator">Administrator</option>
+                            <!-- Admin Fields -->
+                            <div id="adminFields" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Role Level</label>
+                                    <select class="form-select" name="roleLevel">
+                                        <option value="principal">Principal</option>
+                                        <option value="headteacher">Head Teacher</option>
+                                        <option value="administrator">Administrator</option>
                                         <% if (isSuperAdmin) { %>
                                             <option value="superadmin">Super Admin</option>
                                             <% } %>
-                                        </select>
-                                    </div>
+                                    </select>
                                 </div>
+                            </div>
+
+                            <!-- Parent Fields -->
+                            <div id="parentFields" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Parent accounts can be linked to students later for viewing progress and making
+                                    payments.
+                                </div>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -610,6 +727,54 @@
                     </div>
                     <div class="modal-body" id="tuitionModalBody">
                         <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Management Modal -->
+        <div class="modal fade" id="parentModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Manage Parent</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="parentModalBody">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Account Management Modal -->
+        <div class="modal fade" id="parentAccountModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Manage Parent Account</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="parentAccountModalBody">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Parent Information Modal -->
+        <div class="modal fade" id="parentInfoModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content parent-modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="parentInfoModalTitle">Parent Information</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="parentInfoModalBody">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -692,17 +857,21 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Tuition Status *</label>
-                                    <select class="form-select" name="tuitionStatus" required>
+                                    <select class="form-select" name="tuitionStatus" required onchange="handleTuitionStatusChange(this)">
                                         <option value="unpaid" ${user.student.tuitionStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
                                         <option value="partial" ${user.student.tuitionStatus === 'partial' ? 'selected' : ''}>Partial Payment</option>
                                         <option value="paid" ${user.student.tuitionStatus === 'paid' ? 'selected' : ''}>Fully Paid</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Receipt Number (If Paid)</label>
+                                    <label class="form-label">Receipt Number (Required if Paid)</label>
                                     <input type="text" class="form-control" name="receiptNumber" 
                                            value="${user.student.tuitionPayments && user.student.tuitionPayments.length > 0 ? user.student.tuitionPayments[0].receiptNumber : ''}" 
-                                           placeholder="Enter receipt number">
+                                           placeholder="Enter receipt number"
+                                           id="receiptNumberField">
+                                    <div class="form-text" id="receiptHelpText">
+                                        ${user.student.tuitionStatus === 'paid' ? 'Receipt number is required for fully paid status' : 'Only required for fully paid status'}
+                                    </div>
                                 </div>
                             </div>
                             <div id="tuitionAlert">
@@ -723,8 +892,8 @@
                         ` : ''}
                         ${user.role === 'teacher' && user.teacher ? `
                             <div class="mb-3">
-                                <label class="form-label">Subject *</label>
-                                <input type="text" class="form-control" name="subject" value="${user.teacher.subject}" required>
+                                <label class="form-label">Subject </label>
+                                <input type="text" class="form-control" name="subject" value="${user.teacher.subject}" >
                             </div>
                         ` : ''}
                         ${user.role === 'admin' && user.admin ? `
@@ -742,26 +911,36 @@
                         ` : ''}
                     `;
 
-                    // Add event listener for tuition status change
-                    if (user.role === 'student' && user.student) {
-                        setTimeout(() => {
-                            const tuitionStatusSelect = modalBody.querySelector('select[name="tuitionStatus"]');
-                            const tuitionAlert = modalBody.querySelector('#tuitionAlert');
+                    // Initialize receipt field and tuition alert
+                    setTimeout(() => {
+                        const tuitionStatusSelect = modalBody.querySelector('select[name="tuitionStatus"]');
+                        const tuitionAlert = modalBody.querySelector('#tuitionAlert');
+                        const receiptField = modalBody.querySelector('#receiptNumberField');
+                        const helpText = modalBody.querySelector('#receiptHelpText');
 
-                            if (tuitionStatusSelect && tuitionAlert) {
-                                tuitionStatusSelect.addEventListener('change', function () {
-                                    const status = this.value;
-                                    if (status === 'paid') {
-                                        tuitionAlert.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Student can change password</div>';
-                                    } else if (status === 'partial') {
-                                        tuitionAlert.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Temporary password expires in 30 days</div>';
-                                    } else {
-                                        tuitionAlert.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Student cannot change password until tuition is paid</div>';
-                                    }
-                                });
-                            }
-                        }, 100);
-                    }
+                        if (tuitionStatusSelect) {
+                            // Set initial state
+                            handleTuitionStatusChange(tuitionStatusSelect);
+
+                            // Add event listener for changes
+                            tuitionStatusSelect.addEventListener('change', function () {
+                                handleTuitionStatusChange(this);
+                            });
+                        }
+
+                        if (tuitionStatusSelect && tuitionAlert) {
+                            tuitionStatusSelect.addEventListener('change', function () {
+                                const status = this.value;
+                                if (status === 'paid') {
+                                    tuitionAlert.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Student can change password</div>';
+                                } else if (status === 'partial') {
+                                    tuitionAlert.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Temporary password expires in 30 days</div>';
+                                } else {
+                                    tuitionAlert.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Student cannot change password until tuition is paid</div>';
+                                }
+                            });
+                        }
+                    }, 100);
 
                     const editUserForm = document.getElementById('editUserForm');
                     editUserForm.onsubmit = async (e) => {
@@ -779,6 +958,27 @@
                 alert('An error occurred while loading user data');
             }
         };
+
+        // Function to handle tuition status change and receipt field
+        function handleTuitionStatusChange(selectElement) {
+            const status = selectElement.value;
+            const receiptField = document.getElementById('receiptNumberField');
+            const helpText = document.getElementById('receiptHelpText');
+
+            if (status === 'paid') {
+                if (receiptField) receiptField.required = true;
+                if (helpText) {
+                    helpText.textContent = 'Receipt number is required for fully paid status';
+                    helpText.className = 'form-text text-success';
+                }
+            } else {
+                if (receiptField) receiptField.required = false;
+                if (helpText) {
+                    helpText.textContent = 'Only required for fully paid status';
+                    helpText.className = 'form-text text-muted';
+                }
+            }
+        }
 
         window.toggleUserStatus = async function (userId, isCurrentlyActive) {
             if (!confirm(`Are you sure you want to ${isCurrentlyActive ? 'deactivate' : 'activate'} this user?`)) {
@@ -871,6 +1071,345 @@
             }
         };
 
+        // NEW: Parent Information Display Function
+        window.showParentInfo = async function (studentId, studentName) {
+            try {
+                console.log('🔄 Loading parent info for student:', studentId);
+                const response = await fetch(`/admin/students/${studentId}/parent-info`);
+
+                // Check if response is OK (status 200-299)
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+
+                const result = await response.json();
+                console.log('📨 Parent info response:', result);
+
+                if (result.success) {
+                    const student = result.student;
+                    const modalBody = document.getElementById('parentInfoModalBody');
+                    const modalTitle = document.getElementById('parentInfoModalTitle');
+
+                    modalTitle.textContent = `Parent Information - ${studentName}`;
+
+                    if (student.parents && student.parents.length > 0) {
+                        let parentHTML = '';
+
+                        student.parents.forEach((parentRelation, index) => {
+                            const parent = parentRelation.parent;
+                            // Add validation for parent data
+                            if (parent && parent.user) {
+                                parentHTML += `
+                                    <div class="card parent-card mb-3">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-user-tie me-2"></i>
+                                                        ${parent.user.firstName} ${parent.user.lastName}
+                                                        <span class="badge bg-primary relationship-badge ms-2">
+                                                            ${parentRelation.relationship || 'Parent'}
+                                                        </span>
+                                                    </h6>
+                                                    <div class="row mt-2">
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><strong>Parent ID:</strong> <span class="parent-id">${parent.user.idNumber || 'N/A'}</span></p>
+                                                            <p class="mb-1"><strong>Email:</strong> ${parent.user.email || 'N/A'}</p>
+                                                            <p class="mb-1"><strong>Phone:</strong> ${parent.user.phone || 'N/A'}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><strong>Account Status:</strong> 
+                                                                <span class="badge bg-${parent.user.isActive ? 'success' : 'secondary'}">
+                                                                    ${parent.user.isActive ? 'Active' : 'Inactive'}
+                                                                </span>
+                                                            </p>
+                                                            <p class="mb-1"><strong>Wallet Balance:</strong> 
+                                                                <span class="wallet-balance">
+                                                                    =N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 text-end">
+                                                    <button class="btn btn-sm btn-outline-primary mb-1" onclick="manageParentAccount('${parent.user.id}')">
+                                                        <i class="fas fa-wallet"></i> Manage Account
+                                                    </button>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        Linked since: ${(() => {
+                                        if (!parentRelation.createdAt) return 'Unknown';
+                                        try {
+                                            const date = new Date(parentRelation.createdAt);
+                                            return isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
+                                        } catch (e) {
+                                            return 'Unknown';
+                                        }
+                                    })()}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                console.warn('⚠️ Invalid parent data in relation:', parentRelation);
+                                parentHTML += `
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Invalid parent data - please re-link this parent
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        modalBody.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                This student has ${student.parents.length} parent(s) linked to their account.
+                            </div>
+                            ${parentHTML}
+                        `;
+                    } else {
+                        modalBody.innerHTML = `
+                            <div class="alert alert-warning text-center">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                                <h5>No Parent Linked</h5>
+                                <p class="mb-0">This student doesn't have any parent linked to their account.</p>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-primary" onclick="manageParent('${studentId}')">
+                                    <i class="fas fa-link"></i> Link a Parent
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    const parentInfoModal = new bootstrap.Modal(document.getElementById('parentInfoModal'));
+                    parentInfoModal.show();
+                } else {
+                    console.error('❌ API returned error:', result.message);
+                    alert('Error: ' + (result.message || 'Failed to load parent information'));
+                }
+            } catch (error) {
+                console.error('💥 Error loading parent information:', error);
+                alert('An error occurred while loading parent information: ' + error.message);
+            }
+        };
+
+        // Parent Management Functions
+        window.manageParent = async function (studentId) {
+            try {
+                const response = await fetch(`/admin/students/${studentId}/parent`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const student = result.student;
+                    const modalBody = document.getElementById('parentModalBody');
+
+                    let parentHTML = '';
+                    if (student.parents && student.parents.length > 0) {
+                        // Handle case where parent data might be incomplete
+                        const validParents = student.parents.filter(sp => sp.parent && sp.parent.user);
+
+                        if (validParents.length > 0) {
+                            const parentRelation = validParents[0];
+                            const parent = parentRelation.parent;
+                            parentHTML = `
+                                <div class="alert alert-success">
+                                    <h6>Current Parent</h6>
+                                    <p><strong>Name:</strong> ${parent.user.firstName} ${parent.user.lastName}</p>
+                                    <p><strong>Parent ID:</strong> <span class="parent-id">${parent.user.idNumber}</span></p>
+                                    <p><strong>Email:</strong> ${parent.user.email || 'N/A'}</p>
+                                    <p><strong>Relationship:</strong> ${parentRelation.relationship}</p>
+                                    <p><strong>Wallet Balance:</strong> =N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}</p>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-warning" onclick="unlinkParent('${studentId}', '${parent.user.id}')">
+                                        Unlink Parent
+                                    </button>
+                                    <button type="button" class="btn btn-info" onclick="viewParentProgress('${parent.user.id}')">
+                                        View Parent Access
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            parentHTML = `
+                                <div class="alert alert-warning">
+                                    <p>Parent data is incomplete. Please re-link the parent.</p>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        parentHTML = `
+                            <div class="alert alert-info">
+                                <p>No parent linked to this student.</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Link Existing Parent</label>
+                                <select class="form-select" id="existingParentSelect">
+                                    <option value="">Select existing parent...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Or Create New Parent</label>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <input type="text" class="form-control" id="newParentFirstName" placeholder="First Name">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <input type="text" class="form-control" id="newParentLastName" placeholder="Last Name">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <input type="email" class="form-control" id="newParentEmail" placeholder="Email">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <select class="form-select" id="newParentRelationship">
+                                            <option value="father">Father</option>
+                                            <option value="mother">Mother</option>
+                                            <option value="guardian">Guardian</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary" onclick="linkExistingParent('${studentId}')">
+                                    Link Existing Parent
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="createNewParent('${studentId}')">
+                                    Create & Link New Parent
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    modalBody.innerHTML = `
+                        <div class="mb-3">
+                            <h6>Student: ${student.user.firstName} ${student.user.lastName}</h6>
+                            <p>ID: ${student.user.idNumber} | Grade: ${student.grade} | Section: ${student.section}</p>
+                        </div>
+                        ${parentHTML}
+                    `;
+
+                    // Load existing parents for dropdown only if no parent is linked
+                    if (!student.parents || student.parents.length === 0) {
+                        await loadExistingParents();
+                    }
+
+                    const parentModal = new bootstrap.Modal(document.getElementById('parentModal'));
+                    parentModal.show();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading parent data');
+            }
+        };
+
+        window.manageParentAccount = async function (parentUserId) {
+            try {
+                const response = await fetch(`/admin/parents/${parentUserId}/account`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const parent = result.parent;
+                    const modalBody = document.getElementById('parentAccountModalBody');
+
+                    modalBody.innerHTML = `
+                        <div class="mb-3">
+                            <h6>Parent: ${parent.user.firstName} ${parent.user.lastName}</h6>
+                            <p>Parent ID: <span class="parent-id">${parent.user.idNumber}</span></p>
+                            <p>Email: ${parent.user.email || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Wallet Balance: =N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Add Funds to Wallet</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">=N=</span>
+                                            <input type="number" class="form-control" id="addAmount" min="1" step="0.01" placeholder="Amount">
+                                            <button class="btn btn-success" type="button" onclick="addWalletFunds('${parent.user.id}')">
+                                                Add Funds
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="mb-3">
+                            <h6>Linked Students</h6>
+                            ${parent.students && parent.students.length > 0 ?
+                            parent.students.map(sp => `
+                                    <div class="card mb-2">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>${sp.student.user.firstName} ${sp.student.user.lastName}</strong>
+                                                    <br>
+                                                    <small>ID: ${sp.student.user.idNumber} | Grade: ${sp.student.grade} | Relationship: ${sp.relationship}</small>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="unlinkStudent('${parent.user.id}', '${sp.student.user.id}')">
+                                                    Unlink
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('') :
+                            '<p class="text-muted">No students linked</p>'
+                        }
+                        </div>
+    
+                        <div class="mb-3">
+                            <h6>Recent Transactions</h6>
+                            ${parent.wallet && parent.wallet.transactions && parent.wallet.transactions.length > 0 ?
+                            parent.wallet.transactions.map(t => `
+                                    <div class="card mb-2">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <strong>${t.description || t.type}</strong>
+                                                    <br>
+                                                    <small>${new Date(t.createdAt).toLocaleDateString()}</small>
+                                                </div>
+                                                <div class="text-${t.type === 'deposit' ? 'success' : 'danger'}">
+                                                    ${t.type === 'deposit' ? '+' : '-'}=N=${t.amount.toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('') :
+                            '<p class="text-muted">No transactions</p>'
+                        }
+                        </div>
+                    `;
+
+                    const parentAccountModal = new bootstrap.Modal(document.getElementById('parentAccountModal'));
+                    parentAccountModal.show();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading parent account data');
+            }
+        };
+
         // Other functions that don't need to be global
         async function updateUser(userId) {
             try {
@@ -957,6 +1496,251 @@
             }
         }
 
+        // Parent-related functions
+        async function loadExistingParents() {
+            try {
+                console.log('🔄 Loading available parents...');
+                const response = await fetch('/admin/parents/available');
+                const result = await response.json();
+
+                console.log('📨 Parents API response:', result);
+
+                if (result.success) {
+                    const select = document.getElementById('existingParentSelect');
+
+                    // Clear existing options except the first one
+                    while (select.options.length > 1) {
+                        select.remove(1);
+                    }
+
+                    if (result.parents && result.parents.length > 0) {
+                        result.parents.forEach(parent => {
+                            console.log('👨‍👧‍👦 Processing parent:', parent);
+
+                            // The parent object is the User record with included parent data
+                            if (parent && parent.id && parent.firstName && parent.lastName) {
+                                const option = document.createElement('option');
+                                option.value = parent.id; // This is the user ID
+                                option.textContent = `${parent.firstName} ${parent.lastName} (${parent.idNumber || 'No ID'})`;
+
+                                // Add data attributes for debugging
+                                option.setAttribute('data-parent-id', parent.id);
+                                option.setAttribute('data-parent-data', JSON.stringify({
+                                    id: parent.id,
+                                    idNumber: parent.idNumber,
+                                    firstName: parent.firstName,
+                                    lastName: parent.lastName,
+                                    hasParentRecord: !!parent.parent
+                                }));
+
+                                select.appendChild(option);
+                                console.log('✅ Added parent option:', option.textContent);
+                            } else {
+                                console.warn('❌ Invalid parent structure:', parent);
+                            }
+                        });
+
+                        console.log(`✅ Loaded ${result.parents.length} parents into dropdown`);
+                    } else {
+                        console.warn('⚠️ No parents available');
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "No available parents found";
+                        option.disabled = true;
+                        select.appendChild(option);
+                    }
+                } else {
+                    console.error('❌ API response not successful:', result.message);
+                    const select = document.getElementById('existingParentSelect');
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "Error: " + (result.message || 'Failed to load parents');
+                    option.disabled = true;
+                    select.appendChild(option);
+                }
+            } catch (error) {
+                console.error('💥 Error loading parents:', error);
+                const select = document.getElementById('existingParentSelect');
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "Error loading parents";
+                option.disabled = true;
+                select.appendChild(option);
+            }
+        }
+
+        async function linkExistingParent(studentId) {
+            const parentSelect = document.getElementById('existingParentSelect');
+            const parentId = parentSelect.value;
+
+            if (!parentId) {
+                alert('Please select a parent');
+                return;
+            }
+
+            const relationship = prompt('Enter relationship (father, mother, guardian, etc.):', 'parent');
+            if (!relationship) return;
+
+            try {
+                const response = await fetch(`/admin/students/${studentId}/link-parent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        parentId: parentId,
+                        relationship: relationship
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while linking parent');
+            }
+        }
+
+        async function createNewParent(studentId) {
+            const firstName = document.getElementById('newParentFirstName').value;
+            const lastName = document.getElementById('newParentLastName').value;
+            const email = document.getElementById('newParentEmail').value;
+            const relationship = document.getElementById('newParentRelationship').value;
+
+            if (!firstName || !lastName) {
+                alert('Please enter parent first and last name');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/students/${studentId}/create-parent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        relationship: relationship
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while creating parent');
+            }
+        }
+
+        async function unlinkParent(studentId, parentId) {
+            if (!confirm('Are you sure you want to unlink this parent?')) return;
+
+            try {
+                const response = await fetch(`/admin/students/${studentId}/unlink-parent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        parentId: parentId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while unlinking parent');
+            }
+        }
+
+        async function unlinkStudent(parentId, studentId) {
+            if (!confirm('Are you sure you want to unlink this student?')) return;
+
+            try {
+                const response = await fetch(`/admin/parents/${parentId}/unlink-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        studentId: studentId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while unlinking student');
+            }
+        }
+
+        async function addWalletFunds(parentId) {
+            const amount = document.getElementById('addAmount').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/parents/${parentId}/add-funds`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: parseFloat(amount),
+                        description: 'Admin deposit'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while adding funds');
+            }
+        }
+
+        async function viewParentProgress(parentId) {
+            // This would open a new page or modal showing what the parent can see
+            alert(`Parent progress view for parent ID: ${parentId}\n\nThis would show the parent dashboard with student progress, comments, and payment options.`);
+        }
+
         // Search and Filter functionality
         let currentSort = { field: null, direction: 'asc' };
 
@@ -978,6 +1762,15 @@
             if (tuitionStatusSelect) {
                 tuitionStatusSelect.addEventListener('change', toggleTuitionFields);
             }
+
+            // NEW: Add event listeners for parent info buttons
+            document.querySelectorAll('.view-parent-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const studentId = this.getAttribute('data-student-id');
+                    const studentName = this.getAttribute('data-student-name');
+                    showParentInfo(studentId, studentName);
+                });
+            });
         });
 
         function initializeSearch() {
@@ -1295,10 +2088,12 @@
             const studentFields = document.getElementById('studentFields');
             const teacherFields = document.getElementById('teacherFields');
             const adminFields = document.getElementById('adminFields');
+            const parentFields = document.getElementById('parentFields');
 
             if (studentFields) studentFields.style.display = role === 'student' ? 'block' : 'none';
             if (teacherFields) teacherFields.style.display = role === 'teacher' ? 'block' : 'none';
             if (adminFields) adminFields.style.display = role === 'admin' ? 'block' : 'none';
+            if (parentFields) parentFields.style.display = role === 'parent' ? 'block' : 'none';
 
             if (role === 'student') {
                 toggleTuitionFields(); // Initialize tuition fields

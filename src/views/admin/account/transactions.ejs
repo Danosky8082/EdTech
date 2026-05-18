@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | School Management System
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1>
+            <%= title %>
+        </h1>
+        <p class="text-muted">
+            <i class="fas fa-school me-1"></i>
+            <%= userSchool || 'All Schools' %>
+                <% if (isSuperAdmin) { %>
+                    <span class="badge bg-warning ms-2">Super Admin</span>
+                    <% } %>
+        </p>
+
+        <ul class="nav nav-tabs mb-4" id="transactionsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent"
+                    type="button">
+                    Parent Payments (<%= parentPayments.length %>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="daily-tab" data-bs-toggle="tab" data-bs-target="#daily" type="button">
+                    Daily Transactions (<%= dailyTransactions.length %>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial"
+                    type="button">
+                    Financial Transactions (<%= financialTransactions.length %>)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="transactionsTabContent">
+            <!-- Parent Payments Tab -->
+            <div class="tab-pane fade show active" id="parent">
+                <% if (parentPayments.length> 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Parent</th>
+                                    <th>Student</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Method</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% parentPayments.forEach(payment=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= new Date(payment.createdAt).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <%= payment.parent.user.firstName %>
+                                                <%= payment.parent.user.lastName %>
+                                        </td>
+                                        <td>
+                                            <%= payment.student.user.firstName %>
+                                                <%= payment.student.user.lastName %>
+                                        </td>
+                                        <td>₦<%= payment.amount.toFixed(2) %>
+                                        </td>
+                                        <td>
+                                            <% if (payment.status==='confirmed' ) { %>
+                                                <span class="badge bg-success">Confirmed</span>
+                                                <% } else if (payment.status==='pending' ) { %>
+                                                    <span class="badge bg-warning">Pending</span>
+                                                    <% } else if (payment.status==='rejected' ) { %>
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                        <% } else { %>
+                                                            <span class="badge bg-secondary">
+                                                                <%= payment.status %>
+                                                            </span>
+                                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <%= payment.paymentMethod %>
+                                        </td>
+                                        <td><code><%= payment.receiptNumber %></code></td>
+                                    </tr>
+                                    <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No parent payments found.</div>
+                        <% } %>
+            </div>
+
+            <!-- Daily Transactions Tab -->
+            <div class="tab-pane fade" id="daily">
+                <% if (dailyTransactions.length> 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Student/Parent</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Collector</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% dailyTransactions.forEach(transaction=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= new Date(transaction.createdAt).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.type==='fee_payment' ) { %>
+                                                <span class="badge bg-primary">Fee Payment</span>
+                                                <% } else if (transaction.type==='other_income' ) { %>
+                                                    <span class="badge bg-success">Other Income</span>
+                                                    <% } else if (transaction.type==='expense' ) { %>
+                                                        <span class="badge bg-danger">Expense</span>
+                                                        <% } else { %>
+                                                            <span class="badge bg-secondary">
+                                                                <%= transaction.type %>
+                                                            </span>
+                                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.student) { %>
+                                                <%= transaction.student.user.firstName %>
+                                                    <%= transaction.student.user.lastName %>
+                                                        <% } else if (transaction.parent) { %>
+                                                            <%= transaction.parent.user.firstName %>
+                                                                <%= transaction.parent.user.lastName %>
+                                                                    <% } else { %>
+                                                                        <span class="text-muted">N/A</span>
+                                                                        <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.type==='expense' ) { %>
+                                                <span class="text-danger">-₦<%= transaction.amount.toFixed(2) %></span>
+                                                <% } else { %>
+                                                    <span class="text-success">+₦<%= transaction.amount.toFixed(2) %>
+                                                            </span>
+                                                    <% } %>
+                                        </td>
+                                        <td>
+                                            <%= transaction.paymentMethod %>
+                                        </td>
+                                        <td>
+                                            <%= transaction.collector.firstName %>
+                                                <%= transaction.collector.lastName %>
+                                        </td>
+                                        <td><code><%= transaction.receiptNumber %></code></td>
+                                    </tr>
+                                    <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No daily transactions found.</div>
+                        <% } %>
+            </div>
+
+            <!-- Financial Transactions Tab -->
+            <div class="tab-pane fade" id="financial">
+                <% if (financialTransactions.length> 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Title</th>
+                                    <th>Amount</th>
+                                    <th>Category</th>
+                                    <th>Created By</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% financialTransactions.forEach(transaction=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= new Date(transaction.date).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.type==='income' ) { %>
+                                                <span class="badge bg-success">Income</span>
+                                                <% } else if (transaction.type==='expense' ) { %>
+                                                    <span class="badge bg-danger">Expense</span>
+                                                    <% } else { %>
+                                                        <span class="badge bg-secondary">
+                                                            <%= transaction.type %>
+                                                        </span>
+                                                        <% } %>
+                                        </td>
+                                        <td>
+                                            <%= transaction.title %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.type==='expense' ) { %>
+                                                <span class="text-danger">-₦<%= transaction.amount.toFixed(2) %></span>
+                                                <% } else { %>
+                                                    <span class="text-success">+₦<%= transaction.amount.toFixed(2) %>
+                                                            </span>
+                                                    <% } %>
+                                        </td>
+                                        <td>
+                                            <%= transaction.category %>
+                                        </td>
+                                        <td>
+                                            <%= transaction.creator.firstName %>
+                                                <%= transaction.creator.lastName %>
+                                        </td>
+                                        <td><code><%= transaction.receiptNumber || 'N/A' %></code></td>
+                                    </tr>
+                                    <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No financial transactions found.</div>
+                        <% } %>
+            </div>
+        </div>
+
+        <a href="/admin/dashboard" class="btn btn-primary mt-3">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

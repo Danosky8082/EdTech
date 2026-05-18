@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { isAuthenticated } = require('../middleware/auth');
+const { isAuthenticated } = require('../middleware/auth'); // Updated path
 
 // Login routes
 router.get('/login', authController.showLogin);
@@ -13,7 +13,5 @@ router.post('/change-password', isAuthenticated, authController.changePassword);
 
 // Logout route
 router.get('/logout', authController.logout);
-
-
 
 module.exports = router;

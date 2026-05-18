@@ -5,42 +5,97 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= title %>
+        <%= title %> - EdTech
     </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .exam-card {
+        .profile-section {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
             border-radius: 10px;
+            padding: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            transition: transform 0.3s ease;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .exam-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
         }
 
         .exam-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         }
 
         .status-badge {
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.8rem;
-            font-weight: 600;
         }
 
-        .status-upcoming {
-            background-color: #e3f2fd;
-            color: #1976d2;
+        .countdown-timer {
+            font-size: 1.2rem;
+            font-weight: bold;
         }
 
-        .status-ongoing {
-            background-color: #fff3e0;
-            color: #f57c00;
+        .upcoming-badge {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            animation: pulse 2s infinite;
         }
 
-        .status-completed {
-            background-color: #e8f5e8;
-            color: #388e3c;
+        .live-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .timer-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: conic-gradient(#007bff 0%, #e9ecef 0%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+        }
+
+        .timer-circle-inner {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -49,109 +104,495 @@
     <%- include('../partials/navbar') %>
 
         <div class="container mt-4">
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Exams - <%= classData.name %>
-                        </h2>
-                        <a href="/student/dashboard" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Home
-                        </a>
+            <%- include('../partials/alerts') %>
+
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool %>
+                </div>
+
+                <div class="row">
+                    <!-- Left Sidebar with Profile -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <% if (user.avatar) { %>
+                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
+                                    alt="Student Profile" class="profile-img mb-3"
+                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                <% } else { %>
+                                    <img src="/images/default-profile.png" alt="Student Profile"
+                                        class="profile-img mb-3">
+                                    <% } %>
+                                        <h4>
+                                            <%= user.firstName %>
+                                                <%= user.lastName %>
+                                        </h4>
+                                        <p class="welcome-text">
+                                            <%= classData.name %>
+                                        </p>
+                                        <span class="user-role">Student</span>
+                                        <div class="mt-2">
+                                            <small><i class="fas fa-school me-1"></i>
+                                                <%= userSchool %>
+                                            </small>
+                                        </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/student/class/<%= classData.id %>/materials"
+                                    class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-book"></i> Materials
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/assignments"
+                                    class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Assignments
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/exams"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn">
+                                    <i class="fas fa-clipboard-list"></i> Exams
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/class-works"
+                                    class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Class Works
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/live-sessions"
+                                    class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-video"></i> Live Sessions
+                                </a>
+                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn">
+                                    <i class="fas fa-home"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Exam Statistics -->
+                        <div class="card dashboard-card">
+                            <div class="card-header">
+                                <h5>Exam Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <% const totalExams=exams.length; const attemptedExams=exams.filter(e=>
+                                    e.hasAttempt).length;
+                                    const upcomingExams = exams.filter(e => e.status === 'upcoming').length;
+                                    const completedExams = exams.filter(e => e.status === 'completed').length;
+                                    const avgScore = exams.filter(e => e.score !== null)
+                                    .reduce((sum, e) => sum + e.score, 0) /
+                                    (exams.filter(e => e.score !== null).length || 1);
+                                    %>
+                                    <div class="mb-2">
+                                        <small><strong>Total Exams:</strong></small>
+                                        <span class="badge bg-primary float-end">
+                                            <%= totalExams %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Attempted:</strong></small>
+                                        <span class="badge bg-success float-end">
+                                            <%= attemptedExams %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Upcoming:</strong></small>
+                                        <span class="badge bg-warning float-end">
+                                            <%= upcomingExams %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Completed:</strong></small>
+                                        <span class="badge bg-info float-end">
+                                            <%= completedExams %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Avg. Score:</strong></small>
+                                        <span class="badge bg-dark float-end">
+                                            <%= avgScore.toFixed(1) %>%
+                                        </span>
+                                    </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <% if (exams && exams.length> 0) { %>
-                        <div class="row">
-                            <% exams.forEach(exam=> { %>
-                                <div class="col-md-6 mb-4">
-                                    <div class="card exam-card">
-                                        <div class="card-header d-flex justify-content-between align-items-center">
-                                            <h5 class="mb-0">
-                                                <%= exam.title %>
-                                            </h5>
-                                            <span class="status-badge status-<%= exam.status %>">
-                                                <%= exam.status.charAt(0).toUpperCase() + exam.status.slice(1) %>
-                                            </span>
-                                        </div>
-                                        <div class="card-body">
-                                            <% if (exam.description) { %>
-                                                <p class="card-text">
-                                                    <%= exam.description %>
-                                                </p>
-                                                <% } %>
+                    <!-- Main Content -->
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2><i class="fas fa-clipboard-list me-2"></i>Class Exams</h2>
+                                <p class="text-muted mb-0">
+                                    <%= classData.name %> - <%= classData.teacher.user.firstName %>
+                                            <%= classData.teacher.user.lastName %>
+                                </p>
+                            </div>
+                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Class
+                            </a>
+                        </div>
 
-                                                    <div class="exam-details mb-3">
-                                                        <small class="text-muted d-block">
-                                                            <i class="fas fa-calendar"></i>
-                                                            Date: <%= new Date(exam.date).toLocaleDateString() %>
-                                                        </small>
-                                                        <small class="text-muted d-block">
-                                                            <i class="fas fa-clock"></i>
-                                                            Duration: <%= exam.duration %> minutes
-                                                        </small>
-                                                        <small class="text-muted d-block">
-                                                            <i class="fas fa-question-circle"></i>
-                                                            Questions: <%= exam.totalQuestions || 'N/A' %>
-                                                        </small>
-                                                        <% if (exam.hasAttempt) { %>
-                                                            <small class="text-success d-block">
-                                                                <i class="fas fa-check-circle"></i>
-                                                                Score: <%= exam.score !==null ? exam.score
-                                                                    : 'Not graded' %>
-                                                            </small>
+                        <!-- Exam Instructions -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5><i class="fas fa-info-circle me-2"></i>Exam Instructions</h5>
+                                <ul class="mb-0">
+                                    <li>Ensure you have a stable internet connection before starting an exam</li>
+                                    <li>You cannot pause or restart the exam once started</li>
+                                    <li>All answers are automatically saved</li>
+                                    <li>Submit before the timer runs out</li>
+                                    <li>Results will be available after the exam period ends</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Exams -->
+                        <% const upcomingExamsList=exams.filter(e=> e.status === 'upcoming'); %>
+                            <% if (upcomingExamsList.length> 0) { %>
+                                <div class="mb-4">
+                                    <h4 class="mb-3">Upcoming Exams</h4>
+                                    <div class="row">
+                                        <% upcomingExamsList.forEach(exam=> {
+                                            const examDate = new Date(exam.date);
+                                            const now = new Date();
+                                            const diffHours = Math.floor((examDate - now) / (1000 * 60 * 60));
+                                            %>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card exam-card" style="border-left-color: #ffc107;">
+                                                    <div class="card-body">
+                                                        <div
+                                                            class="d-flex justify-content-between align-items-start mb-3">
+                                                            <div>
+                                                                <h5 class="card-title mb-1">
+                                                                    <%= exam.title %>
+                                                                </h5>
+                                                                <p class="text-muted mb-0">
+                                                                    <small><i class="fas fa-calendar me-1"></i>
+                                                                        <%= examDate.toLocaleDateString() %>
+                                                                    </small>
+                                                                    <small class="ms-2"><i
+                                                                            class="fas fa-clock me-1"></i>
+                                                                        <%= examDate.toLocaleTimeString([],
+                                                                            {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                    </small>
+                                                                </p>
+                                                            </div>
+                                                            <span class="badge upcoming-badge">Upcoming</span>
+                                                        </div>
+
+                                                        <% if (exam.description) { %>
+                                                            <p class="card-text mb-3">
+                                                                <%= exam.description %>
+                                                            </p>
                                                             <% } %>
-                                                    </div>
 
-                                                    <div class="d-flex gap-2">
-                                                        <% if (exam.status==='ongoing' && !exam.hasAttempt) { %>
-                                                            <a href="/student/exams/<%= exam.id %>/take"
-                                                                class="btn btn-primary btn-sm">
-                                                                <i class="fas fa-play"></i> Start Exam
-                                                            </a>
-                                                            <% } else if (exam.status==='ongoing' && exam.hasAttempt) {
-                                                                %>
-                                                                <a href="/student/exams/<%= exam.id %>/take"
-                                                                    class="btn btn-warning btn-sm">
-                                                                    <i class="fas fa-sync"></i> Continue Exam
-                                                                </a>
-                                                                <% } else if (exam.status==='completed' &&
-                                                                    exam.hasAttempt) { %>
-                                                                    <a href="/student/exams/<%= exam.attempts[0].id %>/results"
-                                                                        class="btn btn-success btn-sm">
-                                                                        <i class="fas fa-chart-bar"></i> View Results
-                                                                    </a>
-                                                                    <% } else if (exam.status==='upcoming' ) { %>
-                                                                        <button class="btn btn-outline-secondary btn-sm"
-                                                                            disabled>
-                                                                            <i class="fas fa-clock"></i> Starts Soon
-                                                                        </button>
-                                                                        <% } %>
+                                                                <div class="row mb-3">
+                                                                    <div class="col-4">
+                                                                        <small class="text-muted">Duration:</small>
+                                                                        <div class="h5 mb-0">
+                                                                            <%= exam.duration %> min
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-4">
+                                                                        <small class="text-muted">Max Attempts:</small>
+                                                                        <div class="h5 mb-0">
+                                                                            <%= exam.maxAttempts || 1 %>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-4">
+                                                                        <small class="text-muted">Total Marks:</small>
+                                                                        <div class="h5 mb-0">
+                                                                            <%= exam.totalMarks || 100 %>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
 
-                                                                            <% if (exam.status==='completed' &&
-                                                                                !exam.hasAttempt) { %>
-                                                                                <button
-                                                                                    class="btn btn-outline-danger btn-sm"
-                                                                                    disabled>
-                                                                                    <i class="fas fa-times"></i> Missed
-                                                                                </button>
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <% if (diffHours <=24) { %>
+                                                                            <div class="countdown-timer text-warning"
+                                                                                data-date="<%= exam.date %>"></div>
+                                                                            <% } else { %>
+                                                                                <small class="text-muted">Starts in <%=
+                                                                                        Math.ceil(diffHours / 24) %>
+                                                                                        days</small>
                                                                                 <% } %>
+                                                                    </div>
+                                                                    <button class="btn btn-warning" disabled>
+                                                                        <i class="fas fa-clock me-1"></i> Starts Soon
+                                                                    </button>
+                                                                </div>
                                                     </div>
-                                        </div>
+                                                </div>
+                                            </div>
+                                            <% }); %>
                                     </div>
                                 </div>
-                                <% }) %>
-                        </div>
-                        <% } else { %>
-                            <div class="text-center py-5">
-                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                                <h4>No Exams Available</h4>
-                                <p class="text-muted">There are no exams scheduled for this class yet.</p>
-                            </div>
-                            <% } %>
+                                <% } %>
+
+                                    <!-- Ongoing Exams -->
+                                    <% const ongoingExams=exams.filter(e=> e.status === 'ongoing'); %>
+                                        <% if (ongoingExams.length> 0) { %>
+                                            <div class="mb-4">
+                                                <h4 class="mb-3">Ongoing Exams</h4>
+                                                <div class="row">
+                                                    <% ongoingExams.forEach(exam=> {
+                                                        const examDate = new Date(exam.date);
+                                                        const endTime = new Date(examDate.getTime() + (exam.duration *
+                                                        60000));
+                                                        const now = new Date();
+                                                        const remainingMinutes = Math.floor((endTime - now) / (1000 *
+                                                        60));
+                                                        %>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="card exam-card"
+                                                                style="border-left-color: #28a745;">
+                                                                <div class="card-body">
+                                                                    <div
+                                                                        class="d-flex justify-content-between align-items-start mb-3">
+                                                                        <div>
+                                                                            <h5 class="card-title mb-1">
+                                                                                <%= exam.title %>
+                                                                            </h5>
+                                                                            <p class="text-muted mb-0">
+                                                                                <small><i
+                                                                                        class="fas fa-calendar me-1"></i>
+                                                                                    <%= examDate.toLocaleDateString() %>
+                                                                                </small>
+                                                                                <small class="ms-2"><i
+                                                                                        class="fas fa-clock me-1"></i>
+                                                                                    Ends: <%=
+                                                                                        endTime.toLocaleTimeString([],
+                                                                                        {hour: '2-digit' ,
+                                                                                        minute:'2-digit'}) %></small>
+                                                                            </p>
+                                                                        </div>
+                                                                        <span class="badge live-badge">Live Now</span>
+                                                                    </div>
+
+                                                                    <div class="text-center mb-3">
+                                                                        <div class="timer-circle"
+                                                                            id="timer-<%= exam.id %>">
+                                                                            <div class="timer-circle-inner"
+                                                                                id="timer-inner-<%= exam.id %>">
+                                                                                <%= remainingMinutes %>:00
+                                                                            </div>
+                                                                        </div>
+                                                                        <small class="text-muted">Time Remaining</small>
+                                                                    </div>
+
+                                                                    <div class="d-flex justify-content-between">
+                                                                        <div>
+                                                                            <small class="text-muted">Duration:</small>
+                                                                            <div>
+                                                                                <%= exam.duration %> minutes
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <small class="text-muted">Total
+                                                                                Marks:</small>
+                                                                            <div>
+                                                                                <%= exam.totalMarks || 100 %>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="mt-3">
+                                                                        <% if (exam.hasAttempt) { %>
+                                                                            <a href="/student/exams/<%= exam.attempts[0].id %>/results"
+                                                                                class="btn btn-info w-100">
+                                                                                <i class="fas fa-eye me-1"></i> View
+                                                                                Attempt
+                                                                            </a>
+                                                                            <% } else { %>
+                                                                                <a href="/student/exams/<%= exam.id %>/take"
+                                                                                    class="btn btn-success w-100">
+                                                                                    <i class="fas fa-play me-1"></i>
+                                                                                    Start Exam
+                                                                                </a>
+                                                                                <% } %>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <% }); %>
+                                                </div>
+                                            </div>
+                                            <% } %>
+
+                                                <!-- Completed Exams -->
+                                                <% const completedExamsList=exams.filter(e=> e.status === 'completed');
+                                                    %>
+                                                    <div>
+                                                        <h4 class="mb-3">Completed Exams</h4>
+                                                        <% if (completedExamsList.length> 0) { %>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-striped">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Exam</th>
+                                                                            <th>Date</th>
+                                                                            <th>Duration</th>
+                                                                            <th>Score</th>
+                                                                            <th>Status</th>
+                                                                            <th>Actions</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <% completedExamsList.forEach(exam=> {
+                                                                            const examDate = new Date(exam.date);
+                                                                            const hasScore = exam.score !== null;
+                                                                            %>
+                                                                            <tr>
+                                                                                <td>
+                                                                                    <strong>
+                                                                                        <%= exam.title %>
+                                                                                    </strong>
+                                                                                    <% if (exam.description) { %>
+                                                                                        <br><small class="text-muted">
+                                                                                            <%= exam.description %>
+                                                                                        </small>
+                                                                                        <% } %>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <%= examDate.toLocaleDateString() %>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <%= exam.duration %> min
+                                                                                </td>
+                                                                                <td>
+                                                                                    <% if (hasScore) { %>
+                                                                                        <span
+                                                                                            class="badge bg-<%= exam.score >= 70 ? 'success' : exam.score >= 50 ? 'warning' : 'danger' %>">
+                                                                                            <%= exam.score %>/<%=
+                                                                                                    exam.totalMarks ||
+                                                                                                    100 %>
+                                                                                        </span>
+                                                                                        <% } else { %>
+                                                                                            <span
+                                                                                                class="badge bg-secondary">Pending</span>
+                                                                                            <% } %>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <% if (exam.hasAttempt) { %>
+                                                                                        <span
+                                                                                            class="badge bg-info">Attempted</span>
+                                                                                        <% } else { %>
+                                                                                            <span
+                                                                                                class="badge bg-danger">Missed</span>
+                                                                                            <% } %>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <% if (exam.hasAttempt) { %>
+                                                                                        <a href="/student/exams/<%= exam.attempts[0].id %>/results"
+                                                                                            class="btn btn-sm btn-primary">
+                                                                                            <i
+                                                                                                class="fas fa-eye me-1"></i>
+                                                                                            View Results
+                                                                                        </a>
+                                                                                        <% } else { %>
+                                                                                            <button
+                                                                                                class="btn btn-sm btn-secondary"
+                                                                                                disabled>
+                                                                                                <i
+                                                                                                    class="fas fa-times me-1"></i>
+                                                                                                Closed
+                                                                                            </button>
+                                                                                            <% } %>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <% }); %>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <% } else { %>
+                                                                <div class="card">
+                                                                    <div class="card-body text-center py-5">
+                                                                        <i
+                                                                            class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                                                                        <h4>No Completed Exams</h4>
+                                                                        <p class="text-muted">You haven't completed any
+                                                                            exams for this class yet.</p>
+                                                                    </div>
+                                                                </div>
+                                                                <% } %>
+                                                    </div>
+                    </div>
                 </div>
-            </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Countdown for upcoming exams
+                function updateUpcomingCountdowns() {
+                    document.querySelectorAll('.countdown-timer[data-date]').forEach(timer => {
+                        const examDate = new Date(timer.dataset.date);
+                        const now = new Date();
+                        const diff = examDate - now;
+
+                        if (diff <= 0) {
+                            timer.innerHTML = 'Starting Now';
+                            timer.style.color = '#28a745';
+                            window.location.reload();
+                            return;
+                        }
+
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                        if (hours > 0) {
+                            timer.innerHTML = `Starts in ${hours}h ${minutes}m`;
+                        } else {
+                            timer.innerHTML = `Starts in ${minutes}m`;
+                            timer.style.color = '#dc3545';
+                        }
+                    });
+                }
+
+                // Timer for ongoing exams
+                function updateOngoingTimers() {
+                    document.querySelectorAll('[id^="timer-inner-"]').forEach(timer => {
+                        const examId = timer.id.replace('timer-inner-', '');
+                        const circle = document.getElementById(`timer-${examId}`);
+                        const timeText = timer.textContent.split(':');
+                        let minutes = parseInt(timeText[0]);
+                        let seconds = parseInt(timeText[1] || 0);
+
+                        if (seconds === 0) {
+                            if (minutes === 0) {
+                                // Exam ended
+                                timer.textContent = 'Time Up';
+                                circle.style.background = 'conic-gradient(#dc3545 100%, #e9ecef 0%)';
+                                window.location.reload();
+                                return;
+                            }
+                            minutes--;
+                            seconds = 59;
+                        } else {
+                            seconds--;
+                        }
+
+                        // Update timer text
+                        timer.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                        // Update progress circle
+                        const totalSeconds = (minutes * 60) + seconds;
+                        const examDuration = <% if (ongoingExams.length > 0) { %> <%= ongoingExams[0].duration %> * 60 <% } else { %> 60 * 60 <% } %>;
+                        const percentage = ((examDuration - totalSeconds) / examDuration) * 100;
+                        circle.style.background = `conic-gradient(#28a745 ${percentage}%, #e9ecef 0%)`;
+                    });
+                }
+
+                updateUpcomingCountdowns();
+                setInterval(updateUpcomingCountdowns, 60000); // Update every minute
+                setInterval(updateOngoingTimers, 1000); // Update every second
+            });
+        </script>
 </body>
 
 </html>

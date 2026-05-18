@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .session-card {
+            border-left: 4px solid #0dcaf0;
+            transition: all 0.3s ease;
+        }
+
+        .session-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .session-status {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+        }
+
+        .status-scheduled {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .status-live {
+            background-color: #198754;
+            color: white;
+        }
+
+        .status-ended {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .status-upcoming {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .participant-count {
+            font-size: 0.8rem;
+        }
+
+        .session-time {
+            font-size: 0.85rem;
+        }
+
+        .meeting-link {
+            font-size: 0.8rem;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool || 'All Schools' %>
+                        <% if (isSuperAdmin) { %>
+                            <span class="badge bg-warning ms-2">Super Admin</span>
+                            <% } %>
+                </div>
+
+                <div class="row">
+                    <!-- Left Sidebar with Profile -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <% if (user.avatar) { %>
+                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
+                                    alt="Teacher Profile" class="profile-img mb-3 avatar-img"
+                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                <% } else { %>
+                                    <img src="/images/default-profile.png" alt="Teacher Profile"
+                                        class="profile-img mb-3">
+                                    <% } %>
+                                        <h4>
+                                            <%= user.firstName %>
+                                                <%= user.lastName %>
+                                        </h4>
+                                        <p class="welcome-text">Live Sessions</p>
+                                        <span class="user-role">Teacher</span>
+                                        <div class="mt-2">
+                                            <small><i class="fas fa-school me-1"></i>
+                                                <%= userSchool %>
+                                            </small>
+                                        </div>
+                        </div>
+
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/teacher/live-sessions" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-video"></i> All Sessions
+                                </a>
+                                <a href="/teacher/live-sessions/create"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn">
+                                    <i class="fas fa-plus"></i> Schedule Session
+                                </a>
+                                <a href="/teacher/class-works" class="btn btn-outline-success w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Class Works
+                                </a>
+                                <a href="/teacher/materials" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-book"></i> Materials
+                                </a>
+                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                    <i class="fas fa-home"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Session Stats -->
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Session Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small><strong>Total Sessions:</strong></small>
+                                    <span class="badge bg-primary float-end">
+                                        <%= stats ? stats.totalSessions : 0 %>
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small><strong>Scheduled:</strong></small>
+                                    <span class="badge bg-info float-end">
+                                        <%= stats ? stats.scheduledSessions : 0 %>
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small><strong>Live Now:</strong></small>
+                                    <span class="badge bg-success float-end">
+                                        <%= stats ? stats.liveSessions : 0 %>
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small><strong>Total Participants:</strong></small>
+                                    <span class="badge bg-warning float-end">
+                                        <%= stats ? stats.totalParticipants : 0 %>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="col-md-9">
+                        <!-- Page Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-video me-2"></i>
+                                <%= title %>
+                            </h2>
+                            <div>
+                                <a href="/teacher/live-sessions/create" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i> Schedule Session
+                                </a>
+                                <a href="#" class="btn btn-outline-primary ms-2" data-bs-toggle="modal"
+                                    data-bs-target="#quickStartModal">
+                                    <i class="fas fa-bolt me-1"></i> Quick Start
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Session Filters -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary active"
+                                        data-filter="all">All</button>
+                                    <button type="button" class="btn btn-outline-primary"
+                                        data-filter="upcoming">Upcoming</button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="live">Live
+                                        Now</button>
+                                    <button type="button" class="btn btn-outline-primary"
+                                        data-filter="past">Past</button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="sessionSearch"
+                                    placeholder="Search sessions...">
+                            </div>
+                        </div>
+
+                        <!-- Sessions Grid -->
+                        <div class="row" id="sessionsContainer">
+                            <% if (liveSessions && liveSessions.length> 0) { %>
+                                <% liveSessions.forEach(session=> {
+                                    const now = new Date();
+                                    const startTime = new Date(session.startTime);
+                                    const endTime = session.endTime ? new Date(session.endTime) : null;
+
+                                    let status = 'scheduled';
+                                    let statusClass = 'status-scheduled';
+                                    let statusText = 'Scheduled';
+
+                                    if (startTime <= now && (!endTime || now <=endTime)) { status='live' ;
+                                        statusClass='status-live' ; statusText='Live Now' ; } else if (endTime && now>
+                                        endTime) {
+                                        status = 'ended';
+                                        statusClass = 'status-ended';
+                                        statusText = 'Ended';
+                                        } else if (startTime > now && (startTime - now) < (24 * 60 * 60 * 1000)) {
+                                            statusClass='status-upcoming' ; statusText='Upcoming' ; } const
+                                            participantCount=session._count ? session._count.participants : 0; const
+                                            timeUntilStart=startTime - now; const
+                                            hoursUntilStart=Math.floor(timeUntilStart / (1000 * 60 * 60)); %>
+                                            <div class="col-md-6 col-lg-4 mb-4 session-item" data-status="<%= status %>"
+                                                data-title="<%= session.title.toLowerCase() %>"
+                                                data-class="<%= session.class ? session.class.name.toLowerCase() : '' %>">
+                                                <div class="card session-card h-100">
+                                                    <div class="card-body">
+                                                        <div
+                                                            class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <span class="badge <%= statusClass %> session-status">
+                                                                    <%= statusText %>
+                                                                </span>
+                                                                <% if (session.isActive) { %>
+                                                                    <span class="badge bg-success ms-1">Active</span>
+                                                                    <% } else { %>
+                                                                        <span
+                                                                            class="badge bg-secondary ms-1">Inactive</span>
+                                                                        <% } %>
+                                                            </div>
+                                                            <div class="dropdown">
+                                                                <button
+                                                                    class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                                    type="button" data-bs-toggle="dropdown">
+                                                                    <i class="fas fa-ellipsis-v"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu">
+                                                                    <% if (status==='live' ) { %>
+                                                                        <li>
+                                                                            <a class="dropdown-item"
+                                                                                href="/teacher/live-sessions/<%= session.id %>/room">
+                                                                                <i class="fas fa-video me-2"></i>Join
+                                                                                Session
+                                                                            </a>
+                                                                        </li>
+                                                                        <% } else if (status==='scheduled' ||
+                                                                            status==='upcoming' ) { %>
+                                                                            <li>
+                                                                                <button class="dropdown-item"
+                                                                                    onclick="startSession('<%= session.id %>')">
+                                                                                    <i
+                                                                                        class="fas fa-play me-2"></i>Start
+                                                                                    Now
+                                                                                </button>
+                                                                            </li>
+                                                                            <% } %>
+                                                                                <li>
+                                                                                    <a class="dropdown-item"
+                                                                                        href="/teacher/live-sessions/<%= session.id %>/edit">
+                                                                                        <i
+                                                                                            class="fas fa-edit me-2"></i>Edit
+                                                                                    </a>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <a class="dropdown-item" href="#"
+                                                                                        onclick="copyMeetingLink('<%= session.meetingLink %>')">
+                                                                                        <i
+                                                                                            class="fas fa-link me-2"></i>Copy
+                                                                                        Link
+                                                                                    </a>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <hr class="dropdown-divider">
+                                                                                </li>
+                                                                                <li>
+                                                                                    <button
+                                                                                        class="dropdown-item text-danger"
+                                                                                        onclick="deleteSession('<%= session.id %>')">
+                                                                                        <i
+                                                                                            class="fas fa-trash me-2"></i>Delete
+                                                                                    </button>
+                                                                                </li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+
+                                                        <h5 class="card-title">
+                                                            <%= session.title %>
+                                                        </h5>
+                                                        <% if (session.description) { %>
+                                                            <p class="card-text text-muted small mb-3">
+                                                                <%= session.description.length> 80 ?
+                                                                    session.description.substring(0, 80) + '...' :
+                                                                    session.description %>
+                                                            </p>
+                                                            <% } %>
+
+                                                                <!-- Session Details -->
+                                                                <div class="mb-3">
+                                                                    <% if (session.class) { %>
+                                                                        <small class="text-muted d-block">
+                                                                            <i class="fas fa-chalkboard me-1"></i>
+                                                                            <%= session.class.name %>
+                                                                        </small>
+                                                                        <% } %>
+
+                                                                            <div class="session-time mt-2">
+                                                                                <small class="text-muted d-block">
+                                                                                    <i class="fas fa-calendar me-1"></i>
+                                                                                    <%= startTime.toLocaleDateString()
+                                                                                        %>
+                                                                                </small>
+                                                                                <small class="text-muted d-block">
+                                                                                    <i class="fas fa-clock me-1"></i>
+                                                                                    <%= startTime.toLocaleTimeString([],
+                                                                                        {hour: '2-digit' ,
+                                                                                        minute:'2-digit'}) %>
+                                                                                        <% if (endTime) { %>
+                                                                                            - <%=
+                                                                                                endTime.toLocaleTimeString([],
+                                                                                                {hour: '2-digit' ,
+                                                                                                minute:'2-digit'}) %>
+                                                                                                <% } %>
+                                                                                </small>
+
+                                                                                <% if (status==='scheduled' ||
+                                                                                    status==='upcoming' ) { %>
+                                                                                    <small
+                                                                                        class="text-muted d-block mt-1">
+                                                                                        <i
+                                                                                            class="fas fa-hourglass-half me-1"></i>
+                                                                                        <% if (hoursUntilStart> 24) { %>
+                                                                                            In <%=
+                                                                                                Math.floor(hoursUntilStart
+                                                                                                / 24) %> days
+                                                                                                <% } else if
+                                                                                                    (hoursUntilStart> 0)
+                                                                                                    { %>
+                                                                                                    In <%=
+                                                                                                        hoursUntilStart
+                                                                                                        %> hours
+                                                                                                        <% } else { %>
+                                                                                                            Starting
+                                                                                                            soon
+                                                                                                            <% } %>
+                                                                                    </small>
+                                                                                    <% } %>
+                                                                            </div>
+                                                                </div>
+
+                                                                <!-- Meeting Link -->
+                                                                <div class="mb-3">
+                                                                    <small class="text-muted d-block mb-1">
+                                                                        <i class="fas fa-link me-1"></i> Meeting Link:
+                                                                    </small>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="text"
+                                                                            class="form-control meeting-link"
+                                                                            value="<%= session.meetingLink %>" readonly>
+                                                                        <button class="btn btn-outline-secondary"
+                                                                            type="button"
+                                                                            onclick="copyMeetingLink('<%= session.meetingLink %>')">
+                                                                            <i class="fas fa-copy"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Participant Info -->
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
+                                                                    <div class="participant-count">
+                                                                        <small class="text-muted">
+                                                                            <i class="fas fa-users me-1"></i>
+                                                                            <%= participantCount %> participants
+                                                                        </small>
+                                                                    </div>
+                                                                    <div>
+                                                                        <% if (status==='live' ) { %>
+                                                                            <a href="/teacher/live-sessions/<%= session.id %>/room"
+                                                                                class="btn btn-sm btn-success">
+                                                                                <i class="fas fa-video me-1"></i> Join
+                                                                            </a>
+                                                                            <% } else if (status==='scheduled' ||
+                                                                                status==='upcoming' ) { %>
+                                                                                <button class="btn btn-sm btn-primary"
+                                                                                    onclick="startSession('<%= session.id %>')">
+                                                                                    <i class="fas fa-play me-1"></i>
+                                                                                    Start
+                                                                                </button>
+                                                                                <% } else { %>
+                                                                                    <a href="/teacher/live-sessions/<%= session.id %>"
+                                                                                        class="btn btn-sm btn-outline-secondary">
+                                                                                        <i class="fas fa-eye me-1"></i>
+                                                                                        View
+                                                                                    </a>
+                                                                                    <% } %>
+                                                                    </div>
+                                                                </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <div class="col-12">
+                                                        <div class="card">
+                                                            <div class="card-body text-center py-5">
+                                                                <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                                                                <h4>No Live Sessions Scheduled</h4>
+                                                                <p class="text-muted">Schedule your first live session
+                                                                    to conduct virtual classes.</p>
+                                                                <a href="/teacher/live-sessions/create"
+                                                                    class="btn btn-success">
+                                                                    <i class="fas fa-plus me-1"></i> Schedule Session
+                                                                </a>
+                                                                <button class="btn btn-outline-primary ms-2"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#quickStartModal">
+                                                                    <i class="fas fa-bolt me-1"></i> Quick Start
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <% } %>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- Quick Start Modal -->
+        <div class="modal fade" id="quickStartModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quick Start Live Session</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="quickStartForm">
+                            <div class="mb-3">
+                                <label class="form-label">Session Title</label>
+                                <input type="text" class="form-control" name="title"
+                                    placeholder="e.g., Mathematics Class - Chapter 5" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Class</label>
+                                <select class="form-select" name="classId" required>
+                                    <option value="">Select a class</option>
+                                    <% classes.forEach(cls=> { %>
+                                        <option value="<%= cls.id %>">
+                                            <%= cls.name %> (Grade <%= cls.grade %>-<%= cls.section %>)
+                                        </option>
+                                        <% }); %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Duration (minutes)</label>
+                                <input type="number" class="form-control" name="duration" value="60" min="15" max="240">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <input type="checkbox" class="form-check-input" name="recordSession">
+                                    Record this session
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="createQuickSession()">
+                            <i class="fas fa-bolt me-1"></i> Start Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteSessionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this live session? This action cannot be undone.</p>
+                        <p class="text-danger"><strong>Warning:</strong> All participant records will also be deleted.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmSessionDeleteBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            let sessionToDelete = null;
+
+            // Filter sessions
+            document.querySelectorAll('[data-filter]').forEach(button => {
+                button.addEventListener('click', function () {
+                    const filter = this.getAttribute('data-filter');
+
+                    // Update active button
+                    document.querySelectorAll('[data-filter]').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+
+                    // Filter sessions
+                    const sessions = document.querySelectorAll('.session-item');
+                    sessions.forEach(session => {
+                        const status = session.getAttribute('data-status');
+
+                        if (filter === 'all' ||
+                            (filter === 'upcoming' && (status === 'scheduled' || status === 'upcoming')) ||
+                            (filter === 'live' && status === 'live') ||
+                            (filter === 'past' && status === 'ended')) {
+                            session.style.display = 'block';
+                        } else {
+                            session.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // Search sessions
+            document.getElementById('sessionSearch').addEventListener('input', function (e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const sessions = document.querySelectorAll('.session-item');
+
+                sessions.forEach(session => {
+                    const title = session.getAttribute('data-title');
+                    const className = session.getAttribute('data-class');
+
+                    if (title.includes(searchTerm) || className.includes(searchTerm)) {
+                        session.style.display = 'block';
+                    } else {
+                        session.style.display = 'none';
+                    }
+                });
+            });
+
+            // Copy meeting link
+            function copyMeetingLink(link) {
+                navigator.clipboard.writeText(link).then(() => {
+                    alert('Meeting link copied to clipboard!');
+                });
+            }
+
+            // Start session
+            function startSession(sessionId) {
+                fetch(`/teacher/live-sessions/${sessionId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = `/teacher/live-sessions/${sessionId}/room`;
+                        } else {
+                            alert('Error starting session: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error starting session');
+                    });
+            }
+
+            // Create quick session
+            function createQuickSession() {
+                const form = document.getElementById('quickStartForm');
+                const formData = new FormData(form);
+                const data = {
+                    title: formData.get('title'),
+                    classId: formData.get('classId'),
+                    duration: formData.get('duration'),
+                    recordSession: formData.get('recordSession') === 'on'
+                };
+
+                fetch('/teacher/live-sessions/quick-start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('quickStartModal'));
+                            modal.hide();
+                            window.location.href = `/teacher/live-sessions/${data.sessionId}/room`;
+                        } else {
+                            alert('Error creating session: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error creating session');
+                    });
+            }
+
+            // Delete session
+            function deleteSession(sessionId) {
+                sessionToDelete = sessionId;
+                const modal = new bootstrap.Modal(document.getElementById('deleteSessionModal'));
+                modal.show();
+            }
+
+            // Confirm delete
+            document.getElementById('confirmSessionDeleteBtn').addEventListener('click', function () {
+                if (sessionToDelete) {
+                    fetch(`/teacher/live-sessions/${sessionToDelete}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Session deleted successfully');
+                                location.reload();
+                            } else {
+                                alert('Error deleting session: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error deleting session');
+                        });
+
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteSessionModal'));
+                    modal.hide();
+                }
+            });
+        </script>
+</body>
+
+</html>

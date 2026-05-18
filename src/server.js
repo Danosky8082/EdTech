@@ -1,6 +1,8 @@
 // server.js
 const app = require('./app');
 const http = require('http');
+const teacherRouter = require('./routes/teacher'); // Changed to match new variable name
+app.use('/teacher', teacherRouter);
 
 const PORT = process.env.PORT || 3000;
 

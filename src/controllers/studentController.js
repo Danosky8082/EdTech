@@ -30,7 +30,7 @@ const createNotification = async (userId, title, message, icon = 'fa-info-circle
         message,
         icon,
         userId,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expire in 7 days
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       }
     });
   } catch (error) {
@@ -38,7 +38,7 @@ const createNotification = async (userId, title, message, icon = 'fa-info-circle
   }
 };
 
-// Student dashboard - FIXED QUERY (removed where from user include)
+// Student dashboard
 const dashboard = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -46,23 +46,16 @@ const dashboard = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // Get student with classes and enrollments - FIXED QUERY
+    console.log('🎓 Student Dashboard - User ID:', userId);
+    
+    // Get student with classes and enrollments
     const student = await prisma.student.findUnique({
       where: { 
         id: studentId
       },
       include: {
-        user: true, // Remove where from user include
+        user: true,
         enrollments: {
-          where: isSuperAdmin ? {} : {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          },
           include: {
             class: {
               include: {
@@ -82,18 +75,10 @@ const dashboard = async (req, res) => {
       return res.status(404).render('error/404', { title: 'Student Not Found' });
     }
 
-    // Check if student belongs to the school (unless super admin)
-    if (!isSuperAdmin && (!student.user || student.user.school !== userSchool)) {
-      return res.status(403).render('error/403', { 
-        title: 'Access Denied',
-        message: 'You do not have access to this school' 
-      });
-    }
-
     // Get class IDs for queries
     const classIds = student.enrollments.map(e => e.classId);
     
-    // Get upcoming assignments only if student has enrollments - UPDATED QUERY
+    // Get upcoming assignments
     let upcomingAssignments = [];
     if (classIds.length > 0) {
       upcomingAssignments = await prisma.assignment.findMany({
@@ -103,16 +88,7 @@ const dashboard = async (req, res) => {
           },
           dueDate: {
             gt: new Date()
-          },
-          ...(isSuperAdmin ? {} : {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          })
+          }
         },
         include: {
           class: true,
@@ -129,158 +105,104 @@ const dashboard = async (req, res) => {
       });
     }
 
-    // Calculate completed assignments count - UPDATED QUERY
+    // Calculate completed assignments count
     let completedAssignments = 0;
     if (classIds.length > 0) {
       const submissions = await prisma.submission.count({
         where: {
-          studentId: studentId,
-          assignment: {
-            classId: {
-              in: classIds
-            },
-            ...(isSuperAdmin ? {} : {
-              class: {
-                teacher: {
-                  user: {
-                    school: userSchool
-                  }
-                }
-              }
-            })
-          }
+          studentId: studentId
         }
       });
       completedAssignments = submissions;
     }
 
-    // Generate notifications for upcoming assignments
-    if (upcomingAssignments.length > 0) {
-      const closestAssignment = upcomingAssignments[0];
-      const daysUntilDue = Math.ceil((closestAssignment.dueDate - new Date()) / (1000 * 60 * 60 * 24));
-      
-      if (daysUntilDue <= 3) {
-        // Check if notification already exists
-        const existingNotification = await prisma.notification.findFirst({
-          where: {
-            userId: userId,
-            message: { contains: `${closestAssignment.title} is due in ${daysUntilDue}` }
-          }
-        });
-
-        if (!existingNotification) {
-          await createNotification(
-            userId,
-            'Assignment Due Soon',
-            `${closestAssignment.title} is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}`,
-            'fa-tasks'
-          );
-        }
-      }
-    }
-
-    // Generate notifications for new grades (assignments) - UPDATED QUERY
+    // Get pending class works count
+    let pendingClassWorks = 0;
+    let recentClassWorks = [];
     if (classIds.length > 0) {
-      const recentGradedSubmissions = await prisma.submission.findMany({
+      // Count class works that are active and the student hasn't submitted
+      pendingClassWorks = await prisma.classWork.count({
         where: {
-          studentId: studentId,
-          grade: { not: null },
-          assignment: {
-            classId: { in: classIds },
-            ...(isSuperAdmin ? {} : {
-              class: {
-                teacher: {
-                  user: {
-                    school: userSchool
-                  }
-                }
-              }
-            })
+          classId: {
+            in: classIds
           },
-          submittedAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          isActive: true,
+          submissions: {
+            none: {
+              studentId: studentId
+            }
           }
-        },
-        include: {
-          assignment: true
-        },
-        orderBy: {
-          submittedAt: 'desc'
-        },
-        take: 3
+        }
       });
 
-      for (const submission of recentGradedSubmissions) {
-        // Check if notification already exists for this grade
-        const existingNotification = await prisma.notification.findFirst({
-          where: {
-            userId: userId,
-            message: { contains: `grade of ${submission.grade} for ${submission.assignment.title}` }
-          }
-        });
-
-        if (!existingNotification) {
-          await createNotification(
-            userId,
-            'New Grade Available',
-            `You received a grade of ${submission.grade} for ${submission.assignment.title}`,
-            'fa-check-circle'
-          );
-        }
-      }
-    }
-
-    // Generate notifications for published exam results - UPDATED QUERY
-    if (classIds.length > 0) {
-      const publishedExamResults = await prisma.examAttempt.findMany({
+      // Get recent class works (last 5)
+      recentClassWorks = await prisma.classWork.findMany({
         where: {
-          studentId: studentId,
-          status: 'published',
-          gradedAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          classId: {
+            in: classIds
           },
-          ...(isSuperAdmin ? {} : {
-            exam: {
-              class: {
-                teacher: {
-                  user: {
-                    school: userSchool
-                  }
+          isActive: true
+        },
+        include: {
+          class: {
+            select: {
+              name: true
+            }
+          },
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true
                 }
               }
             }
-          })
-        },
-        include: {
-          exam: true
+          },
+          submissions: {
+            where: {
+              studentId: studentId
+            },
+            select: {
+              id: true,
+              status: true,
+              score: true
+            }
+          }
         },
         orderBy: {
-          gradedAt: 'desc'
+          createdAt: 'desc'
         },
         take: 5
       });
-
-      for (const result of publishedExamResults) {
-        // Check if notification already exists for this exam result
-        const existingNotification = await prisma.notification.findFirst({
-          where: {
-            userId: userId,
-            message: { contains: `results for "${result.exam.title}"` }
-          }
-        });
-
-        if (!existingNotification) {
-          await createNotification(
-            userId,
-            'Exam Results Published',
-            `Your results for "${result.exam.title}" have been published. Check your exam results!`,
-            'fa-chart-bar'
-          );
-        }
-      }
     }
 
-    // Get only unread notifications from database
+    // NEW: Use the notification service instead of direct Prisma queries
+    const { notificationService } = require('../services/notificationService');
+    
+    // Get notifications using the service
+    let notifications = [];
+    let notificationCount = 0;
+    
+    try {
+      const result = await notificationService.getUserNotifications(userId, {
+        limit: 10,
+        unreadOnly: true
+      });
+      
+      if (result.success) {
+        notifications = result.notifications;
+        notificationCount = result.pagination?.unreadCount || 0;
+        console.log(`📨 Loaded ${notificationCount} notifications for student ${userId}`);
+      }
+    } catch (error) {
+      console.error('Error loading notifications in student dashboard:', error);
+      // Fallback to empty notifications
+    }
+
+    // REMOVE the old notification code that was here:
+    /*
+    // Get only unread notifications
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -317,6 +239,10 @@ const dashboard = async (req, res) => {
       time: formatTimeAgo(notif.createdAt),
       read: notif.read
     }));
+    */
+
+    // Use the notifications directly from the service (already formatted)
+    const formattedNotifications = notifications;
 
     res.render('student/dashboard', {
       title: 'Student Dashboard',
@@ -325,6 +251,8 @@ const dashboard = async (req, res) => {
       enrollments: student.enrollments,
       upcomingAssignments,
       completedAssignments,
+      pendingClassWorks,
+      recentClassWorks,
       notifications: formattedNotifications,
       notificationCount,
       userSchool: userSchool,
@@ -336,9 +264,7 @@ const dashboard = async (req, res) => {
   }
 };
 
-// ========== ASSIGNMENT FUNCTIONS ==========
-
-// Get class assignments for student - UPDATED with isSuperAdmin
+// Get class assignments for student
 const getClassAssignments = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -367,19 +293,10 @@ const getClassAssignments = async (req, res) => {
       return res.status(403).render('error/403', { title: 'Access Denied' });
     }
 
-    // Get assignments for this class with student's submissions - UPDATED QUERY
+    // Get assignments for this class with student's submissions
     const assignments = await prisma.assignment.findMany({
       where: {
-        classId: classId,
-        ...(isSuperAdmin ? {} : {
-          class: {
-            teacher: {
-              user: {
-                school: userSchool
-              }
-            }
-          }
-        })
+        classId: classId
       },
       include: {
         class: true,
@@ -399,7 +316,7 @@ const getClassAssignments = async (req, res) => {
       classData: enrollment.class,
       assignments: assignments,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('Get class assignments error:', error);
@@ -407,7 +324,7 @@ const getClassAssignments = async (req, res) => {
   }
 };
 
-// Get submission page - UPDATED with isSuperAdmin
+// Get submission page
 const getSubmissionPage = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -416,7 +333,7 @@ const getSubmissionPage = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get assignment and verify student has access - UPDATED QUERY
+    // Get assignment and verify student has access
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -424,14 +341,7 @@ const getSubmissionPage = async (req, res) => {
           include: {
             enrollments: {
               where: { studentId: studentId }
-            },
-            ...(isSuperAdmin ? {} : {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            })
+            }
           }
         }
       }
@@ -454,7 +364,7 @@ const getSubmissionPage = async (req, res) => {
       assignment: assignment,
       submissionType: type || 'file',
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('Get submission page error:', error);
@@ -462,7 +372,7 @@ const getSubmissionPage = async (req, res) => {
   }
 };
 
-// Enhanced submission page (rich text/drawing) - UPDATED with isSuperAdmin
+// Enhanced submission page (rich text/drawing)
 const getEnhancedSubmissionPage = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -471,7 +381,7 @@ const getEnhancedSubmissionPage = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get assignment and verify student has access - UPDATED QUERY
+    // Get assignment and verify student has access
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -479,14 +389,7 @@ const getEnhancedSubmissionPage = async (req, res) => {
           include: {
             enrollments: {
               where: { studentId: studentId }
-            },
-            ...(isSuperAdmin ? {} : {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            })
+            }
           }
         }
       }
@@ -512,7 +415,7 @@ const getEnhancedSubmissionPage = async (req, res) => {
       assignment: assignment,
       submissionType: submissionType,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('Get enhanced submission page error:', error);
@@ -520,7 +423,7 @@ const getEnhancedSubmissionPage = async (req, res) => {
   }
 };
 
-// Submit assignment (file upload) - UPDATED with isSuperAdmin
+// Submit assignment (file upload)
 const submitAssignmentFile = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -536,41 +439,24 @@ const submitAssignmentFile = async (req, res) => {
       });
     }
 
-    // Get assignment and verify student has access - FIXED QUERY
+    // Get assignment and verify student has access
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
         class: {
-          include: {  // ADD THIS
-            teacher: {
-              include: {  // ADD THIS
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    school: true
-                  }
-                }
-              }
+          include: {
+            enrollments: {
+              where: { studentId: studentId }
             }
           }
         }
       }
     });
 
-    if (!assignment) {
+    if (!assignment || assignment.class.enrollments.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
-      });
-    }
-
-    // Check school access
-    if (!isSuperAdmin && assignment.class.teacher.user.school !== userSchool) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: School mismatch'
       });
     }
 
@@ -597,7 +483,7 @@ const submitAssignmentFile = async (req, res) => {
         data: {
           fileUrl: req.file.path,
           submittedAt: new Date(),
-          grade: null, // Reset grade if resubmitting
+          grade: null,
           feedback: null
         }
       });
@@ -626,7 +512,7 @@ const submitAssignmentFile = async (req, res) => {
   }
 };
 
-// Submit enhanced assignment (text/drawing) - UPDATED with isSuperAdmin
+// Submit enhanced assignment (text/drawing)
 const submitEnhancedAssignment = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -642,41 +528,24 @@ const submitEnhancedAssignment = async (req, res) => {
       });
     }
 
-    // Get assignment and verify student has access - FIXED QUERY
+    // Get assignment and verify student has access
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
         class: {
-          include: {  // ADD THIS
-            teacher: {
-              include: {  // ADD THIS
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    school: true
-                  }
-                }
-              }
+          include: {
+            enrollments: {
+              where: { studentId: studentId }
             }
           }
         }
       }
     });
 
-    if (!assignment) {
+    if (!assignment || assignment.class.enrollments.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
-      });
-    }
-
-    // Check school access
-    if (!isSuperAdmin && assignment.class.teacher.user.school !== userSchool) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: School mismatch'
       });
     }
 
@@ -734,11 +603,11 @@ const submitEnhancedAssignment = async (req, res) => {
   }
 };
 
-// View materials - UPDATED with isSuperAdmin
+// View materials
 const viewMaterials = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
-    const classId = parseInt(req.params.classId);
+    const classId = req.params.classId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
@@ -748,7 +617,7 @@ const viewMaterials = async (req, res) => {
       return res.status(401).render('error/401', { title: 'Unauthorized' });
     }
 
-    // Verify student is enrolled in the class AND belongs to same school
+    // Verify student is enrolled in the class
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         classId_studentId: {
@@ -765,70 +634,45 @@ const viewMaterials = async (req, res) => {
       });
     }
 
-    // Get class details - FIXED QUERY
-const classDetails = await prisma.class.findUnique({
-  where: { 
-    id: classId
-  },
-  include: {
-    teacher: {
+    // Get class details
+    const classDetails = await prisma.class.findUnique({
+      where: { 
+        id: classId
+      },
       include: {
-        user: {
-          // Remove where from include, we'll filter after the query
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            school: true
+        teacher: {
+          include: {
+            user: true
           }
         }
       }
+    });
+
+    if (!classDetails) {
+      return res.status(404).render('error/404', { title: 'Class Not Found' });
     }
-  }
-});
 
-if (!classDetails) {
-  return res.status(404).render('error/404', { title: 'Class Not Found' });
-}
-
-// Check if teacher belongs to the same school (unless super admin)
-if (!isSuperAdmin && classDetails.teacher.user.school !== userSchool) {
-  return res.status(403).render('error/403', { 
-    title: 'Access Denied',
-    message: 'This class teacher does not belong to your school'
-  });
-}
-
-    // Then get materials - UPDATED QUERY
-    // Then get materials - FIXED QUERY
-const materials = await prisma.material.findMany({
-  where: {
-    classId: classId,
-    OR: [
-      { isPublic: true },
-      { classId: classId }
-    ]
-  },
-  include: {
-    class: true,
-    teacher: {
+    // Then get materials
+    const materials = await prisma.material.findMany({
+      where: {
+        classId: classId,
+        OR: [
+          { isPublic: true },
+          { classId: classId }
+        ]
+      },
       include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            school: true
+        class: true,
+        teacher: {
+          include: {
+            user: true
           }
         }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-    }
-  },
-  orderBy: {
-    createdAt: 'desc'
-  }
-});
+    });
 
     console.log('✅ Materials loaded:', materials.length);
 
@@ -838,7 +682,7 @@ const materials = await prisma.material.findMany({
       classData: classDetails,
       user: req.session.user,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('❌ View materials error:', error);
@@ -849,41 +693,45 @@ const materials = await prisma.material.findMany({
   }
 };
 
-// View assignments - UPDATED with isSuperAdmin
+// View assignments
 const viewAssignments = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
-    const classId = parseInt(req.params.classId);
+    const classId = req.params.classId; // DON'T PARSE AS INTEGER
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
+
+    console.log('📝 View assignments called:', { studentId, classId, userSchool });
+
+    // Validate classId
+    if (!classId || typeof classId !== 'string' || classId.trim() === '') {
+      return res.status(400).render('error/400', { 
+        title: 'Bad Request',
+        message: 'Invalid class ID provided'
+      });
+    }
 
     // Verify student is enrolled in the class
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         classId_studentId: {
-          classId: classId,
+          classId: classId, // Keep as string
           studentId: studentId
         }
       }
     });
 
     if (!enrollment) {
-      return res.status(403).render('error/403', { title: 'Access Denied' });
+      return res.status(403).render('error/403', { 
+        title: 'Access Denied',
+        message: 'You are not enrolled in this class'
+      });
     }
 
-    // Get assignments for the class - UPDATED QUERY
+    // Get assignments for the class
     const assignments = await prisma.assignment.findMany({
       where: { 
-        classId: classId,
-        ...(isSuperAdmin ? {} : {
-          class: {
-            teacher: {
-              user: {
-                school: userSchool
-              }
-            }
-          }
-        })
+        classId: classId // Keep as string
       },
       include: {
         class: true,
@@ -896,9 +744,9 @@ const viewAssignments = async (req, res) => {
       }
     });
 
-    // Get class details - UPDATED QUERY
+    // Get class details
     const classDetails = await prisma.class.findUnique({
-      where: { id: classId },
+      where: { id: classId }, // Keep as string
       include: {
         teacher: {
           include: { user: true }
@@ -906,21 +754,28 @@ const viewAssignments = async (req, res) => {
       }
     });
 
+    if (!classDetails) {
+      return res.status(404).render('error/404', { title: 'Class Not Found' });
+    }
+
     res.render('student/assignments', {
       title: `Assignments - ${classDetails.name}`,
       assignments: assignments,
       classData: classDetails,
       studentId: studentId,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
-    console.error('View assignments error:', error);
-    res.status(500).render('error/500', { title: 'Server Error' });
+    console.error('❌ View assignments error:', error);
+    res.status(500).render('error/500', { 
+      title: 'Server Error',
+      message: 'Failed to load assignments. Please try again.' 
+    });
   }
 };
 
-// Get submit assignment page - UPDATED with isSuperAdmin
+// Get submit assignment page
 const getSubmitAssignment = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -928,18 +783,16 @@ const getSubmitAssignment = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get assignment details - UPDATED QUERY
+    // Get assignment details
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
         class: {
-          ...(isSuperAdmin ? {} : {
-            teacher: {
-              user: {
-                school: userSchool
-              }
+          include: {
+            enrollments: {
+              where: { studentId: studentId }
             }
-          })
+          }
         },
         submissions: {
           where: { studentId: studentId }
@@ -952,16 +805,7 @@ const getSubmitAssignment = async (req, res) => {
     }
 
     // Verify student is enrolled in the class
-    const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        classId_studentId: {
-          classId: assignment.classId,
-          studentId: studentId
-        }
-      }
-    });
-
-    if (!enrollment) {
+    if (assignment.class.enrollments.length === 0) {
       return res.status(403).render('error/403', { title: 'Access Denied' });
     }
 
@@ -970,7 +814,7 @@ const getSubmitAssignment = async (req, res) => {
       assignment: assignment,
       hasSubmission: assignment.submissions.length > 0,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('Get submit assignment error:', error);
@@ -978,7 +822,7 @@ const getSubmitAssignment = async (req, res) => {
   }
 };
 
-// Submit assignment - UPDATED with isSuperAdmin
+// Submit assignment
 const submitAssignment = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -986,38 +830,64 @@ const submitAssignment = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    if (!req.file) {
-      return res.status(400).render('error/400', { 
-        title: 'No File Uploaded',
-        message: 'Please select a file to upload.' 
-      });
-    }
+    console.log('📤 Submitting assignment:', { assignmentId, studentId });
     
-    // Check if assignment exists and is not past due - UPDATED QUERY
+    // Check if assignment exists and is not past due
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
         class: {
-          ...(isSuperAdmin ? {} : {
-            teacher: {
-              user: {
-                school: userSchool
-              }
+          include: {
+            enrollments: {
+              where: { studentId: studentId }
             }
-          })
+          }
         }
       }
     });
 
     if (!assignment) {
-      return res.status(404).render('error/404', { title: 'Assignment Not Found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
     }
 
     if (new Date() > assignment.dueDate) {
-      return res.status(400).render('error/400', { 
-        title: 'Assignment Past Due',
-        message: 'This assignment is past the due date and cannot be submitted.' 
+      return res.status(400).json({
+        success: false,
+        message: 'This assignment is past the due date and cannot be submitted.'
       });
+    }
+
+    // Check if there's a file or text content
+    const hasFile = req.file && req.file.path;
+    const hasText = req.body.content && req.body.content.trim().length > 0;
+    
+    if (!hasFile && !hasText) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide either a file or text content for your submission.'
+      });
+    }
+
+    // Prepare submission data
+    const submissionData = {
+      submittedAt: new Date(),
+      status: 'submitted'
+    };
+
+    if (hasFile) {
+      submissionData.fileUrl = req.file.path;
+      submissionData.submissionType = 'file';
+    }
+
+    if (hasText) {
+      submissionData.content = req.body.content;
+      submissionData.submissionType = req.body.type || 'text';
+      if (req.body.title) {
+        submissionData.textTitle = req.body.title;
+      }
     }
 
     // Create or update submission
@@ -1028,29 +898,32 @@ const submitAssignment = async (req, res) => {
           studentId
         }
       },
-      update: {
-        fileUrl: req.file.path,
-        submittedAt: new Date()
-      },
+      update: submissionData,
       create: {
         assignmentId,
         studentId,
-        fileUrl: req.file.path,
-        submittedAt: new Date()
+        ...submissionData
       }
     });
 
-    res.redirect(`/student/class/${assignment.class.id}/assignments?success=Assignment submitted successfully`);
+    // Return success
+    return res.json({
+      success: true,
+      message: 'Assignment submitted successfully!',
+      redirectUrl: `/student/class/${assignment.class.id}/assignments`
+    });
+
   } catch (error) {
-    console.error('Submit assignment error:', error);
-    res.status(500).render('error/500', { 
-      title: 'Server Error',
-      message: 'Failed to submit assignment. Please try again.' 
+    console.error('❌ Submit assignment error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to submit assignment. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
-// View classes - UPDATED with isSuperAdmin
+// View classes
 const viewClasses = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -1058,21 +931,12 @@ const viewClasses = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // Get student with enrollments and classes - UPDATED QUERY
+    // Get student with enrollments and classes
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       include: {
         user: true,
         enrollments: {
-          where: isSuperAdmin ? {} : {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          },
           include: {
             class: {
               include: {
@@ -1123,24 +987,13 @@ const viewClasses = async (req, res) => {
     // Sort upcoming assignments by due date
     upcomingAssignments.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-    // Get completed assignments count - UPDATED QUERY
+    // Get completed assignments count
     const completedAssignments = await prisma.submission.count({
       where: {
         studentId: studentId,
         grade: {
           not: null
-        },
-        ...(isSuperAdmin ? {} : {
-          assignment: {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          }
-        })
+        }
       }
     });
 
@@ -1151,7 +1004,7 @@ const viewClasses = async (req, res) => {
       upcomingAssignments: upcomingAssignments.slice(0, 10),
       completedAssignments: completedAssignments,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('View classes error:', error);
@@ -1159,27 +1012,18 @@ const viewClasses = async (req, res) => {
   }
 };
 
-// View all assignments across all classes - UPDATED with isSuperAdmin
+// View all assignments across all classes
 const viewAllAssignments = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // Get student with enrollments to find class IDs - UPDATED QUERY
+    // Get student with enrollments to find class IDs
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       include: {
         enrollments: {
-          where: isSuperAdmin ? {} : {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          },
           include: {
             class: true
           }
@@ -1189,21 +1033,12 @@ const viewAllAssignments = async (req, res) => {
 
     const classIds = student.enrollments.map(e => e.classId);
     
-    // Get all assignments for the student's classes - UPDATED QUERY
+    // Get all assignments for the student's classes
     const assignments = await prisma.assignment.findMany({
       where: {
         classId: {
           in: classIds
-        },
-        ...(isSuperAdmin ? {} : {
-          class: {
-            teacher: {
-              user: {
-                school: userSchool
-              }
-            }
-          }
-        })
+        }
       },
       include: {
         class: true,
@@ -1224,7 +1059,7 @@ const viewAllAssignments = async (req, res) => {
       assignments: assignments,
       studentId: studentId,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('View all assignments error:', error);
@@ -1232,29 +1067,18 @@ const viewAllAssignments = async (req, res) => {
   }
 };
 
-// View all grades across all classes - UPDATED with isSuperAdmin
+// View all grades across all classes
 const viewAllGrades = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // Get all graded submissions - UPDATED QUERY
+    // Get all graded submissions
     const gradedSubmissions = await prisma.submission.findMany({
       where: {
         studentId: studentId,
-        grade: { not: null },
-        ...(isSuperAdmin ? {} : {
-          assignment: {
-            class: {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            }
-          }
-        })
+        grade: { not: null }
       },
       include: {
         assignment: {
@@ -1275,7 +1099,7 @@ const viewAllGrades = async (req, res) => {
       title: 'All Grades',
       submissions: gradedSubmissions,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('View all grades error:', error);
@@ -1283,13 +1107,11 @@ const viewAllGrades = async (req, res) => {
   }
 };
 
-// ========== EXAM FUNCTIONS ==========
-
-// View exams for a class - UPDATED with isSuperAdmin
+// View exams for a class
 const viewExams = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
-    const classId = parseInt(req.params.classId);
+    const classId = req.params.classId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
@@ -1307,17 +1129,10 @@ const viewExams = async (req, res) => {
       return res.status(403).render('error/403', { title: 'Access Denied' });
     }
 
-    // Simple exam query without complex relations - UPDATED QUERY
+    // Simple exam query without complex relations
     const exams = await prisma.exam.findMany({
       where: { 
-        classId: classId,
-        ...(isSuperAdmin ? {} : {
-          teacher: {
-            user: {
-              school: userSchool
-            }
-          }
-        })
+        classId: classId
       },
       select: {
         id: true,
@@ -1369,13 +1184,13 @@ const viewExams = async (req, res) => {
       return {
         ...exam,
         status,
-        totalQuestions: 0, // We'll fix this later based on your schema
+        totalQuestions: 0,
         hasAttempt: exam.attempts.length > 0,
         score: exam.attempts.length > 0 ? exam.attempts[0].score : null
       };
     });
 
-    // Get class details - UPDATED QUERY
+    // Get class details
     const classDetails = await prisma.class.findUnique({
       where: { id: classId },
       include: {
@@ -1391,7 +1206,7 @@ const viewExams = async (req, res) => {
       classData: classDetails,
       classId: classId,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
   } catch (error) {
     console.error('View exams error:', error);
@@ -1399,7 +1214,7 @@ const viewExams = async (req, res) => {
   }
 };
 
-// Take exam - display exam questions - UPDATED with isSuperAdmin
+// Take exam - display exam questions
 const takeExam = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -1407,7 +1222,7 @@ const takeExam = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get exam - UPDATED QUERY
+    // Get exam
     const exam = await prisma.exam.findUnique({
       where: { id: examId },
       include: {
@@ -1479,7 +1294,7 @@ const takeExam = async (req, res) => {
       });
     }
 
-    // Get questions from the exam data (assuming they're stored as JSON)
+    // Get questions from the exam data
     const questions = exam.questions || [];
 
     res.render('student/take-exam', {
@@ -1488,7 +1303,7 @@ const takeExam = async (req, res) => {
       attempt: attempt,
       questions: questions,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
 
   } catch (error) {
@@ -1497,7 +1312,7 @@ const takeExam = async (req, res) => {
   }
 };
 
-// Submit exam - UPDATED with isSuperAdmin
+// Submit exam
 const submitExam = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -1506,31 +1321,15 @@ const submitExam = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // Get exam with questions - FIXED QUERY
+    // Get exam with questions
     const exam = await prisma.exam.findUnique({
       where: { 
-        id: examId,
-        // Add school filter to the where clause instead of include
-        ...(isSuperAdmin ? {} : {
-          teacher: {
-            user: {
-              school: userSchool
-            }
-          }
-        })
+        id: examId
       },
-      // Only include what you need for the exam logic
       include: {
         teacher: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                school: true
-              }
-            }
+            user: true
           }
         }
       }
@@ -1562,16 +1361,13 @@ const submitExam = async (req, res) => {
       questions.forEach((question, index) => {
         const studentAnswer = answers[index];
         if (studentAnswer !== undefined && studentAnswer !== null) {
-          // Simple scoring - you can make this more sophisticated
           if (question.type === 'multiple_choice' || question.type === 'true_false') {
             if (studentAnswer === question.correctAnswer) {
               score += question.marks || 1;
             }
           } else if (question.type === 'short_answer') {
-            // For short answers, you might want more complex checking
-            // For now, give partial credit if answer is provided
             if (studentAnswer.trim().length > 0) {
-              score += (question.marks || 1) * 0.5; // 50% for attempting
+              score += (question.marks || 1) * 0.5;
             }
           }
         }
@@ -1603,7 +1399,7 @@ const submitExam = async (req, res) => {
   }
 };
 
-// View exam results - UPDATED with isSuperAdmin
+// View exam results
 const viewExamResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -1626,17 +1422,15 @@ const viewExamResults = async (req, res) => {
       return res.status(403).render('error/403', { title: 'Access Denied' });
     }
 
-    // Calculate total marks - you need to implement this based on your question structure
-    let totalMarks = 100; // Default fallback
+    // Calculate total marks
+    let totalMarks = 100;
     
-    // If exam has totalMarks field, use it
     if (attempt.exam.totalMarks) {
       totalMarks = attempt.exam.totalMarks;
     } else {
-      // Calculate from questions if they exist
       if (attempt.exam.questions && Array.isArray(attempt.exam.questions)) {
         totalMarks = attempt.exam.questions.reduce((total, question) => {
-          return total + (question.marks || 1); // Default to 1 mark per question if not specified
+          return total + (question.marks || 1);
         }, 0);
       }
     }
@@ -1651,7 +1445,7 @@ const viewExamResults = async (req, res) => {
       totalMarks: totalMarks,
       percentage: percentage.toFixed(1),
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin // ADD THIS
+      isSuperAdmin: isSuperAdmin
     });
 
   } catch (error) {
@@ -1660,7 +1454,7 @@ const viewExamResults = async (req, res) => {
   }
 };
 
-// API: Get exam questions for student - UPDATED with isSuperAdmin
+// API: Get exam questions for student
 const getExamQuestions = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -1706,7 +1500,7 @@ const getExamQuestions = async (req, res) => {
         className: exam.class.name,
         teacherName: `${exam.teacher.user.firstName} ${exam.teacher.user.lastName}`
       },
-      questions: exam.questions || [] // Return questions array from exam
+      questions: exam.questions || []
     });
 
   } catch (error) {
@@ -1715,11 +1509,11 @@ const getExamQuestions = async (req, res) => {
   }
 };
 
-// Get enhanced submit assignment page - UPDATED with isSuperAdmin
+// Get enhanced submit assignment page
 const getEnhancedSubmitAssignment = async (req, res) => {
     try {
         const studentId = req.session.user.studentId;
-        const assignmentId = parseInt(req.params.assignmentId);
+        const assignmentId = req.params.assignmentId; // DON'T PARSE AS INTEGER
         const submissionType = req.query.type || 'text';
         const userSchool = req.userSchool;
         const isSuperAdmin = req.isSuperAdmin;
@@ -1727,21 +1521,12 @@ const getEnhancedSubmitAssignment = async (req, res) => {
         console.log('📝 Enhanced submission requested:', { assignmentId, submissionType });
 
         const assignment = await prisma.assignment.findUnique({
-            where: { id: assignmentId },
+            where: { id: assignmentId }, // Keep as string
             include: {
                 class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
+                    include: {
+                        enrollments: {
+                            where: { studentId: studentId }
                         }
                     }
                 },
@@ -1755,25 +1540,8 @@ const getEnhancedSubmitAssignment = async (req, res) => {
             return res.status(404).render('error/404', { title: 'Assignment Not Found' });
         }
 
-        // Check school access
-        if (!isSuperAdmin && assignment.class.teacher.user.school !== userSchool) {
-            return res.status(403).render('error/403', { 
-                title: 'Access Denied',
-                message: 'This assignment does not belong to your school'
-            });
-        }
-
         // Verify student is enrolled in the class
-        const enrollment = await prisma.enrollment.findUnique({
-            where: {
-                classId_studentId: {
-                    classId: assignment.classId,
-                    studentId: studentId
-                }
-            }
-        });
-
-        if (!enrollment) {
+        if (assignment.class.enrollments.length === 0) {
             return res.status(403).render('error/403', { title: 'Access Denied' });
         }
 
@@ -1785,7 +1553,8 @@ const getEnhancedSubmitAssignment = async (req, res) => {
             });
         }
 
-        res.render('student/enhanced-submit-assignment', {
+        // Render text submission form
+        res.render('student/submit-text', {
             title: `Submit Assignment - ${assignment.title}`,
             assignment: assignment,
             hasSubmission: assignment.submissions.length > 0,
@@ -1799,16 +1568,26 @@ const getEnhancedSubmitAssignment = async (req, res) => {
     }
 };
 
-// Submit text assignment - UPDATED with isSuperAdmin
+// Submit text assignment
 const submitTextAssignment = async (req, res) => {
     try {
         const studentId = req.session.user.studentId;
-        const assignmentId = parseInt(req.params.assignmentId);
+        const assignmentId = req.params.assignmentId; // Already a string
         const { title, content } = req.body;
         const userSchool = req.userSchool;
         const isSuperAdmin = req.isSuperAdmin;
 
-        console.log('📝 Text submission received:', { assignmentId, title, contentLength: content?.length });
+        console.log('📝 Text submission received:', { 
+            assignmentId, 
+            title, 
+            contentLength: content?.length,
+            body: req.body,
+            files: req.files
+        });
+
+        // Debug: Check what's in req.body
+        console.log('🔍 Request body:', req.body);
+        console.log('🔍 Request files:', req.files);
 
         // Validate input
         if (!title || !content) {
@@ -1818,23 +1597,14 @@ const submitTextAssignment = async (req, res) => {
             });
         }
 
-        // Check if assignment exists and is not past due - FIXED QUERY
+        // Check if assignment exists and is not past due
         const assignment = await prisma.assignment.findUnique({
             where: { id: assignmentId },
             include: {
                 class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
+                    include: {
+                        enrollments: {
+                            where: { studentId: studentId }
                         }
                     }
                 }
@@ -1848,14 +1618,6 @@ const submitTextAssignment = async (req, res) => {
             });
         }
 
-        // Check school access
-        if (!isSuperAdmin && assignment.class.teacher.user.school !== userSchool) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Access denied: School mismatch' 
-            });
-        }
-
         if (new Date() > new Date(assignment.dueDate)) {
             return res.status(400).json({ 
                 success: false, 
@@ -1863,7 +1625,7 @@ const submitTextAssignment = async (req, res) => {
             });
         }
 
-        // Calculate word count (simple version - strip HTML tags and count words)
+        // Calculate word count
         const textContent = content.replace(/<[^>]*>/g, ' ');
         const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
 
@@ -1913,7 +1675,7 @@ const submitTextAssignment = async (req, res) => {
     }
 };
 
-// Submit drawing assignment - UPDATED with isSuperAdmin
+// Submit drawing assignment
 const submitDrawingAssignment = async (req, res) => {
     try {
         const studentId = req.session.user.studentId;
@@ -1936,18 +1698,9 @@ const submitDrawingAssignment = async (req, res) => {
             where: { id: assignmentId },
             include: {
                 class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
+                    include: {
+                        enrollments: {
+                            where: { studentId: studentId }
                         }
                     }
                 }
@@ -1958,14 +1711,6 @@ const submitDrawingAssignment = async (req, res) => {
             return res.status(404).json({ 
                 success: false, 
                 message: 'Assignment not found' 
-            });
-        }
-
-        // Check school access
-        if (!isSuperAdmin && assignment.class.teacher.user.school !== userSchool) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Access denied: School mismatch' 
             });
         }
 
@@ -2022,7 +1767,7 @@ const submitDrawingAssignment = async (req, res) => {
 
 // ========== NOTES MANAGEMENT FUNCTIONS ==========
 
-// Get notes for a class - UPDATED with isSuperAdmin
+// Get notes for a class
 const getNotes = async (req, res) => {
     try {
         console.log('🔍 getNotes called with params:', req.params);
@@ -2051,30 +1796,12 @@ const getNotes = async (req, res) => {
             });
         }
 
-        // Verify enrollment - FIXED QUERY
+        // Verify enrollment
         const enrollment = await prisma.enrollment.findUnique({
             where: {
                 classId_studentId: {
                     classId: classId,
                     studentId: studentId
-                }
-            },
-            include: {
-                class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
         });
@@ -2084,15 +1811,6 @@ const getNotes = async (req, res) => {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Access denied: You are not enrolled in this class' 
-            });
-        }
-
-        // Check school access AFTER query
-        if (!isSuperAdmin && enrollment.class.teacher.user.school !== userSchool) {
-            console.log('❌ School mismatch');
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Access denied: School mismatch' 
             });
         }
 
@@ -2117,7 +1835,6 @@ const getNotes = async (req, res) => {
                     try {
                         content = JSON.parse(content);
                     } catch (parseError) {
-                        // If parsing fails, keep the string content
                         console.log('Note content is plain text, not JSON');
                     }
                 }
@@ -2145,7 +1862,7 @@ const getNotes = async (req, res) => {
     }
 };
 
-// Save a new note - UPDATED with isSuperAdmin
+// Save a new note
 const saveNote = async (req, res) => {
     try {
         console.log('💾 saveNote called with body:', req.body);
@@ -2180,30 +1897,12 @@ const saveNote = async (req, res) => {
             });
         }
 
-        // Verify enrollment - FIXED QUERY
+        // Verify enrollment
         const enrollment = await prisma.enrollment.findUnique({
             where: {
                 classId_studentId: {
                     classId: classId,
                     studentId: studentId
-                }
-            },
-            include: {
-                class: {
-                    include: {
-                        teacher: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
         });
@@ -2212,14 +1911,6 @@ const saveNote = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied: You are not enrolled in this class'
-            });
-        }
-
-        // Check school access AFTER the query
-        if (!isSuperAdmin && enrollment.class.teacher.user.school !== userSchool) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied: School mismatch'
             });
         }
 
@@ -2279,7 +1970,7 @@ const saveNote = async (req, res) => {
                     ...note,
                     content: responseContent
                 },
-                reloadPage: true // ADD THIS FLAG
+                reloadPage: true
             });
 
         } catch (dbError) {
@@ -2297,8 +1988,7 @@ const saveNote = async (req, res) => {
     }
 };
 
-// Delete a note - UPDATED with isSuperAdmin
-
+// Delete a note
 const deleteNote = async (req, res) => {
     try {
         const studentId = req.session.user.studentId;
@@ -2306,29 +1996,11 @@ const deleteNote = async (req, res) => {
         const userSchool = req.userSchool;
         const isSuperAdmin = req.isSuperAdmin;
 
-        // Verify the note belongs to the student - FIXED QUERY
+        // Verify the note belongs to the student
         const note = await prisma.studentNote.findFirst({
             where: {
                 id: noteId,
                 studentId: studentId
-            },
-            include: {
-                class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         });
 
@@ -2336,14 +2008,6 @@ const deleteNote = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: 'Note not found or access denied'
-            });
-        }
-
-        // Check school access
-        if (!isSuperAdmin && note.class.teacher.user.school !== userSchool) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied: School mismatch'
             });
         }
 
@@ -2366,7 +2030,7 @@ const deleteNote = async (req, res) => {
     }
 };
 
-// Update note - UPDATED with isSuperAdmin
+// Update note
 const updateNote = async (req, res) => {
     try {
         const studentId = req.session.user.studentId;
@@ -2375,29 +2039,11 @@ const updateNote = async (req, res) => {
         const userSchool = req.userSchool;
         const isSuperAdmin = req.isSuperAdmin;
 
-        // Verify the note belongs to the student - FIXED QUERY
+        // Verify the note belongs to the student
         const existingNote = await prisma.studentNote.findFirst({
             where: {
                 id: noteId,
                 studentId: studentId
-            },
-            include: {
-                class: {
-                    include: {  // ADD THIS
-                        teacher: {
-                            include: {  // ADD THIS
-                                user: {
-                                    select: {
-                                        id: true,
-                                        firstName: true,
-                                        lastName: true,
-                                        school: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         });
 
@@ -2405,14 +2051,6 @@ const updateNote = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: 'Note not found or access denied'
-            });
-        }
-
-        // Check school access
-        if (!isSuperAdmin && existingNote.class.teacher.user.school !== userSchool) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied: School mismatch'
             });
         }
 
@@ -2444,19 +2082,30 @@ const updateNote = async (req, res) => {
     }
 };
 
-// Download material file - UPDATED with isSuperAdmin
+// Download material file - WITH DEBUGGING
 const downloadMaterial = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
-    const materialId = parseInt(req.params.materialId);
+    const materialId = req.params.materialId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
     console.log('📥 Download request for material:', materialId, 'by student:', studentId);
 
-    // Get material with access control - UPDATED QUERY
+    // Validate materialId
+    if (!materialId || typeof materialId !== 'string' || materialId.trim() === '') {
+      console.log('❌ Invalid materialId:', materialId);
+      return res.status(400).render('error/400', { 
+        title: 'Bad Request',
+        message: 'Invalid material ID provided.'
+      });
+    }
+
+    // Get material with access control
     const material = await prisma.material.findUnique({
-      where: { id: materialId },
+      where: { 
+        id: materialId
+      },
       include: {
         class: {
           include: {
@@ -2464,23 +2113,23 @@ const downloadMaterial = async (req, res) => {
               where: { 
                 studentId: studentId
               }
-            },
-            ...(isSuperAdmin ? {} : {
-              teacher: {
-                user: {
-                  school: userSchool
-                }
-              }
-            })
+            }
           }
         }
       }
     });
 
     if (!material) {
-      console.log('❌ Material not found');
+      console.log('❌ Material not found in database');
       return res.status(404).render('error/404', { title: 'Material Not Found' });
     }
+
+    console.log('✅ Material found:', {
+      id: material.id,
+      title: material.title,
+      fileUrl: material.fileUrl,
+      type: material.type
+    });
 
     // Check access: either public material, or student is enrolled in the class
     const hasAccess = material.isPublic || 
@@ -2495,8 +2144,53 @@ const downloadMaterial = async (req, res) => {
     const fs = require('fs');
     const path = require('path');
     
-    if (!material.fileUrl || !fs.existsSync(material.fileUrl)) {
-      console.log('❌ File not found at path:', material.fileUrl);
+    console.log('🔍 Checking file path:', material.fileUrl);
+    
+    // Check if the file path is relative or absolute
+    let filePath = material.fileUrl;
+    
+    // If it's an absolute path starting with /uploads, check if it exists
+    if (filePath.startsWith('/uploads/')) {
+      // Try to construct the full path from project root
+      const projectRoot = process.cwd(); // Gets the current working directory
+      const absolutePath = path.join(projectRoot, filePath);
+      console.log('📁 Trying absolute path from project root:', absolutePath);
+      
+      if (fs.existsSync(absolutePath)) {
+        filePath = absolutePath;
+      } else if (fs.existsSync(filePath)) {
+        // Try the path as-is
+        console.log('📁 File exists at original path');
+      } else {
+        // Try looking in the public/uploads directory
+        const publicPath = path.join(projectRoot, 'public', filePath);
+        console.log('📁 Trying public directory path:', publicPath);
+        
+        if (fs.existsSync(publicPath)) {
+          filePath = publicPath;
+        } else {
+          // Try just the filename in uploads directory
+          const fileName = path.basename(filePath);
+          const uploadsDir = path.join(projectRoot, 'uploads', 'materials', fileName);
+          console.log('📁 Trying uploads directory:', uploadsDir);
+          
+          if (fs.existsSync(uploadsDir)) {
+            filePath = uploadsDir;
+          } else {
+            console.log('❌ File not found at any of the checked paths');
+            return res.status(404).render('error/404', { 
+              title: 'File Not Found',
+              message: 'The requested file could not be found on the server.'
+            });
+          }
+        }
+      }
+    }
+    
+    console.log('✅ Using file path:', filePath);
+    
+    if (!fs.existsSync(filePath)) {
+      console.log('❌ File not found at final path:', filePath);
       return res.status(404).render('error/404', { 
         title: 'File Not Found',
         message: 'The requested file could not be found on the server.'
@@ -2504,17 +2198,25 @@ const downloadMaterial = async (req, res) => {
     }
 
     // Get proper filename for download
-    const filename = path.basename(material.fileUrl);
-    const originalFilename = material.title + path.extname(material.fileUrl);
+    const filename = path.basename(filePath);
+    const fileExtension = path.extname(filePath);
+    const originalFilename = material.title + fileExtension;
+    
+    // Set appropriate content type based on file extension
+    const contentType = getContentType(fileExtension);
     
     // Set headers for download
     res.setHeader('Content-Disposition', `attachment; filename="${originalFilename}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Type', contentType);
     
-    console.log('✅ Streaming file:', material.fileUrl);
+    console.log('✅ Streaming file:', filePath);
+    console.log('📤 Headers:', {
+      'Content-Disposition': `attachment; filename="${originalFilename}"`,
+      'Content-Type': contentType
+    });
     
     // Stream the file
-    const fileStream = fs.createReadStream(material.fileUrl);
+    const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
     
   } catch (error) {
@@ -2523,26 +2225,1362 @@ const downloadMaterial = async (req, res) => {
   }
 };
 
-// Helper function to build school-aware where clauses
-const buildSchoolAwareWhere = (userSchool, isSuperAdmin, baseWhere = {}) => {
-  if (isSuperAdmin) {
-    return baseWhere;
-  }
+// Helper function to get content type
+function getContentType(extension) {
+  const contentTypes = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.ppt': 'application/vnd.ms-powerpoint',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.mp4': 'video/mp4',
+    '.mp3': 'audio/mpeg',
+    '.txt': 'text/plain',
+    '.zip': 'application/zip'
+  };
   
-  return {
-    ...baseWhere,
-    OR: [
-      {
+  return contentTypes[extension.toLowerCase()] || 'application/octet-stream';
+}
+
+// ========== CLASS WORKS FUNCTIONS ==========
+
+// Get class works for a specific class
+const viewClassWorks = async (req, res) => {
+  try {
+    // Extract parameters correctly
+    const { classId } = req.params; // This is a string
+    const studentId = req.session.user?.studentId || req.session.studentId;
+    
+    // Get school context
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    // Debug logging
+    console.log(`📚 Fetching class works for class: ${classId}, student: ${studentId}`);
+
+    // Validate classId as string
+    if (!classId || typeof classId !== 'string' || classId.trim() === '') {
+      console.error('❌ Invalid classId:', classId);
+      return res.status(400).render('error/400', {
+        title: 'Bad Request',
+        message: 'Invalid class ID provided'
+      });
+    }
+    
+    // Validate studentId
+    if (!studentId) {
+      console.error('❌ No studentId found in session');
+      return res.status(401).render('error/401', {
+        title: 'Unauthorized',
+        message: 'Student ID not found in session. Please log in again.'
+      });
+    }
+
+    // Verify enrollment - classId is a string
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        classId_studentId: {
+          classId: classId, // Keep as string
+          studentId: studentId
+        }
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).render('error/403', { 
+        title: 'Access Denied',
+        message: 'You are not enrolled in this class'
+      });
+    }
+
+    // FIXED: Get class works with submissions (removed problematic _count field)
+    const classWorks = await prisma.classWork.findMany({
+      where: {
+        classId: classId,
+        isActive: true
+      },
+      include: {
+        class: {
+          select: {
+            name: true,
+            grade: true,
+            section: true
+          }
+        },
         teacher: {
-          user: {
-            school: userSchool
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        submissions: {
+          where: {
+            studentId: studentId
+          },
+          select: {
+            id: true,
+            score: true,
+            status: true,
+            submittedAt: true,
+            gradedAt: true,
+            feedback: true
           }
         }
       },
-      // Add other school-aware conditions as needed
-      ...(baseWhere.OR || [])
-    ]
-  };
+      orderBy: [
+        {
+          dueDate: "asc"
+        },
+        {
+          createdAt: "desc"
+        }
+      ]
+    });
+
+    // Get class details
+    const classData = await prisma.class.findUnique({
+      where: { id: classId }, // Keep as string
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ Class works loaded:', classWorks.length);
+
+    // Render the view with data
+    return res.render('student/class-works', {
+      title: `Class Works - ${classData?.name || 'Class'}`,
+      classId: classId,
+      classWorks: classWorks,
+      classData: classData,
+      currentPage: 'class-works',
+      userSchool: userSchool,
+      isSuperAdmin: isSuperAdmin
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in viewClassWorks:', error);
+    return res.status(500).render('error/500', {
+      title: 'Server Error',
+      message: 'An error occurred while fetching class works',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Take class work
+const takeClassWork = async (req, res) => {
+  try {
+    const studentId = req.session.user?.studentId || req.user?.studentId;
+    const classWorkId = req.params.classWorkId || req.params.id;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`✏️ Taking class work: ${classWorkId}, student: ${studentId}`);
+
+    // Validate parameters
+    if (!classWorkId || !studentId) {
+      console.error('❌ Missing parameters:', { classWorkId, studentId });
+      return res.status(400).render('error/400', {
+        title: 'Bad Request',
+        message: 'Missing required parameters'
+      });
+    }
+
+    // Get class work with class and enrollment check
+    const classWork = await prisma.classWork.findUnique({
+      where: { 
+        id: classWorkId
+      },
+      include: {
+        class: {
+          include: {
+            enrollments: {
+              where: { 
+                studentId: studentId 
+              }
+            }
+          }
+        },
+        teacher: {
+          include: { 
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!classWork) {
+      console.error('❌ Class work not found:', classWorkId);
+      return res.status(404).render('error/404', { 
+        title: 'Class Work Not Found',
+        message: 'The requested class work could not be found.' 
+      });
+    }
+
+    // Verify enrollment
+    if (!classWork.class.enrollments || classWork.class.enrollments.length === 0) {
+      console.error('❌ Student not enrolled:', { classWorkId, studentId });
+      return res.status(403).render('error/403', {
+        title: 'Access Denied',
+        message: 'You are not enrolled in this class.'
+      });
+    }
+
+    // Check for existing submission
+    const existingSubmission = await prisma.classWorkSubmission.findFirst({
+      where: {
+        classWorkId: classWorkId,
+        studentId: studentId
+      }
+    });
+
+    if (existingSubmission && existingSubmission.status === 'submitted') {
+      console.log('📋 Redirecting to results for existing submission');
+      return res.redirect(`/student/class-works/${classWorkId}/results`);
+    }
+
+    // Check if due date has passed
+    if (classWork.dueDate && new Date() > new Date(classWork.dueDate)) {
+      console.log('⏰ Class work is past due date');
+      return res.status(400).render('error/400', {
+        title: 'Class Work Expired',
+        message: 'This class work is past its due date and cannot be taken.'
+      });
+    }
+
+    // Get class work with questions (REMOVED: duration field)
+    const classWorkWithQuestions = await prisma.classWork.findUnique({
+      where: { id: classWorkId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        type: true,
+        points: true,
+        // REMOVED: duration: true, - because the ClassWork model doesn't have a duration field
+        dueDate: true,
+        questions: true,
+        classId: true,
+        createdAt: true
+      }
+    });
+
+    if (!classWorkWithQuestions) {
+      return res.status(404).render('error/404', { 
+        title: 'Class Work Not Found',
+        message: 'Could not load class work questions.' 
+      });
+    }
+
+    console.log('✅ Rendering take-class-work view');
+    res.render('student/take-class-work', {
+      title: `Class Work: ${classWork.title}`,
+      classWork: classWorkWithQuestions,
+      classId: classWork.classId,
+      hasSubmission: !!existingSubmission,
+      userSchool: userSchool || 'Unknown School',
+      isSuperAdmin: isSuperAdmin || false
+    });
+
+  } catch (error) {
+    console.error('❌ Error in takeClassWork:', error);
+    res.status(500).render('error/500', {
+      title: 'Server Error',
+      message: 'An error occurred while loading the class work.'
+    });
+  }
+};
+
+// Submit class work
+const submitClassWork = async (req, res) => {
+  try {
+    const studentId = req.session.user?.studentId;
+    const classWorkId = req.params.classWorkId; // Already a string
+    const { answers } = req.body;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`📤 Submitting class work: ${classWorkId}, student: ${studentId}`);
+
+    // Get class work
+    const classWork = await prisma.classWork.findUnique({
+      where: { 
+        id: classWorkId
+      }
+    });
+
+    if (!classWork) {
+      return res.status(404).json({ success: false, message: 'Class work not found' });
+    }
+
+    // Calculate score (basic implementation)
+    let score = 0;
+    const questions = classWork.questions || [];
+    
+    if (questions.length > 0 && answers) {
+      questions.forEach((question, index) => {
+        const studentAnswer = answers[index];
+        if (studentAnswer && question.correctAnswer && studentAnswer === question.correctAnswer) {
+          score += question.points || 1;
+        }
+      });
+    }
+
+    // Check if submission already exists
+    const existingSubmission = await prisma.classWorkSubmission.findFirst({
+      where: {
+        classWorkId: classWorkId,
+        studentId: studentId
+      }
+    });
+
+    let submission;
+    if (existingSubmission) {
+      // Update existing submission
+      submission = await prisma.classWorkSubmission.update({
+        where: { id: existingSubmission.id },
+        data: {
+          answers: answers,
+          score: score,
+          submittedAt: new Date(),
+          status: 'submitted'
+        }
+      });
+    } else {
+      // Create new submission
+      submission = await prisma.classWorkSubmission.create({
+        data: {
+          classWorkId: classWorkId,
+          studentId: studentId,
+          answers: answers,
+          score: score,
+          submittedAt: new Date(),
+          status: 'submitted'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Class work submitted successfully!',
+      submissionId: submission.id,
+      score: score,
+      totalPoints: questions.reduce((total, q) => total + (q.points || 1), 0)
+    });
+
+  } catch (error) {
+    console.error('❌ Error in submitClassWork:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit class work'
+    });
+  }
+};
+
+// View class work results
+const viewClassWorkResults = async (req, res) => {
+  try {
+     const studentId = req.session.user.studentId;
+    const classWorkId = req.params.classWorkId; 
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`📊 Viewing results for class work: ${classWorkId}, student: ${studentId}`);
+
+    // Get submission with class work details
+    const submission = await prisma.classWorkSubmission.findUnique({
+      where: {
+        classWorkId_studentId: {
+          classWorkId: classWorkId,
+          studentId: studentId
+        }
+      },
+      include: {
+        classWork: {
+          include: {
+            class: true,
+            teacher: {
+              include: { user: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!submission) {
+      return res.status(404).render('error/404', { title: 'Submission Not Found' });
+    }
+
+    // Calculate results
+    const results = {
+      score: submission.score || 0,
+      totalQuestions: submission.classWork.questions?.length || 0,
+      correctAnswers: Math.round((submission.score || 0) / (submission.classWork.questions?.[0]?.points || 1)),
+      submittedAt: submission.submittedAt
+    };
+
+    res.render('student/class-work-results', {
+      title: `Results - ${submission.classWork.title}`,
+      results,
+      submission: submission,
+      classWork: submission.classWork,
+      classWorkId,
+      currentPage: 'class-works',
+      userSchool: userSchool,
+      isSuperAdmin: isSuperAdmin
+    });
+
+  } catch (error) {
+    console.error('❌ Error in viewClassWorkResults:', error);
+    res.status(500).render('error/500', {
+      error: 'Failed to load class work results',
+      message: error.message
+    });
+  }
+};
+
+// ========== LIVE SESSIONS FUNCTIONS ==========
+
+// Get live sessions for a specific class
+const viewLiveSessions = async (req, res) => {
+  try {
+    const studentId = req.session.user.studentId;
+    const classId = req.params.classId; // DON'T USE parseInt() - keep as string
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`🎥 Fetching live sessions for class: ${classId}, student: ${studentId}`);
+
+    // Verify enrollment - classId is a string
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        classId_studentId: {
+          classId: classId, // Keep as string
+          studentId: studentId
+        }
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).render('error/403', { 
+        title: 'Access Denied',
+        message: 'You are not enrolled in this class'
+      });
+    }
+
+    // Get live sessions with participation status
+    const liveSessions = await prisma.liveSession.findMany({
+      where: {
+        classId: classId, // Keep as string
+        isActive: true
+      },
+      include: {
+        class: {
+          select: {
+            name: true,
+            grade: true,
+            section: true
+          }
+        },
+        teacher: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        participants: {
+          where: { 
+            studentId: studentId 
+          },
+          select: {
+            id: true,
+            joinedAt: true,
+            leftAt: true,
+            duration: true
+          }
+        }
+      },
+      orderBy: [
+        { startTime: 'desc' }
+      ]
+    });
+
+    // Get class details
+    const classData = await prisma.class.findUnique({
+      where: { id: classId }, // Keep as string
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log('✅ Live sessions loaded:', liveSessions.length);
+
+    res.render('student/live-sessions', {
+      title: `Live Sessions - ${classData.name}`,
+      classId,
+      liveSessions,
+      classData: classData,
+      currentPage: 'live-sessions',
+      userSchool: userSchool,
+      isSuperAdmin: isSuperAdmin
+    });
+
+  } catch (error) {
+    console.error('❌ Error in viewLiveSessions:', error);
+    res.status(500).render('error/500', {
+      title: 'Server Error',
+      message: 'Failed to load live sessions'
+    });
+  }
+};
+
+// Join live session
+const joinLiveSession = async (req, res) => {
+  try {
+    const studentId = req.session.user.studentId;
+    const sessionId = parseInt(req.params.sessionId);
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`🎬 Joining live session: ${sessionId}, student: ${studentId}`);
+
+    // Get live session
+    const liveSession = await prisma.liveSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            section: true
+          }
+        },
+        teacher: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                avatar: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!liveSession) {
+      return res.status(404).render('error/404', { 
+        title: 'Live Session Not Found',
+        message: 'The requested live session does not exist.'
+      });
+    }
+
+    // Verify enrollment
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        classId_studentId: {
+          classId: liveSession.classId,
+          studentId: studentId
+        }
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).render('error/403', { 
+        title: 'Access Denied',
+        message: 'You are not enrolled in this class'
+      });
+    }
+
+    // Check if session is live or scheduled
+    const now = new Date();
+    const startTime = new Date(liveSession.startTime);
+    const endTime = liveSession.endTime ? new Date(liveSession.endTime) : null;
+
+    if (now < startTime) {
+      return res.status(400).render('error/400', { 
+        title: 'Session Not Started',
+        message: 'This live session has not started yet.'
+      });
+    }
+
+    if (endTime && now > endTime) {
+      return res.status(400).render('error/400', { 
+        title: 'Session Ended',
+        message: 'This live session has already ended.'
+      });
+    }
+
+    // Record participation
+    await prisma.liveSessionParticipant.upsert({
+      where: {
+        liveSessionId_studentId: {
+          liveSessionId: sessionId,
+          studentId: studentId
+        }
+      },
+      update: {
+        joinedAt: new Date(),
+        leftAt: null // Reset leftAt if rejoining
+      },
+      create: {
+        liveSessionId: sessionId,
+        studentId: studentId,
+        joinedAt: new Date()
+      }
+    });
+
+    // Get student name for the session room
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    console.log('✅ Student joining live session:', student.user.firstName);
+
+    res.render('student/join-live-session', {
+      title: `Live: ${liveSession.title}`,
+      liveSession: liveSession,
+      studentId: studentId,
+      studentName: `${student.user.firstName} ${student.user.lastName}`,
+      currentPage: 'live-sessions',
+      userSchool: userSchool,
+      isSuperAdmin: isSuperAdmin
+    });
+
+  } catch (error) {
+    console.error('❌ Error in joinLiveSession:', error);
+    res.status(500).render('error/500', {
+      error: 'Failed to join live session',
+      message: error.message
+    });
+  }
+};
+
+// Leave live session
+const leaveLiveSession = async (req, res) => {
+  try {
+      const studentId = req.session.user.studentId;
+    const sessionId = req.params.sessionId;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    console.log(`🚪 Leaving live session: ${sessionId}, student: ${studentId}`);
+
+    // Get participation record
+    const participation = await prisma.liveSessionParticipant.findUnique({
+      where: {
+        liveSessionId_studentId: {
+          liveSessionId: sessionId,
+          studentId: studentId
+        }
+      },
+      include: {
+        liveSession: {
+          select: {
+            classId: true
+          }
+        }
+      }
+    });
+
+    if (participation) {
+      const leftAt = new Date();
+      const joinedAt = new Date(participation.joinedAt);
+      const duration = Math.floor((leftAt - joinedAt) / (1000 * 60)); // Calculate minutes
+
+      await prisma.liveSessionParticipant.update({
+        where: {
+          id: participation.id
+        },
+        data: {
+          leftAt: leftAt,
+          duration: duration
+        }
+      });
+
+      console.log('✅ Student left live session. Duration:', duration, 'minutes');
+    }
+
+    res.json({
+      success: true,
+      message: 'Successfully left live session',
+      redirectUrl: `/student/class/${participation?.liveSession?.classId || ''}/live-sessions`
+    });
+
+  } catch (error) {
+    console.error('❌ Error in leaveLiveSession:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to leave live session',
+      message: error.message
+    });
+  }
+};
+
+// View student progress
+const viewProgress = async (req, res) => {
+    try {
+        const studentId = req.session.user.studentId;
+        const userId = req.session.user.id;
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
+
+        console.log('📊 View progress called for student:', studentId);
+
+        // Get student with enrollments
+        const student = await prisma.student.findUnique({
+            where: { id: studentId },
+            include: {
+                user: true,
+                enrollments: {
+                    include: {
+                        class: {
+                            include: {
+                                teacher: {
+                                    include: { user: true }
+                                },
+                                assignments: {
+                                    include: {
+                                        submissions: {
+                                            where: { studentId: studentId }
+                                        }
+                                    }
+                                },
+                                exams: {
+                                    include: {
+                                        attempts: {
+                                            where: { studentId: studentId }
+                                        }
+                                    }
+                                },
+                                classWorks: {
+                                    include: {
+                                        submissions: {
+                                            where: { studentId: studentId }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!student) {
+            return res.status(404).render('error/404', { title: 'Student Not Found' });
+        }
+
+        // Calculate overall progress
+        let totalAssignments = 0;
+        let completedAssignments = 0;
+        let totalExams = 0;
+        let completedExams = 0;
+        let totalClassWorks = 0;
+        let completedClassWorks = 0;
+        let averageScore = 0;
+        let totalScore = 0;
+        let scoreCount = 0;
+
+        student.enrollments.forEach(enrollment => {
+            // Assignments
+            if (enrollment.class.assignments) {
+                totalAssignments += enrollment.class.assignments.length;
+                completedAssignments += enrollment.class.assignments.filter(a => 
+                    a.submissions && a.submissions.length > 0
+                ).length;
+                
+                // Calculate scores
+                enrollment.class.assignments.forEach(assignment => {
+                    if (assignment.submissions && assignment.submissions.length > 0 && assignment.submissions[0].grade) {
+                        totalScore += assignment.submissions[0].grade;
+                        scoreCount++;
+                    }
+                });
+            }
+
+            // Exams
+            if (enrollment.class.exams) {
+                totalExams += enrollment.class.exams.length;
+                completedExams += enrollment.class.exams.filter(e => 
+                    e.attempts && e.attempts.length > 0
+                ).length;
+                
+                // Calculate exam scores
+                enrollment.class.exams.forEach(exam => {
+                    if (exam.attempts && exam.attempts.length > 0 && exam.attempts[0].score) {
+                        totalScore += exam.attempts[0].score;
+                        scoreCount++;
+                    }
+                });
+            }
+
+            // Class Works
+            if (enrollment.class.classWorks) {
+                totalClassWorks += enrollment.class.classWorks.length;
+                completedClassWorks += enrollment.class.classWorks.filter(cw => 
+                    cw.submissions && cw.submissions.length > 0
+                ).length;
+                
+                // Calculate class work scores
+                enrollment.class.classWorks.forEach(classWork => {
+                    if (classWork.submissions && classWork.submissions.length > 0 && classWork.submissions[0].score) {
+                        totalScore += classWork.submissions[0].score;
+                        scoreCount++;
+                    }
+                });
+            }
+        });
+
+        // Calculate averages
+        const assignmentProgress = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+        const examProgress = totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0;
+        const classWorkProgress = totalClassWorks > 0 ? Math.round((completedClassWorks / totalClassWorks) * 100) : 0;
+        averageScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+        
+        // Overall progress
+        const totalTasks = totalAssignments + totalExams + totalClassWorks;
+        const completedTasks = completedAssignments + completedExams + completedClassWorks;
+        const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+        // Get recent activity - FORMAT THE TIME HERE
+        const recentSubmissions = await prisma.submission.findMany({
+            where: { studentId: studentId },
+            include: {
+                assignment: {
+                    include: {
+                        class: true
+                    }
+                }
+            },
+            orderBy: { submittedAt: 'desc' },
+            take: 10
+        });
+
+        // Format submissions with time ago
+        const formattedRecentSubmissions = recentSubmissions.map(submission => ({
+            ...submission,
+            formattedTime: formatTimeAgo(submission.submittedAt)
+        }));
+
+        // Get upcoming deadlines
+        const upcomingDeadlines = [];
+        
+        // Upcoming assignments
+        const upcomingAssignments = await prisma.assignment.findMany({
+            where: {
+                class: {
+                    enrollments: {
+                        some: { studentId: studentId }
+                    }
+                },
+                dueDate: {
+                    gt: new Date()
+                }
+            },
+            include: {
+                class: true
+            },
+            orderBy: { dueDate: 'asc' },
+            take: 10
+        });
+
+        // Upcoming exams
+        const upcomingExams = await prisma.exam.findMany({
+            where: {
+                class: {
+                    enrollments: {
+                        some: { studentId: studentId }
+                    }
+                },
+                date: {
+                    gt: new Date()
+                }
+            },
+            include: {
+                class: true
+            },
+            orderBy: { date: 'asc' },
+            take: 10
+        });
+
+        // Combine and sort by date
+        upcomingDeadlines.push(...upcomingAssignments.map(a => ({
+            ...a,
+            type: 'assignment',
+            date: a.dueDate
+        })));
+        upcomingDeadlines.push(...upcomingExams.map(e => ({
+            ...e,
+            type: 'exam',
+            date: e.date
+        })));
+        
+        upcomingDeadlines.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.render('student/progress', {
+            title: 'My Progress',
+            user: student.user,
+            enrollments: student.enrollments,
+            assignmentProgress,
+            examProgress,
+            classWorkProgress,
+            overallProgress,
+            averageScore,
+            totalAssignments,
+            completedAssignments,
+            totalExams,
+            completedExams,
+            totalClassWorks,
+            completedClassWorks,
+            recentSubmissions: formattedRecentSubmissions, // Use formatted submissions
+            upcomingDeadlines: upcomingDeadlines.slice(0, 10),
+            userSchool,
+            isSuperAdmin,
+            formatTimeAgo: formatTimeAgo // Pass the function for other uses
+        });
+    } catch (error) {
+        console.error('❌ View progress error:', error);
+        res.status(500).render('error/500', { 
+            title: 'Server Error',
+            message: 'Failed to load progress data. Please try again.' 
+        });
+    }
+};
+
+// View detailed analytics
+const viewAnalytics = async (req, res) => {
+    try {
+        const studentId = req.session.user.studentId;
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
+
+        console.log('📈 View analytics called for student:', studentId);
+
+        // Get all submissions with scores
+        const gradedSubmissions = await prisma.submission.findMany({
+            where: {
+                studentId: studentId,
+                grade: { not: null }
+            },
+            include: {
+                assignment: {
+                    include: {
+                        class: true
+                    }
+                }
+            },
+            orderBy: { submittedAt: 'desc' }
+        });
+
+        // Get all exam attempts
+        const examAttempts = await prisma.examAttempt.findMany({
+            where: {
+                studentId: studentId,
+                score: { not: null }
+            },
+            include: {
+                exam: {
+                    include: {
+                        class: true
+                    }
+                }
+            },
+            orderBy: { submittedAt: 'desc' }
+        });
+
+        // Get all class work submissions
+        const classWorkSubmissions = await prisma.classWorkSubmission.findMany({
+            where: {
+                studentId: studentId,
+                score: { not: null }
+            },
+            include: {
+                classWork: {
+                    include: {
+                        class: true
+                    }
+                }
+            },
+            orderBy: { submittedAt: 'desc' }
+        });
+
+        // Combine all graded work
+        const allGradedWork = [
+            ...gradedSubmissions.map(s => ({
+                ...s,
+                type: 'assignment',
+                title: s.assignment.title,
+                className: s.assignment.class.name,
+                score: s.grade,
+                maxScore: s.assignment.points || 100,
+                date: s.submittedAt
+            })),
+            ...examAttempts.map(e => ({
+                ...e,
+                type: 'exam',
+                title: e.exam.title,
+                className: e.exam.class.name,
+                score: e.score,
+                maxScore: e.exam.totalMarks || 100,
+                date: e.submittedAt
+            })),
+            ...classWorkSubmissions.map(c => ({
+                ...c,
+                type: 'classwork',
+                title: c.classWork.title,
+                className: c.classWork.class.name,
+                score: c.score,
+                maxScore: c.classWork.points || 100,
+                date: c.submittedAt
+            }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Calculate performance by subject/class
+        const performanceByClass = {};
+        allGradedWork.forEach(work => {
+            if (!performanceByClass[work.className]) {
+                performanceByClass[work.className] = {
+                    totalScore: 0,
+                    maxScore: 0,
+                    count: 0,
+                    items: []
+                };
+            }
+            performanceByClass[work.className].totalScore += work.score;
+            performanceByClass[work.className].maxScore += work.maxScore;
+            performanceByClass[work.className].count++;
+            performanceByClass[work.className].items.push(work);
+        });
+
+        // Calculate percentages
+        Object.keys(performanceByClass).forEach(className => {
+            const data = performanceByClass[className];
+            data.percentage = data.maxScore > 0 ? Math.round((data.totalScore / data.maxScore) * 100) : 0;
+            data.averageScore = data.count > 0 ? Math.round(data.totalScore / data.count) : 0;
+        });
+
+        // Performance over time (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const recentGradedWork = allGradedWork.filter(work => 
+            new Date(work.date) >= thirtyDaysAgo
+        );
+
+        // Group by date for chart
+        const performanceByDate = {};
+        recentGradedWork.forEach(work => {
+            const date = new Date(work.date).toISOString().split('T')[0];
+            if (!performanceByDate[date]) {
+                performanceByDate[date] = {
+                    totalScore: 0,
+                    maxScore: 0,
+                    count: 0
+                };
+            }
+            performanceByDate[date].totalScore += work.score;
+            performanceByDate[date].maxScore += work.maxScore;
+            performanceByDate[date].count++;
+        });
+
+        // Prepare chart data
+        const chartData = Object.keys(performanceByDate)
+            .sort()
+            .map(date => ({
+                date,
+                percentage: performanceByDate[date].maxScore > 0 
+                    ? Math.round((performanceByDate[date].totalScore / performanceByDate[date].maxScore) * 100)
+                    : 0
+            }));
+
+        res.render('student/analytics', {
+            title: 'Performance Analytics',
+            allGradedWork,
+            performanceByClass,
+            chartData,
+            totalGradedItems: allGradedWork.length,
+            averageOverall: allGradedWork.length > 0 
+                ? Math.round(allGradedWork.reduce((sum, work) => sum + (work.score / work.maxScore * 100), 0) / allGradedWork.length)
+                : 0,
+            userSchool,
+            isSuperAdmin
+        });
+    } catch (error) {
+        console.error('❌ View analytics error:', error);
+        res.status(500).render('error/500', { 
+            title: 'Server Error',
+            message: 'Failed to load analytics. Please try again.' 
+        });
+    }
+};
+
+// Get recent notifications for student
+const getRecentNotifications = async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    
+    console.log(`📨 Getting recent notifications for user: ${userId}`);
+
+    // Get only unread notifications
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: userId,
+        read: false,
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { expiresAt: null }
+        ]
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
+    });
+
+    // Format notifications for JSON response
+    const formattedNotifications = notifications.map(notif => ({
+      id: notif.id,
+      title: notif.title,
+      message: notif.message,
+      icon: notif.icon,
+      time: formatTimeAgo(notif.createdAt),
+      read: notif.read
+    }));
+
+    console.log(`✅ Found ${formattedNotifications.length} recent notifications`);
+
+    res.json({
+      success: true,
+      notifications: formattedNotifications,
+      count: formattedNotifications.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting recent notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load notifications',
+      count: 0
+    });
+  }
+};
+
+// Mark notification as read
+const markNotificationAsRead = async (req, res) => {
+  try {
+    const notificationId = req.params.id;
+    const userId = req.session.user.id;
+
+    await prisma.notification.updateMany({
+      where: {
+        id: notificationId,
+        userId: userId
+      },
+      data: {
+        read: true
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Mark notification as read error:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+
+    await prisma.notification.updateMany({
+      where: {
+        userId: userId,
+        read: false
+      },
+      data: {
+        read: true
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Mark all notifications as read error:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark all notifications as read' });
+  }
+};
+
+
+// View all live sessions across all classes
+const viewAllLiveSessions = async (req, res) => {
+    try {
+        const studentId = req.session.user.studentId;
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
+
+        console.log(`🎥 Fetching all live sessions for student: ${studentId}`);
+
+        // Get student's enrolled classes
+        const student = await prisma.student.findUnique({
+            where: { id: studentId },
+            include: {
+                enrollments: {
+                    include: {
+                        class: true
+                    }
+                }
+            }
+        });
+
+        if (!student) {
+            return res.status(404).render('error/404', { title: 'Student Not Found' });
+        }
+
+        const classIds = student.enrollments.map(e => e.classId);
+
+        // Get all live sessions for the student's classes
+        const liveSessions = await prisma.liveSession.findMany({
+            where: {
+                classId: {
+                    in: classIds
+                },
+                isActive: true
+            },
+            include: {
+                class: {
+                    select: {
+                        name: true,
+                        grade: true,
+                        section: true
+                    }
+                },
+                teacher: {
+                    include: {
+                        user: {
+                            select: {
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                },
+                participants: {
+                    where: { 
+                        studentId: studentId 
+                    },
+                    select: {
+                        id: true,
+                        joinedAt: true,
+                        leftAt: true,
+                        duration: true
+                    }
+                }
+            },
+            orderBy: [
+                { startTime: 'desc' }
+            ]
+        });
+
+        // Categorize sessions
+        const now = new Date();
+        const upcomingSessions = [];
+        const ongoingSessions = [];
+        const pastSessions = [];
+
+        liveSessions.forEach(session => {
+            const startTime = new Date(session.startTime);
+            const endTime = session.endTime ? new Date(session.endTime) : null;
+            
+            if (now < startTime) {
+                // Upcoming session
+                upcomingSessions.push({
+                    ...session,
+                    status: 'upcoming',
+                    timeUntil: Math.floor((startTime - now) / (1000 * 60)) // minutes until start
+                });
+            } else if ((!endTime && now >= startTime) || (endTime && now >= startTime && now <= endTime)) {
+                // Ongoing session
+                ongoingSessions.push({
+                    ...session,
+                    status: 'ongoing'
+                });
+            } else {
+                // Past session
+                pastSessions.push({
+                    ...session,
+                    status: 'past'
+                });
+            }
+        });
+
+        console.log(`✅ Live sessions loaded: ${liveSessions.length}`);
+
+        res.render('student/all-live-sessions', {
+            title: 'Live Sessions',
+            upcomingSessions,
+            ongoingSessions,
+            pastSessions,
+            userSchool: userSchool,
+            isSuperAdmin: isSuperAdmin
+        });
+
+    } catch (error) {
+        console.error('❌ Error in viewAllLiveSessions:', error);
+        res.status(500).render('error/500', {
+            title: 'Server Error',
+            message: 'Failed to load live sessions'
+        });
+    }
 };
 
 // Export all functions
@@ -2584,5 +3622,26 @@ module.exports = {
     updateNote,
     deleteNote,
 
-    downloadMaterial
+    // Materials
+    downloadMaterial,
+    
+    // Class Works
+    viewClassWorks,
+    takeClassWork,
+    submitClassWork,
+    viewClassWorkResults,
+    
+    // Live Sessions
+    viewLiveSessions,
+    joinLiveSession,
+    leaveLiveSession,
+    viewAllLiveSessions ,
+    viewProgress,
+    viewAnalytics,
+    
+    // Add this line for notifications:
+    getRecentNotifications,
+    getRecentNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead
 };

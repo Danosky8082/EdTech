@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .question-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .question-counter {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .questions-list {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .question-preview {
+            background: white;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Create New Exam</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="createExamForm">
+                                    <!-- Basic Exam Info -->
+                                    <div class="mb-4">
+                                        <h5><i class="fas fa-info-circle me-2"></i>Basic Information</h5>
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label for="title" class="form-label">Exam Title *</label>
+                                                <input type="text" class="form-control" id="title" name="title" required
+                                                    placeholder="e.g., Midterm Exam - Mathematics">
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <label for="description" class="form-label">Description</label>
+                                                <textarea class="form-control" id="description" name="description"
+                                                    rows="2" placeholder="Brief description of the exam"></textarea>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="classId" class="form-label">Class *</label>
+                                                <select class="form-control" id="classId" name="classId" required>
+                                                    <option value="">Select a class</option>
+                                                    <% classes.forEach(cls=> { %>
+                                                        <option value="<%= cls.id %>">
+                                                            <%= cls.name %> (Grade <%= cls.grade %>-<%= cls.section %>)
+                                                        </option>
+                                                        <% }) %>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="duration" class="form-label">Duration (minutes) *</label>
+                                                <input type="number" class="form-control" id="duration" name="duration"
+                                                    value="60" min="5" max="300" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="date" class="form-label">Exam Date & Time *</label>
+                                                <input type="datetime-local" class="form-control" id="date" name="date"
+                                                    required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="maxAttempts" class="form-label">Max Attempts</label>
+                                                <input type="number" class="form-control" id="maxAttempts"
+                                                    name="maxAttempts" value="1" min="1" max="10">
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <label for="totalMarks" class="form-label">Total Marks
+                                                    (Auto-calculated)</label>
+                                                <input type="number" class="form-control" id="totalMarks"
+                                                    name="totalMarks" value="0" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ========= NEW: UPLOAD QUESTIONS FROM FILE ========= -->
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-light">
+                                            <h5 class="mb-0">📤 Upload Questions from File</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <label for="questionsFile" class="form-label">Choose file (.txt,
+                                                        .docx)</label>
+                                                    <input type="file" class="form-control" id="questionsFile"
+                                                        accept=".txt,.docx,.doc">
+                                                </div>
+                                                <div class="col-md-4 d-flex align-items-end">
+                                                    <button type="button" class="btn btn-primary"
+                                                        id="parseQuestionsBtn">
+                                                        <i class="fas fa-upload me-1"></i> Parse & Add Questions
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div id="uploadStatus" class="mt-2 small"></div>
+                                        </div>
+                                    </div>
+                                    <!-- ========= END UPLOAD SECTION ========= -->
+
+                                    <!-- Questions Section -->
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5><i class="fas fa-question-circle me-2"></i>Questions</h5>
+                                            <span class="badge bg-info" id="questionsCount">0 questions</span>
+                                        </div>
+
+                                        <!-- Questions List -->
+                                        <div id="questionsContainer" class="questions-list mb-4">
+                                            <!-- Questions will be added here -->
+                                        </div>
+
+                                        <!-- Add Question Buttons -->
+                                        <div class="btn-group mb-4" role="group">
+                                            <button type="button" class="btn btn-primary" id="addMultipleChoiceBtn">
+                                                <i class="fas fa-list-ol me-1"></i> Add Multiple Choice
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="addTrueFalseBtn">
+                                                <i class="fas fa-check-circle me-1"></i> Add True/False
+                                            </button>
+                                            <button type="button" class="btn btn-warning" id="addShortAnswerBtn">
+                                                <i class="fas fa-pen me-1"></i> Add Short Answer
+                                            </button>
+                                        </div>
+
+                                        <!-- Question Preview -->
+                                        <div class="mb-3">
+                                            <h6><i class="fas fa-eye me-1"></i>Questions Preview</h6>
+                                            <div id="questionsPreview" class="mt-2">
+                                                <div class="text-muted text-center py-3">No questions added yet</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Form Actions -->
+                                    <div class="d-flex justify-content-between">
+                                        <a href="/teacher/exams" class="btn btn-secondary">
+                                            <i class="fas fa-times me-1"></i> Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-success" id="submitBtn">
+                                            <i class="fas fa-save me-1"></i> Create Exam
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Sidebar - Instructions -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Instructions</h5>
+                            </div>
+                            <div class="card-body">
+                                <ol class="mb-0">
+                                    <li>Fill in basic exam details</li>
+                                    <li>Add questions using the buttons</li>
+                                    <li>For multiple choice, mark the correct answer</li>
+                                    <li>Points are calculated automatically</li>
+                                    <li>Review questions in the preview</li>
+                                    <li>Click Create Exam when ready</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-6 mb-3">
+                                        <div class="display-6 text-primary" id="totalPoints">0</div>
+                                        <small class="text-muted">Total Points</small>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="display-6 text-success" id="questionCount">0</div>
+                                        <small class="text-muted">Questions</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="display-6 text-info" id="mcCount">0</div>
+                                        <small class="text-muted">MC Questions</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="display-6 text-warning" id="otherCount">0</div>
+                                        <small class="text-muted">Other Questions</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Initialize variables
+                let questions = [];
+                let questionCounter = 1;
+
+                // Set default exam date (tomorrow)
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('date').value = tomorrow.toISOString().slice(0, 16);
+
+                // ---------- FILE UPLOAD HANDLER ----------
+                document.getElementById('parseQuestionsBtn').addEventListener('click', async function () {
+                    const fileInput = document.getElementById('questionsFile');
+                    if (!fileInput.files.length) {
+                        alert('Please select a file.');
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('questionsFile', fileInput.files[0]);
+
+                    // Show uploading status
+                    const statusDiv = document.getElementById('uploadStatus');
+                    statusDiv.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Uploading and parsing...</span>';
+
+                    try {
+                        const response = await fetch('/teacher/exams/parse-questions', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            // Add each parsed question to the UI
+                            result.questions.forEach((parsedQ, index) => {
+                                // 1. Create the question card using the existing addQuestion function
+                                addQuestion(
+                                    parsedQ.type || 'multiple_choice',
+                                    parsedQ.question || 'Question text missing',
+                                    parsedQ.points || 1
+                                );
+
+                                // 2. If it's a multiple choice question, set the options and correct answer
+                                if (parsedQ.type === 'multiple_choice' && Array.isArray(parsedQ.options) && parsedQ.options.length > 0) {
+                                    // The newly added question is the last one in the questions array
+                                    const newQuestionId = questions[questions.length - 1].id;
+                                    const questionElement = document.getElementById(`question-${newQuestionId}`);
+
+                                    // Clear existing default options (keep the container)
+                                    const optionsContainer = questionElement.querySelector('.options-container');
+                                    optionsContainer.innerHTML = '';
+
+                                    // Add each option from the parsed data
+                                    parsedQ.options.forEach((opt, optIndex) => {
+                                        const optionDiv = document.createElement('div');
+                                        optionDiv.className = 'option-item';
+                                        optionDiv.innerHTML = `
+                                            <input type="radio" name="correct-${newQuestionId}" value="${optIndex}" ${opt.isCorrect ? 'checked' : ''}>
+                                            <input type="text" class="form-control form-control-sm option-input" 
+                                                   placeholder="Option ${optIndex + 1}" value="${opt.text.replace(/"/g, '&quot;')}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger ms-2 remove-option">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        `;
+                                        optionsContainer.appendChild(optionDiv);
+                                    });
+
+                                    // Re-attach events for the newly created options
+                                    const questionIndex = questions.findIndex(q => q.id === newQuestionId);
+                                    if (questionIndex !== -1) {
+                                        // Re-run the update function to populate the questions[].options array
+                                        updateQuestionOptions(newQuestionId);
+                                    }
+                                }
+                            });
+
+                            // Update statistics and show success message
+                            updateStatistics();
+                            statusDiv.innerHTML = `<span class="text-success">✅ ${result.questions.length} questions added successfully!</span>`;
+                            alert(`✅ ${result.questions.length} questions added successfully!`);
+                        } else {
+                            statusDiv.innerHTML = `<span class="text-danger">❌ Parsing failed: ${result.message}</span>`;
+                            alert('❌ Parsing failed: ' + result.message);
+                        }
+                    } catch (err) {
+                        console.error('Upload error:', err);
+                        statusDiv.innerHTML = '<span class="text-danger">❌ Network error while uploading file.</span>';
+                        alert('Network error while uploading file.');
+                    }
+                });
+                // ---------- END FILE UPLOAD HANDLER ----------
+
+                // Update statistics
+                function updateStatistics() {
+                    const totalPoints = questions.reduce((sum, q) => sum + (parseInt(q.points) || 1), 0);
+                    const mcCount = questions.filter(q => q.type === 'multiple_choice').length;
+                    const otherCount = questions.length - mcCount;
+
+                    document.getElementById('totalPoints').textContent = totalPoints;
+                    document.getElementById('questionCount').textContent = questions.length;
+                    document.getElementById('mcCount').textContent = mcCount;
+                    document.getElementById('otherCount').textContent = otherCount;
+                    document.getElementById('questionsCount').textContent = `${questions.length} questions`;
+                    document.getElementById('totalMarks').value = totalPoints;
+
+                    updateQuestionsPreview();
+                }
+
+                // Update questions preview
+                function updateQuestionsPreview() {
+                    const previewContainer = document.getElementById('questionsPreview');
+
+                    if (questions.length === 0) {
+                        previewContainer.innerHTML = '<div class="text-muted text-center py-3">No questions added yet</div>';
+                        return;
+                    }
+
+                    previewContainer.innerHTML = '';
+                    questions.forEach((q, index) => {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'question-preview';
+                        previewDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>Q${index + 1}: ${q.question.substring(0, 50)}${q.question.length > 50 ? '...' : ''}</strong>
+                            <div>
+                                <span class="badge bg-info me-2">${q.type.replace('_', ' ')}</span>
+                                <span class="badge bg-success">${q.points || 1} pts</span>
+                            </div>
+                        </div>
+                    `;
+                        previewContainer.appendChild(previewDiv);
+                    });
+                }
+
+                // Add question template
+                function addQuestion(type, questionText = '', points = 1) {
+                    const questionId = Date.now() + Math.random();
+                    const question = {
+                        id: questionId,
+                        type: type,
+                        question: questionText,
+                        points: points,
+                        options: []
+                    };
+
+                    questions.push(question);
+
+                    // Create HTML for the question
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'question-card';
+                    questionDiv.id = `question-${questionId}`;
+                    questionDiv.innerHTML = `
+                    <div class="question-header">
+                        <div>
+                            <strong>Question ${questionCounter}</strong>
+                            <span class="badge bg-secondary ms-2">${type.replace('_', ' ')}</span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-danger delete-question" data-id="${questionId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Question Text *</label>
+                        <textarea class="form-control question-text" rows="2" 
+                                  placeholder="Enter your question here">${questionText}</textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Points</label>
+                            <input type="number" class="form-control question-points" min="1" value="${points}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Question Type</label>
+                            <select class="form-control question-type">
+                                <option value="multiple_choice" ${type === 'multiple_choice' ? 'selected' : ''}>
+                                    Multiple Choice
+                                </option>
+                                <option value="true_false" ${type === 'true_false' ? 'selected' : ''}>
+                                    True/False
+                                </option>
+                                <option value="short_answer" ${type === 'short_answer' ? 'selected' : ''}>
+                                    Short Answer
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="options-section mb-3" style="${type !== 'multiple_choice' ? 'display: none;' : ''}">
+                        <label class="form-label mb-2">Options (for multiple choice)</label>
+                        <div class="options-container mb-2">
+                            <div class="option-item">
+                                <input type="radio" name="correct-${questionId}" value="0" checked>
+                                <input type="text" class="form-control form-control-sm option-input" 
+                                       placeholder="Option 1" value="Option 1">
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-2 remove-option">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="option-item">
+                                <input type="radio" name="correct-${questionId}" value="1">
+                                <input type="text" class="form-control form-control-sm option-input" 
+                                       placeholder="Option 2" value="Option 2">
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-2 remove-option">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary add-option">
+                            <i class="fas fa-plus me-1"></i> Add Option
+                        </button>
+                    </div>
+                `;
+
+                    document.getElementById('questionsContainer').appendChild(questionDiv);
+                    questionCounter++;
+                    updateStatistics();
+
+                    // Add event listeners for this question
+                    setupQuestionEvents(questionId);
+                }
+
+                // Setup event listeners for a question
+                function setupQuestionEvents(questionId) {
+                    const questionElement = document.getElementById(`question-${questionId}`);
+                    const questionIndex = questions.findIndex(q => q.id === questionId);
+
+                    // Update question text
+                    questionElement.querySelector('.question-text').addEventListener('input', function () {
+                        questions[questionIndex].question = this.value;
+                        updateStatistics();
+                    });
+
+                    // Update question points
+                    questionElement.querySelector('.question-points').addEventListener('input', function () {
+                        questions[questionIndex].points = parseInt(this.value) || 1;
+                        updateStatistics();
+                    });
+
+                    // Update question type
+                    questionElement.querySelector('.question-type').addEventListener('change', function () {
+                        const newType = this.value;
+                        questions[questionIndex].type = newType;
+
+                        // Show/hide options section
+                        const optionsSection = questionElement.querySelector('.options-section');
+                        if (newType === 'multiple_choice') {
+                            optionsSection.style.display = 'block';
+                        } else {
+                            optionsSection.style.display = 'none';
+                            questions[questionIndex].options = [];
+                        }
+
+                        updateStatistics();
+                    });
+
+                    // Delete question button
+                    questionElement.querySelector('.delete-question').addEventListener('click', function () {
+                        if (confirm('Are you sure you want to delete this question?')) {
+                            const idToDelete = this.dataset.id;
+                            questions = questions.filter(q => q.id != idToDelete);
+                            questionElement.remove();
+                            updateStatistics();
+                        }
+                    });
+
+                    // Add option button
+                    const addOptionBtn = questionElement.querySelector('.add-option');
+                    if (addOptionBtn) {
+                        addOptionBtn.addEventListener('click', function () {
+                            const optionsContainer = questionElement.querySelector('.options-container');
+                            const optionCount = optionsContainer.children.length;
+
+                            const optionDiv = document.createElement('div');
+                            optionDiv.className = 'option-item';
+                            optionDiv.innerHTML = `
+                            <input type="radio" name="correct-${questionId}" value="${optionCount}">
+                            <input type="text" class="form-control form-control-sm option-input" 
+                                   placeholder="Option ${optionCount + 1}">
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2 remove-option">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+
+                            optionsContainer.appendChild(optionDiv);
+
+                            // Add event listener to remove button
+                            optionDiv.querySelector('.remove-option').addEventListener('click', function () {
+                                if (optionsContainer.children.length > 2) {
+                                    optionDiv.remove();
+                                    updateQuestionOptions(questionId);
+                                }
+                            });
+
+                            // Add event listener to option input
+                            optionDiv.querySelector('.option-input').addEventListener('input', function () {
+                                updateQuestionOptions(questionId);
+                            });
+
+                            updateQuestionOptions(questionId);
+                        });
+                    }
+
+                    // Setup existing option remove buttons
+                    questionElement.querySelectorAll('.remove-option').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            const optionsContainer = questionElement.querySelector('.options-container');
+                            if (optionsContainer.children.length > 2) {
+                                this.closest('.option-item').remove();
+                                updateQuestionOptions(questionId);
+                            }
+                        });
+                    });
+
+                    // Setup existing option input events
+                    questionElement.querySelectorAll('.option-input').forEach(input => {
+                        input.addEventListener('input', function () {
+                            updateQuestionOptions(questionId);
+                        });
+                    });
+
+                    // Setup radio button events
+                    questionElement.querySelectorAll(`input[name="correct-${questionId}"]`).forEach(radio => {
+                        radio.addEventListener('change', function () {
+                            updateQuestionOptions(questionId);
+                        });
+                    });
+
+                    // Initialize options for multiple choice questions
+                    if (questions[questionIndex].type === 'multiple_choice') {
+                        updateQuestionOptions(questionId);
+                    }
+                }
+
+                // Update question options data
+                function updateQuestionOptions(questionId) {
+                    const questionElement = document.getElementById(`question-${questionId}`);
+                    const questionIndex = questions.findIndex(q => q.id === questionId);
+
+                    if (questions[questionIndex].type === 'multiple_choice') {
+                        const options = [];
+                        const optionElements = questionElement.querySelectorAll('.option-item');
+
+                        optionElements.forEach((optionEl, index) => {
+                            const input = optionEl.querySelector('.option-input');
+                            const radio = optionEl.querySelector('input[type="radio"]');
+
+                            options.push({
+                                text: input.value || `Option ${index + 1}`,
+                                isCorrect: radio.checked
+                            });
+                        });
+
+                        questions[questionIndex].options = options;
+                    }
+                }
+
+                // Add question buttons
+                document.getElementById('addMultipleChoiceBtn').addEventListener('click', function () {
+                    addQuestion('multiple_choice', 'Enter your multiple choice question here', 1);
+                });
+
+                document.getElementById('addTrueFalseBtn').addEventListener('click', function () {
+                    addQuestion('true_false', 'Enter your true/false question here', 1);
+                });
+
+                document.getElementById('addShortAnswerBtn').addEventListener('click', function () {
+                    addQuestion('short_answer', 'Enter your short answer question here', 2);
+                });
+
+                // Form submission
+                document.getElementById('createExamForm').addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    // Validate form
+                    const title = document.getElementById('title').value.trim();
+                    const classId = document.getElementById('classId').value;
+                    const duration = document.getElementById('duration').value;
+
+                    if (!title) {
+                        alert('Please enter an exam title');
+                        return;
+                    }
+
+                    if (!classId) {
+                        alert('Please select a class');
+                        return;
+                    }
+
+                    if (questions.length === 0) {
+                        if (!confirm('You haven\'t added any questions. Create exam without questions?')) {
+                            return;
+                        }
+                    }
+
+                    // Validate each question
+                    let hasErrors = false;
+                    questions.forEach((q, index) => {
+                        if (!q.question || q.question.trim() === '') {
+                            alert(`Question ${index + 1} is missing text`);
+                            hasErrors = true;
+                        }
+
+                        if (q.type === 'multiple_choice' && q.options.length < 2) {
+                            alert(`Question ${index + 1} (multiple choice) needs at least 2 options`);
+                            hasErrors = true;
+                        }
+
+                        if (q.type === 'multiple_choice') {
+                            const hasCorrect = q.options.some(opt => opt.isCorrect);
+                            if (!hasCorrect) {
+                                alert(`Question ${index + 1} needs a correct answer selected`);
+                                hasErrors = true;
+                            }
+                        }
+                    });
+
+                    if (hasErrors) return;
+
+                    // Prepare form data
+                    const formData = new FormData(this);
+                    const data = Object.fromEntries(formData.entries());
+                    data.questions = JSON.stringify(questions);
+
+                    // Show loading state
+                    const submitBtn = document.getElementById('submitBtn');
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creating...';
+
+                    try {
+                        const response = await fetch('/teacher/exams/create', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            alert('Exam created successfully!');
+                            window.location.href = '/teacher/exams';
+                        } else {
+                            alert('Error: ' + result.message);
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Create Exam';
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error creating exam: ' + error.message);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Create Exam';
+                    }
+                });
+
+                // Add a sample question to start with
+                addQuestion('multiple_choice', 'What is 2 + 2?', 1);
+
+                // Setup initial options for the sample question
+                setTimeout(() => {
+                    const firstQuestion = document.querySelector('.question-card');
+                    if (firstQuestion) {
+                        const optionInputs = firstQuestion.querySelectorAll('.option-input');
+                        if (optionInputs.length >= 2) {
+                            optionInputs[0].value = '3';
+                            optionInputs[1].value = '4';
+
+                            // Mark the second option as correct
+                            const radios = firstQuestion.querySelectorAll('input[type="radio"]');
+                            if (radios.length >= 2) {
+                                radios[1].checked = true;
+                            }
+
+                            updateQuestionOptions(questions[0].id);
+                        }
+                    }
+                }, 100);
+            });
+        </script>
+</body>
+
+</html>

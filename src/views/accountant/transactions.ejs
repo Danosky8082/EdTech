@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | School Management System
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <style>
+        .transaction-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .transaction-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .income-badge {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .expense-badge {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .filter-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            border-left: 4px solid;
+            padding: 15px;
+        }
+
+        .income-summary {
+            border-left-color: #28a745;
+        }
+
+        .expense-summary {
+            border-left-color: #dc3545;
+        }
+
+        .total-summary {
+            border-left-color: #007bff;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container-fluid py-4">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-list me-2"></i>Financial Transactions</h2>
+                            <p class="text-muted mb-0">Manage and view all financial records</p>
+                        </div>
+                        <div>
+                            <a href="/accountant/dashboard" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                            </a>
+                            <button class="btn btn-primary" data-bs-toggle="modal"
+                                data-bs-target="#createTransactionModal">
+                                <i class="fas fa-plus me-1"></i> New Transaction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card transaction-card income-summary summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-1">Total Income</h6>
+                                    <h4 class="card-title text-success">=N=<%=
+                                            summary.totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                                    </h4>
+                                </div>
+                                <i class="fas fa-money-bill-wave fa-2x text-success opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card transaction-card expense-summary summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-1">Total Expenses</h6>
+                                    <h4 class="card-title text-danger">=N=<%=
+                                            summary.totalExpense.toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                                    </h4>
+                                </div>
+                                <i class="fas fa-receipt fa-2x text-danger opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card transaction-card total-summary summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-1">Net Balance</h6>
+                                    <h4 class="card-title text-primary">=N=<%= (summary.totalIncome -
+                                            summary.totalExpense).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                                    </h4>
+                                </div>
+                                <i class="fas fa-balance-scale fa-2x text-primary opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card transaction-card summary-card" style="border-left-color: #ffc107;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-1">Total Transactions</h6>
+                                    <h4 class="card-title text-warning">
+                                        <%= summary.totalTransactions %>
+                                    </h4>
+                                </div>
+                                <i class="fas fa-exchange-alt fa-2x text-warning opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card transaction-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="/accountant/transactions" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Transaction Type</label>
+                            <select name="type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="income" <%=filters.type==='income' ? 'selected' : '' %>>Income</option>
+                                <option value="expense" <%=filters.type==='expense' ? 'selected' : '' %>>Expense
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="startDate" class="form-control"
+                                value="<%= filters.startDate || '' %>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="endDate" class="form-control" value="<%= filters.endDate || '' %>">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </form>
+                    <% if (filters.type || filters.startDate || filters.endDate) { %>
+                        <div class="mt-3">
+                            <a href="/accountant/transactions" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Clear Filters
+                            </a>
+                        </div>
+                        <% } %>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="card transaction-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>All Transactions
+                        <span class="badge bg-secondary ms-2">
+                            <%= pagination.total %> records
+                        </span>
+                    </h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-success me-2" id="exportBtn">
+                            <i class="fas fa-file-export me-1"></i> Export CSV
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="window.print()">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <% if (transactions && transactions.length> 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="transactionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Category</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Created By</th>
+                                        <th>Receipt No.</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% transactions.forEach(transaction=> { %>
+                                        <tr>
+                                            <td>
+                                                <%= new Date(transaction.date).toLocaleDateString() %>
+                                            </td>
+                                            <td>
+                                                <strong>
+                                                    <%= transaction.title %>
+                                                </strong>
+                                                <% if (transaction.description) { %>
+                                                    <br><small class="text-muted">
+                                                        <%= transaction.description %>
+                                                    </small>
+                                                    <% } %>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    <%= transaction.category %>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge <%= transaction.type === 'income' ? 'income-badge' : 'expense-badge' %>">
+                                                    <%= transaction.type.toUpperCase() %>
+                                                </span>
+                                            </td>
+                                            <td
+                                                class="<%= transaction.type === 'income' ? 'text-success' : 'text-danger' %>">
+                                                <strong>
+                                                    <%= transaction.type==='income' ? '+' : '-' %>=N=<%=
+                                                            transaction.amount.toFixed(2) %>
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <%= transaction.creator.firstName %>
+                                                    <%= transaction.creator.lastName %>
+                                                        <% if (transaction.creator.idNumber) { %>
+                                                            <br><small class="text-muted">
+                                                                <%= transaction.creator.idNumber %>
+                                                            </small>
+                                                            <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (transaction.receiptNumber) { %>
+                                                    <span class="badge bg-secondary">
+                                                        <%= transaction.receiptNumber %>
+                                                    </span>
+                                                    <% } else { %>
+                                                        <span class="text-muted">N/A</span>
+                                                        <% } %>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-info" data-bs-toggle="tooltip"
+                                                        title="View Details"
+                                                        onclick="viewTransactionDetails('<%= transaction.id %>')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" data-bs-toggle="tooltip"
+                                                        title="Edit" onclick="editTransaction('<%= transaction.id %>')">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <% if (pagination.pages> 1) { %>
+                            <nav aria-label="Page navigation" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item <%= pagination.page === 1 ? 'disabled' : '' %>">
+                                        <a class="page-link"
+                                            href="/accountant/transactions?page=<%= pagination.page - 1 %><%= filters.type ? '&type=' + filters.type : '' %><%= filters.startDate ? '&startDate=' + filters.startDate : '' %><%= filters.endDate ? '&endDate=' + filters.endDate : '' %>">
+                                            Previous
+                                        </a>
+                                    </li>
+
+                                    <% for (let i=1; i <=pagination.pages; i++) { %>
+                                        <li class="page-item <%= i === pagination.page ? 'active' : '' %>">
+                                            <a class="page-link"
+                                                href="/accountant/transactions?page=<%= i %><%= filters.type ? '&type=' + filters.type : '' %><%= filters.startDate ? '&startDate=' + filters.startDate : '' %><%= filters.endDate ? '&endDate=' + filters.endDate : '' %>">
+                                                <%= i %>
+                                            </a>
+                                        </li>
+                                        <% } %>
+
+                                            <li
+                                                class="page-item <%= pagination.page === pagination.pages ? 'disabled' : '' %>">
+                                                <a class="page-link"
+                                                    href="/accountant/transactions?page=<%= pagination.page + 1 %><%= filters.type ? '&type=' + filters.type : '' %><%= filters.startDate ? '&startDate=' + filters.startDate : '' %><%= filters.endDate ? '&endDate=' + filters.endDate : '' %>">
+                                                    Next
+                                                </a>
+                                            </li>
+                                </ul>
+                            </nav>
+                            <% } %>
+                                <% } else { %>
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-exchange-alt fa-4x text-muted mb-3"></i>
+                                        <h4>No Transactions Found</h4>
+                                        <p class="text-muted">No transactions match your criteria or no transactions
+                                            have been recorded yet.</p>
+                                        <button class="btn btn-primary" data-bs-toggle="modal"
+                                            data-bs-target="#createTransactionModal">
+                                            <i class="fas fa-plus me-1"></i> Create First Transaction
+                                        </button>
+                                    </div>
+                                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Transaction Modal -->
+        <div class="modal fade" id="createTransactionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Transaction</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="/accountant/transactions/create" method="POST">
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Transaction Type *</label>
+                                    <select name="type" class="form-select" required>
+                                        <option value="">Select Type</option>
+                                        <option value="income">Income</option>
+                                        <option value="expense">Expense</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date *</label>
+                                    <input type="date" name="date" class="form-control"
+                                        value="<%= new Date().toISOString().split('T')[0] %>" required>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Title *</label>
+                                    <input type="text" name="title" class="form-control"
+                                        placeholder="e.g., Tuition Fee Payment, Office Supplies" required>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea name="description" class="form-control" rows="2"
+                                        placeholder="Optional description"></textarea>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Amount *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">=N=</span>
+                                        <input type="number" name="amount" class="form-control" step="0.01" min="0"
+                                            placeholder="0.00" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Category</label>
+                                    <select name="category" class="form-select">
+                                        <option value="general">General</option>
+                                        <option value="tuition">Tuition Fees</option>
+                                        <option value="salary">Salary</option>
+                                        <option value="utilities">Utilities</option>
+                                        <option value="supplies">Supplies</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="transport">Transport</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Receipt Number</label>
+                                    <input type="text" name="receiptNumber" class="form-control"
+                                        placeholder="Optional receipt number">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Destination/Recipient</label>
+                                    <input type="text" name="destination" class="form-control"
+                                        placeholder="e.g., Bank Transfer, Vendor Name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Transaction</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            // Initialize DataTable
+            $(document).ready(function () {
+                $('#transactionsTable').DataTable({
+                    pageLength: 25,
+                    order: [[0, 'desc']]
+                });
+
+                // Initialize tooltips
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            });
+
+            // Export functionality
+            document.getElementById('exportBtn').addEventListener('click', function () {
+                const table = document.getElementById('transactionsTable');
+                const rows = table.querySelectorAll('tr');
+                let csvContent = "data:text/csv;charset=utf-8,";
+
+                // Add headers
+                const headers = [];
+                table.querySelectorAll('th').forEach(th => {
+                    headers.push(th.textContent.replace(/\n/g, '').trim());
+                });
+                csvContent += headers.join(",") + "\n";
+
+                // Add data rows
+                rows.forEach((row, index) => {
+                    if (index === 0) return; // Skip header row
+                    const cols = row.querySelectorAll('td');
+                    const rowData = [];
+                    cols.forEach(col => {
+                        rowData.push(col.textContent.replace(/,/g, '').replace(/\n/g, ' ').trim());
+                    });
+                    csvContent += rowData.join(",") + "\n";
+                });
+
+                // Create download link
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            function viewTransactionDetails(id) {
+                // Implement view details functionality
+                window.location.href = `/accountant/transaction/${id}`;
+            }
+
+            function editTransaction(id) {
+                // Implement edit functionality
+                window.location.href = `/accountant/transaction/${id}/edit`;
+            }
+        </script>
+</body>
+
+</html>

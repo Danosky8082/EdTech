@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .profile-section {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .session-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .session-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .live-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .upcoming-badge {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+        }
+
+        .ended-badge {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .countdown-timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .chat-container {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message.teacher {
+            background: #e3f2fd;
+            margin-right: auto;
+        }
+
+        .message.student {
+            background: #d4edda;
+            margin-left: auto;
+        }
+
+        .participant-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .participant-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool %>
+                </div>
+
+                <div class="row">
+                    <!-- Left Sidebar with Profile -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <% if (user.avatar) { %>
+                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
+                                    alt="Student Profile" class="profile-img mb-3"
+                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                <% } else { %>
+                                    <img src="/images/default-profile.png" alt="Student Profile"
+                                        class="profile-img mb-3">
+                                    <% } %>
+                                        <h4>
+                                            <%= user.firstName %>
+                                                <%= user.lastName %>
+                                        </h4>
+                                        <p class="welcome-text">
+                                            <%= classData.name %>
+                                        </p>
+                                        <span class="user-role">Student</span>
+                                        <div class="mt-2">
+                                            <small><i class="fas fa-school me-1"></i>
+                                                <%= userSchool %>
+                                            </small>
+                                        </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/student/class/<%= classData.id %>/materials"
+                                    class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-book"></i> Materials
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/assignments"
+                                    class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Assignments
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/exams"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn">
+                                    <i class="fas fa-clipboard-list"></i> Exams
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/class-works"
+                                    class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Class Works
+                                </a>
+                                <a href="/student/class/<%= classData.id %>/live-sessions"
+                                    class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-video"></i> Live Sessions
+                                </a>
+                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn">
+                                    <i class="fas fa-home"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Live Session Stats -->
+                        <div class="card dashboard-card">
+                            <div class="card-header">
+                                <h5>Session Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <% const totalSessions=liveSessions.length; const
+                                    liveSessionsNow=liveSessions.filter(s=> {
+                                    const now = new Date();
+                                    const start = new Date(s.startTime);
+                                    const end = s.endTime ? new Date(s.endTime) : null;
+                                    return now >= start && (!end || now <= end); }).length; const
+                                        upcomingSessions=liveSessions.filter(s=> new Date(s.startTime) > new
+                                        Date()).length;
+                                        const attendedSessions = liveSessions.filter(s => s.participants &&
+                                        s.participants.length > 0).length;
+                                        %>
+                                        <div class="mb-2">
+                                            <small><strong>Total Sessions:</strong></small>
+                                            <span class="badge bg-primary float-end">
+                                                <%= totalSessions %>
+                                            </span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small><strong>Live Now:</strong></small>
+                                            <span class="badge bg-success float-end">
+                                                <%= liveSessionsNow %>
+                                            </span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small><strong>Upcoming:</strong></small>
+                                            <span class="badge bg-warning float-end">
+                                                <%= upcomingSessions %>
+                                            </span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small><strong>Attended:</strong></small>
+                                            <span class="badge bg-info float-end">
+                                                <%= attendedSessions %>
+                                            </span>
+                                        </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2><i class="fas fa-video me-2"></i>Live Sessions</h2>
+                                <p class="text-muted mb-0">
+                                    <%= classData.name %> - <%= classData.teacher.user.firstName %>
+                                            <%= classData.teacher.user.lastName %>
+                                </p>
+                            </div>
+                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Class
+                            </a>
+                        </div>
+
+                        <!-- Live Session Instructions -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5><i class="fas fa-info-circle me-2"></i>Session Guidelines</h5>
+                                <ul class="mb-0">
+                                    <li>Join sessions 5 minutes before start time</li>
+                                    <li>Ensure you have a stable internet connection</li>
+                                    <li>Keep your microphone muted when not speaking</li>
+                                    <li>Use the chat for questions and discussions</li>
+                                    <li>Respect your teacher and classmates</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Live Now Sessions -->
+                        <% const liveNowSessions=liveSessions.filter(s=> {
+                            const now = new Date();
+                            const start = new Date(s.startTime);
+                            const end = s.endTime ? new Date(s.endTime) : null;
+                            return now >= start && (!end || now <= end); }); %>
+
+                                <% if (liveNowSessions.length> 0) { %>
+                                    <div class="mb-4">
+                                        <h4 class="mb-3">
+                                            <i class="fas fa-circle text-success me-2"></i>Live Now
+                                            <span class="badge bg-danger ms-2">LIVE</span>
+                                        </h4>
+                                        <div class="row">
+                                            <% liveNowSessions.forEach(session=> {
+                                                const startTime = new Date(session.startTime);
+                                                const endTime = session.endTime ? new Date(session.endTime) : null;
+                                                const now = new Date();
+                                                const hasJoined = session.participants && session.participants.length >
+                                                0;
+                                                %>
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="card session-card" style="border-left-color: #28a745;">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-3">
+                                                                <div>
+                                                                    <h5 class="card-title mb-1">
+                                                                        <%= session.title %>
+                                                                    </h5>
+                                                                    <p class="text-muted mb-0">
+                                                                        <small><i class="fas fa-user me-1"></i>
+                                                                            <%= session.teacher.user.firstName %>
+                                                                                <%= session.teacher.user.lastName %>
+                                                                        </small>
+                                                                        <br>
+                                                                        <small><i class="fas fa-clock me-1"></i>
+                                                                            Started: <%=
+                                                                                startTime.toLocaleTimeString([],
+                                                                                {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                                </small>
+                                                                    </p>
+                                                                </div>
+                                                                <span class="badge live-badge">LIVE NOW</span>
+                                                            </div>
+
+                                                            <% if (session.description) { %>
+                                                                <p class="card-text mb-3">
+                                                                    <%= session.description %>
+                                                                </p>
+                                                                <% } %>
+
+                                                                    <div class="mb-3">
+                                                                        <div class="row">
+                                                                            <div class="col-6">
+                                                                                <small
+                                                                                    class="text-muted">Participants:</small>
+                                                                                <div class="h5 mb-0">
+                                                                                    <%= session._count ?
+                                                                                        session._count.participants : 0
+                                                                                        %>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="col-6">
+                                                                                <small
+                                                                                    class="text-muted">Status:</small>
+                                                                                <div>
+                                                                                    <% if (hasJoined) { %>
+                                                                                        <span
+                                                                                            class="badge bg-success">Joined</span>
+                                                                                        <% } else { %>
+                                                                                            <span
+                                                                                                class="badge bg-warning">Not
+                                                                                                Joined</span>
+                                                                                            <% } %>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <% if (session.meetingLink) { %>
+                                                                        <div class="input-group mb-3">
+                                                                            <input type="text" class="form-control"
+                                                                                value="<%= session.meetingLink %>"
+                                                                                readonly>
+                                                                            <button class="btn btn-outline-secondary"
+                                                                                type="button"
+                                                                                onclick="copyToClipboard('<%= session.meetingLink %>')">
+                                                                                <i class="fas fa-copy"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                        <% } %>
+
+                                                                            <div class="d-grid gap-2">
+                                                                                <% if (hasJoined) { %>
+                                                                                    <a href="/student/live-sessions/<%= session.id %>/join"
+                                                                                        class="btn btn-success">
+                                                                                        <i
+                                                                                            class="fas fa-video me-1"></i>
+                                                                                        Rejoin Session
+                                                                                    </a>
+                                                                                    <% } else { %>
+                                                                                        <a href="/student/live-sessions/<%= session.id %>/join"
+                                                                                            class="btn btn-success">
+                                                                                            <i
+                                                                                                class="fas fa-play me-1"></i>
+                                                                                            Join Session
+                                                                                        </a>
+                                                                                        <% } %>
+                                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <% }); %>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- Upcoming Sessions -->
+                                        <% const upcomingSessionsList=liveSessions.filter(s=> new Date(s.startTime) >
+                                            new Date()); %>
+                                            <% if (upcomingSessionsList.length> 0) { %>
+                                                <div class="mb-4">
+                                                    <h4 class="mb-3">Upcoming Sessions</h4>
+                                                    <div class="row">
+                                                        <% upcomingSessionsList.forEach(session=> {
+                                                            const startTime = new Date(session.startTime);
+                                                            const now = new Date();
+                                                            const diffHours = Math.floor((startTime - now) / (1000 * 60
+                                                            * 60));
+                                                            %>
+                                                            <div class="col-md-6 mb-3">
+                                                                <div class="card session-card"
+                                                                    style="border-left-color: #ffc107;">
+                                                                    <div class="card-body">
+                                                                        <div
+                                                                            class="d-flex justify-content-between align-items-start mb-3">
+                                                                            <div>
+                                                                                <h5 class="card-title mb-1">
+                                                                                    <%= session.title %>
+                                                                                </h5>
+                                                                                <p class="text-muted mb-0">
+                                                                                    <small><i
+                                                                                            class="fas fa-user me-1"></i>
+                                                                                        <%= session.teacher.user.firstName
+                                                                                            %>
+                                                                                            <%= session.teacher.user.lastName
+                                                                                                %>
+                                                                                    </small>
+                                                                                    <br>
+                                                                                    <small><i
+                                                                                            class="fas fa-calendar me-1"></i>
+                                                                                        <%= startTime.toLocaleDateString()
+                                                                                            %>
+                                                                                    </small>
+                                                                                    <small class="ms-2"><i
+                                                                                            class="fas fa-clock me-1"></i>
+                                                                                        <%= startTime.toLocaleTimeString([],
+                                                                                            {hour: '2-digit' ,
+                                                                                            minute:'2-digit'}) %>
+                                                                                    </small>
+                                                                                </p>
+                                                                            </div>
+                                                                            <span
+                                                                                class="badge upcoming-badge">Upcoming</span>
+                                                                        </div>
+
+                                                                        <% if (session.description) { %>
+                                                                            <p class="card-text mb-3">
+                                                                                <%= session.description %>
+                                                                            </p>
+                                                                            <% } %>
+
+                                                                                <div class="mb-3">
+                                                                                    <div class="countdown-timer"
+                                                                                        data-date="<%= session.startTime %>">
+                                                                                        <% if (diffHours <=24) { %>
+                                                                                            Starts in <%=
+                                                                                                Math.ceil(diffHours) %>
+                                                                                                hours
+                                                                                                <% } else { %>
+                                                                                                    Starts in <%=
+                                                                                                        Math.ceil(diffHours
+                                                                                                        / 24) %> days
+                                                                                                        <% } %>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <% if (session.meetingLink) { %>
+                                                                                    <div class="input-group mb-3">
+                                                                                        <input type="text"
+                                                                                            class="form-control"
+                                                                                            value="<%= session.meetingLink %>"
+                                                                                            readonly>
+                                                                                        <button
+                                                                                            class="btn btn-outline-secondary"
+                                                                                            type="button"
+                                                                                            onclick="copyToClipboard('<%= session.meetingLink %>')">
+                                                                                            <i class="fas fa-copy"></i>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <% } %>
+
+                                                                                        <div
+                                                                                            class="d-flex justify-content-between">
+                                                                                            <button
+                                                                                                class="btn btn-outline-warning"
+                                                                                                disabled>
+                                                                                                <i
+                                                                                                    class="fas fa-clock me-1"></i>
+                                                                                                Starts Soon
+                                                                                            </button>
+                                                                                            <button
+                                                                                                class="btn btn-outline-primary"
+                                                                                                onclick="addToCalendar('<%= session.title %>', '<%= session.startTime %>', '<%= session.description || '' %>')">
+                                                                                                <i
+                                                                                                    class="fas fa-calendar-plus me-1"></i>
+                                                                                                Add to Calendar
+                                                                                            </button>
+                                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <% }); %>
+                                                    </div>
+                                                </div>
+                                                <% } %>
+
+                                                    <!-- Past Sessions -->
+                                                    <% const pastSessions=liveSessions.filter(s=> {
+                                                        const end = s.endTime ? new Date(s.endTime) : new Date(new
+                                                        Date(s.startTime).getTime() + (60 * 60 * 1000));
+                                                        return new Date() > end;
+                                                        }); %>
+
+                                                        <div>
+                                                            <h4 class="mb-3">Past Sessions</h4>
+                                                            <% if (pastSessions.length> 0) { %>
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-striped">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Session</th>
+                                                                                <th>Date & Time</th>
+                                                                                <th>Duration</th>
+                                                                                <th>Status</th>
+                                                                                <th>Recording</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            <% pastSessions.forEach(session=> {
+                                                                                const startTime = new
+                                                                                Date(session.startTime);
+                                                                                const endTime = session.endTime ? new
+                                                                                Date(session.endTime) : null;
+                                                                                const duration = endTime ?
+                                                                                Math.round((endTime - startTime) / (1000
+                                                                                * 60)) : 60;
+                                                                                const hasJoined = session.participants
+                                                                                && session.participants.length > 0;
+                                                                                %>
+                                                                                <tr>
+                                                                                    <td>
+                                                                                        <strong>
+                                                                                            <%= session.title %>
+                                                                                        </strong>
+                                                                                        <% if (session.description) { %>
+                                                                                            <br><small
+                                                                                                class="text-muted">
+                                                                                                <%= session.description
+                                                                                                    %>
+                                                                                            </small>
+                                                                                            <% } %>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <%= startTime.toLocaleDateString()
+                                                                                            %><br>
+                                                                                            <small>
+                                                                                                <%= startTime.toLocaleTimeString([],
+                                                                                                    {hour: '2-digit' ,
+                                                                                                    minute:'2-digit'})
+                                                                                                    %>
+                                                                                            </small>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <%= duration %> min
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <% if (hasJoined) { %>
+                                                                                            <span
+                                                                                                class="badge bg-success">Attended</span>
+                                                                                            <% } else { %>
+                                                                                                <span
+                                                                                                    class="badge bg-secondary">Missed</span>
+                                                                                                <% } %>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <% if (session.meetingLink) { %>
+                                                                                            <button
+                                                                                                class="btn btn-sm btn-outline-primary"
+                                                                                                onclick="viewRecording('<%= session.meetingLink %>')">
+                                                                                                <i
+                                                                                                    class="fas fa-play me-1"></i>
+                                                                                                View
+                                                                                            </button>
+                                                                                            <% } else { %>
+                                                                                                <span
+                                                                                                    class="badge bg-secondary">No
+                                                                                                    Recording</span>
+                                                                                                <% } %>
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <% }); %>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                                <% } else { %>
+                                                                    <div class="card">
+                                                                        <div class="card-body text-center py-5">
+                                                                            <i
+                                                                                class="fas fa-history fa-3x text-muted mb-3"></i>
+                                                                            <h4>No Past Sessions</h4>
+                                                                            <p class="text-muted">There are no past live
+                                                                                sessions for this class.</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <% } %>
+                                                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Update countdown timers
+                function updateCountdowns() {
+                    document.querySelectorAll('.countdown-timer[data-date]').forEach(timer => {
+                        const sessionDate = new Date(timer.dataset.date);
+                        const now = new Date();
+                        const diff = sessionDate - now;
+
+                        if (diff <= 0) {
+                            timer.innerHTML = 'Starting Now';
+                            timer.style.color = '#28a745';
+                            window.location.reload();
+                            return;
+                        }
+
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                        if (hours > 0) {
+                            timer.innerHTML = `Starts in ${hours}h ${minutes}m`;
+                        } else {
+                            timer.innerHTML = `Starts in ${minutes}m`;
+                            timer.style.color = '#dc3545';
+                        }
+                    });
+                }
+
+                updateCountdowns();
+                setInterval(updateCountdowns, 60000); // Update every minute
+            });
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Meeting link copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            }
+
+            function addToCalendar(title, startTime, description) {
+                const event = {
+                    title: title,
+                    start: new Date(startTime),
+                    end: new Date(new Date(startTime).getTime() + (60 * 60 * 1000)), // 1 hour later
+                    description: description
+                };
+
+                // For Google Calendar
+                const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${event.start.toISOString().replace(/-|:|\.\d+/g, '')}/${event.end.toISOString().replace(/-|:|\.\d+/g, '')}&details=${encodeURIComponent(event.description)}`;
+
+                window.open(googleUrl, '_blank');
+            }
+
+            function viewRecording(url) {
+                window.open(url, '_blank');
+            }
+        </script>
+</body>
+
+</html>

@@ -1,0 +1,48 @@
+<!-- Contact School Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Contact School</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm">
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="contactSubject" placeholder="Enter subject"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" id="contactMessage" rows="4" placeholder="Enter your message"
+                            required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Regarding Student (Optional)</label>
+                        <select class="form-select" id="contactStudent">
+                            <option value="">All Students</option>
+                            <% if (typeof students !=='undefined' && students.length> 0) { %>
+                                <% students.forEach(studentRel=> { %>
+                                    <option value="<%= studentRel.student.id %>">
+                                        <%= studentRel.student.user.firstName %>
+                                            <%= studentRel.student.user.lastName %>
+                                    </option>
+                                    <% }); %>
+                                        <% } %>
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your message will be sent to the school administration.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendContactMessage()">
+                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

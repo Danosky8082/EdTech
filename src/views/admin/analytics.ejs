@@ -36,6 +36,22 @@
             border-left-color: #f6c23e;
         }
 
+        .stat-card.tuition-paid {
+            border-left-color: #28a745;
+        }
+
+        .stat-card.tuition-partial {
+            border-left-color: #ffc107;
+        }
+
+        .stat-card.tuition-unpaid {
+            border-left-color: #dc3545;
+        }
+
+        .stat-card.parents {
+            border-left-color: #6f42c1;
+        }
+
         .chart-container {
             position: relative;
             height: 300px;
@@ -68,6 +84,45 @@
             height: 40px;
             border-radius: 50%;
         }
+
+        .school-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-thin {
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .grade-distribution-bar {
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .grade-a {
+            background-color: #28a745;
+        }
+
+        .grade-b {
+            background-color: #20c997;
+        }
+
+        .grade-c {
+            background-color: #ffc107;
+        }
+
+        .grade-d {
+            background-color: #fd7e14;
+        }
+
+        .grade-f {
+            background-color: #dc3545;
+        }
     </style>
 </head>
 
@@ -79,146 +134,337 @@
         </div>
     </div>
 
-<%- include('../partials/navbar') %>
+    <%- include('../partials/navbar') %>
 
-    <div class="container mt-4">
-        <%- include('../partials/alerts') %>
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
 
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Analytics Dashboard</h2>
-            <div class="btn-group">
-                <button class="btn btn-outline-primary" onclick="exportData('json')">Export JSON</button>
-                <button class="btn btn-outline-success" onclick="exportData('csv')">Export CSV</button>
-                <button class="btn btn-outline-info" onclick="refreshData()">Refresh Data</button>
-            </div>
-        </div>
-
-        <!-- Overview Statistics -->
-        <div class="row mb-4" id="overviewStats">
-            <!-- This will be populated by JavaScript -->
-        </div>
-
-        <!-- Charts Row -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">User Distribution</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="userDistributionChart"></canvas>
+                <div class="container mt-4">
+                    <!-- School Info Banner -->
+                    <div class="school-banner">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-1">
+                                    <i class="fas fa-school me-2"></i>
+                                    <% if (currentUserSchool && !isSuperAdmin) { %>
+                                        <%= currentUserSchool %>
+                                            <% } else if (isSuperAdmin) { %>
+                                                Super Admin Dashboard - All Schools
+                                                <% } else { %>
+                                                    Analytics Dashboard
+                                                    <% } %>
+                                </h4>
+                                <p class="mb-0 opacity-75">
+                                    <% if (currentUserSchool && !isSuperAdmin) { %>
+                                        Viewing analytics for your school
+                                        <% } else if (isSuperAdmin) { %>
+                                            Viewing analytics across all schools
+                                            <% } else { %>
+                                                System Analytics Overview
+                                                <% } %>
+                                </p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-light" onclick="exportData('json')">
+                                    <i class="fas fa-file-export me-1"></i> Export JSON
+                                </button>
+                                <button class="btn btn-outline-light" onclick="exportData('csv')">
+                                    <i class="fas fa-file-csv me-1"></i> Export CSV
+                                </button>
+                                <button class="btn btn-outline-light" onclick="refreshData()">
+                                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Grade Distribution</h5>
+
+                    <!-- Quick Stats Summary -->
+                    <div class="row mb-4" id="quickStats">
+                        <!-- This will be populated by JavaScript -->
                     </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="gradeDistributionChart"></canvas>
+
+                    <!-- Main Statistics -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>School Analytics</h3>
+                        <div class="text-muted">
+                            Last updated: <span id="lastUpdated">Just now</span>
                         </div>
                     </div>
+
+                    <!-- Overview Statistics -->
+                    <div class="row mb-4" id="overviewStats">
+                        <!-- This will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Tuition Statistics -->
+                    <div class="row mb-4" id="tuitionStats">
+                        <!-- This will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">User Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="userDistributionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Tuition Status Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="tuitionStatusChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Distribution -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Grade Performance Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="chart-container">
+                                        <canvas id="gradeDistributionChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div id="gradeLegend" class="mt-3">
+                                        <!-- Grade legend will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Statistics -->
+                    <div class="row mb-4" id="activityStats">
+                        <!-- This will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Recent System Activity</h5>
+                                <span class="badge bg-primary" id="activityCount">0 activities</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivityContent">
+                                <!-- This will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- School Summary Footer -->
+                    <div class="mt-4 text-center text-muted">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Data reflects current academic year <%= new Date().getFullYear() %>/<%= new
+                                    Date().getFullYear() + 1 %>
+                                    <% if (currentUserSchool && !isSuperAdmin) { %>
+                                        for <%= currentUserSchool %>
+                                            <% } %>
+                        </small>
+                    </div>
                 </div>
-            </div>
         </div>
 
-        <!-- Activity Statistics -->
-        <div class="row mb-4" id="activityStats">
-            <!-- This will be populated by JavaScript -->
-        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Global variables to store chart instances
+            let userDistributionChartInstance = null;
+            let tuitionStatusChartInstance = null;
+            let gradeDistributionChartInstance = null;
+            let lastUpdated = new Date();
 
-        <!-- Recent Activity -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Recent System Activity</h5>
-            </div>
-            <div class="card-body">
-                <div id="recentActivityContent">
-                    <!-- This will be populated by JavaScript -->
-                </div>
-            </div>
+            // Function to update last updated time
+            function updateLastUpdated() {
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - lastUpdated) / 1000);
+
+                let timeAgo = 'Just now';
+                if (diffInSeconds >= 60 && diffInSeconds < 3600) {
+                    timeAgo = Math.floor(diffInSeconds / 60) + ' minutes ago';
+                } else if (diffInSeconds >= 3600 && diffInSeconds < 86400) {
+                    timeAgo = Math.floor(diffInSeconds / 3600) + ' hours ago';
+                } else if (diffInSeconds >= 86400) {
+                    timeAgo = Math.floor(diffInSeconds / 86400) + ' days ago';
+                }
+
+                document.getElementById('lastUpdated').textContent = timeAgo;
+            }
+
+            // Function to fetch data from your backend API
+            async function fetchData() {
+                try {
+                    // Show loading overlay
+                    document.getElementById('loadingOverlay').style.display = 'flex';
+
+                    // Fetch data from your backend API endpoints
+                    const [overviewData, tuitionData, gradesData, activitiesData] = await Promise.all([
+                        fetchOverviewData(),
+                        fetchTuitionData(),
+                        fetchGradesData(),
+                        fetchActivitiesData()
+                    ]);
+
+                    // Process and display the data
+                    renderQuickStats(overviewData, tuitionData);
+                    renderOverviewStats(overviewData);
+                    renderTuitionStats(tuitionData);
+                    renderActivityStats(overviewData);
+                    renderRecentActivities(activitiesData);
+                    renderCharts(overviewData, tuitionData, gradesData);
+
+                    // Update last updated time
+                    lastUpdated = new Date();
+                    updateLastUpdated();
+
+                    // Hide loading overlay
+                    document.getElementById('loadingOverlay').style.display = 'none';
+
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    alert('Error loading data. Please try again.');
+                }
+            }
+
+            // API functions to fetch data from your backend
+            async function fetchOverviewData() {
+                try {
+                    const response = await fetch('/admin/analytics-data');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching overview data:', error);
+                    throw error;
+                }
+            }
+
+            async function fetchTuitionData() {
+                try {
+                    const response = await fetch('/admin/tuition-analytics');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching tuition data:', error);
+                    throw error;
+                }
+            }
+
+            async function fetchGradesData() {
+                try {
+                    const response = await fetch('/admin/grades-data');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching grades data:', error);
+                    throw error;
+                }
+            }
+
+            async function fetchActivitiesData() {
+                try {
+                    const response = await fetch('/admin/activities-data');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching activities data:', error);
+                    throw error;
+                }
+            }
+
+            // Function to render quick stats
+            // Function to render quick stats - FIXED: Use isActive for active users
+                function renderQuickStats(overviewData, tuitionData) {
+                    const quickStatsElement = document.getElementById('quickStats');
+
+                    // Calculate active users percentage based on isActive field
+                    const totalActiveUsers = (overviewData.totalActiveStudents || 0) +
+                        (overviewData.totalActiveTeachers || 0);
+                    const totalUsers = overviewData.totalStudents + overviewData.totalTeachers + (overviewData.totalAdmins || 0);
+                    const activePercentage = totalUsers > 0 ? Math.round((totalActiveUsers / totalUsers) * 100) : 0;
+
+                    // Calculate collection rate
+                    const collectionRate = overviewData.totalStudents > 0 ?
+                        Math.round(((tuitionData?.paidStudents || 0) / overviewData.totalStudents) * 100) : 0;
+
+                    quickStatsElement.innerHTML = `
+    <div class="col-md-3 mb-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-2">Active Users</h6>
+          <h3 class="mb-2">${activePercentage}%</h3>
+          <div class="progress progress-thin">
+            <div class="progress-bar bg-success" style="width: ${activePercentage}%"></div>
+          </div>
+          <small class="text-muted">${totalActiveUsers} of ${totalUsers} users active</small>
         </div>
+      </div>
     </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-2">Tuition Collection</h6>
+          <h3 class="mb-2">${collectionRate}%</h3>
+          <div class="progress progress-thin">
+            <div class="progress-bar bg-primary" style="width: ${collectionRate}%"></div>
+          </div>
+          <small class="text-muted">${tuitionData?.paidStudents || 0} of ${overviewData.totalStudents} students paid</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-2">Avg. Class Size</h6>
+          <h3 class="mb-2">${overviewData.totalClasses > 0 ? Math.round(overviewData.totalStudents / overviewData.totalClasses) : 0}</h3>
+          <div class="text-muted">
+            <i class="fas fa-users-class me-1"></i>
+            Students per class
+          </div>
+          <small class="text-muted">${overviewData.totalClasses} active classes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-2">Engagement Rate</h6>
+          <h3 class="mb-2">${overviewData.totalStudents > 0 ?
+                            Math.round((overviewData.recentSubmissions / overviewData.totalStudents) * 100) : 0}%</h3>
+          <div class="text-muted">
+            <i class="fas fa-tasks me-1"></i>
+            Assignment completion
+          </div>
+          <small class="text-muted">${overviewData.recentSubmissions} submissions (30 days)</small>
+        </div>
+      </div>
+    </div>
+  `;
+                }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Global variables to store chart instances
-        let userDistributionChartInstance = null;
-        let gradeDistributionChartInstance = null;
+            // Function to render overview statistics
+            function renderOverviewStats(data) {
+                const overviewStatsElement = document.getElementById('overviewStats');
 
-        // Function to fetch data from your backend API
-        async function fetchData() {
-            try {
-                // Show loading overlay
-                document.getElementById('loadingOverlay').style.display = 'flex';
-
-                // Fetch data from your backend API endpoints
-                const [overviewData, gradesData, activitiesData] = await Promise.all([
-                    fetchOverviewData(),
-                    fetchGradesData(),
-                    fetchActivitiesData()
-                ]);
-
-                // Process and display the data
-                renderOverviewStats(overviewData);
-                renderActivityStats(overviewData);
-                renderRecentActivities(activitiesData);
-                renderCharts(overviewData, gradesData);
-
-                // Hide loading overlay
-                document.getElementById('loadingOverlay').style.display = 'none';
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                document.getElementById('loadingOverlay').style.display = 'none';
-                alert('Error loading data. Please try again.');
-            }
-        }
-
-        // API functions to fetch data from your backend
-        async function fetchOverviewData() {
-            try {
-                const response = await fetch('/admin/analytics-data');
-                if (!response.ok) throw new Error('Network response was not ok');
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching overview data:', error);
-                throw error;
-            }
-        }
-
-        async function fetchGradesData() {
-            try {
-                const response = await fetch('/admin/grades-data');
-                if (!response.ok) throw new Error('Network response was not ok');
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching grades data:', error);
-                throw error;
-            }
-        }
-
-        async function fetchActivitiesData() {
-            try {
-                const response = await fetch('/admin/activities-data');
-                if (!response.ok) throw new Error('Network response was not ok');
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching activities data:', error);
-                throw error;
-            }
-        }
-
-        // Function to render overview statistics
-        function renderOverviewStats(data) {
-            const overviewStatsElement = document.getElementById('overviewStats');
-
-            overviewStatsElement.innerHTML = `
+                overviewStatsElement.innerHTML = `
                 <div class="col-md-3 mb-3">
                     <div class="card stat-card students">
                         <div class="card-body">
@@ -226,12 +472,15 @@
                                 <div>
                                     <h6 class="card-title text-muted">Total Students</h6>
                                     <h3 class="card-value">${data.totalStudents}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <i class="fas fa-user-check me-1 text-success"></i>
+                                        ${data.totalActiveStudents || data.totalStudents} active
+                                    </p>
                                 </div>
                                 <div class="icon-circle bg-primary text-white">
                                     <i class="fas fa-users"></i>
                                 </div>
                             </div>
-                            <p class="text-muted mt-2 mb-0">+2 from last month</p>
                         </div>
                     </div>
                 </div>
@@ -242,12 +491,15 @@
                                 <div>
                                     <h6 class="card-title text-muted">Teachers</h6>
                                     <h3 class="card-value">${data.totalTeachers}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <i class="fas fa-chalkboard me-1 text-info"></i>
+                                        ${data.totalSubjects || 'All'} subjects
+                                    </p>
                                 </div>
                                 <div class="icon-circle bg-success text-white">
                                     <i class="fas fa-chalkboard-teacher"></i>
                                 </div>
                             </div>
-                            <p class="text-muted mt-2 mb-0">+2 from last quarter</p>
                         </div>
                     </div>
                 </div>
@@ -258,77 +510,187 @@
                                 <div>
                                     <h6 class="card-title text-muted">Classes</h6>
                                     <h3 class="card-value">${data.totalClasses}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <i class="fas fa-clock me-1 text-warning"></i>
+                                        Active this term
+                                    </p>
                                 </div>
                                 <div class="icon-circle bg-info text-white">
                                     <i class="fas fa-chalkboard"></i>
                                 </div>
                             </div>
-                            <p class="text-muted mt-2 mb-0">Active this term</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <div class="card stat-card assignments">
+                    <div class="card stat-card parents">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <h6 class="card-title text-muted">Assignments</h6>
-                                    <h3 class="card-value">${data.totalAssignments}</h3>
+                                    <h6 class="card-title text-muted">Parents</h6>
+                                    <h3 class="card-value">${data.totalParents || 0}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <i class="fas fa-wallet me-1 text-purple"></i>
+                                        ${data.parentsWithWallet || 0} with wallet
+                                    </p>
                                 </div>
-                                <div class="icon-circle bg-warning text-white">
-                                    <i class="fas fa-tasks"></i>
+                                <div class="icon-circle bg-purple text-white">
+                                    <i class="fas fa-user-friends"></i>
                                 </div>
                             </div>
-                            <p class="text-muted mt-2 mb-0">Created this month</p>
                         </div>
                     </div>
                 </div>
             `;
-        }
+            }
 
-        // Function to render activity statistics
-        function renderActivityStats(data) {
-            const activityStatsElement = document.getElementById('activityStats');
+            // Function to render tuition statistics
+            function renderTuitionStats(data) {
+                const tuitionStatsElement = document.getElementById('tuitionStats');
 
-            activityStatsElement.innerHTML = `
+                const paidStudents = data.paidStudents || 0;
+                const partialStudents = data.partialStudents || 0;
+                const unpaidStudents = data.unpaidStudents || 0;
+                const totalStudents = paidStudents + partialStudents + unpaidStudents;
+
+                const paidPercentage = totalStudents > 0 ? Math.round((paidStudents / totalStudents) * 100) : 0;
+                const partialPercentage = totalStudents > 0 ? Math.round((partialStudents / totalStudents) * 100) : 0;
+                const unpaidPercentage = totalStudents > 0 ? Math.round((unpaidStudents / totalStudents) * 100) : 0;
+
+                tuitionStatsElement.innerHTML = `
                 <div class="col-md-4 mb-3">
-                    <div class="card stat-card text-center bg-secondary text-white">
+                    <div class="card stat-card tuition-paid">
                         <div class="card-body">
-                            <i class="fas fa-file-upload fa-2x mb-2"></i>
-                            <h3>${data.recentMaterials}</h3>
-                            <p class="mb-0">Materials (30 days)</p>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted">Paid Tuition</h6>
+                                    <h3 class="card-value">${paidStudents}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <span class="badge bg-success">${paidPercentage}%</span>
+                                        of total students
+                                    </p>
+                                </div>
+                                <div class="icon-circle bg-success text-white">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: ${paidPercentage}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card stat-card text-center bg-danger text-white">
+                    <div class="card stat-card tuition-partial">
                         <div class="card-body">
-                            <i class="fas fa-clipboard-list fa-2x mb-2"></i>
-                            <h3>${data.recentAssignments}</h3>
-                            <p class="mb-0">Assignments (30 days)</p>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted">Partial Payment</h6>
+                                    <h3 class="card-value">${partialStudents}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <span class="badge bg-warning">${partialPercentage}%</span>
+                                        of total students
+                                    </p>
+                                </div>
+                                <div class="icon-circle bg-warning text-white">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-warning" style="width: ${partialPercentage}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card stat-card text-center bg-dark text-white">
+                    <div class="card stat-card tuition-unpaid">
                         <div class="card-body">
-                            <i class="fas fa-file-alt fa-2x mb-2"></i>
-                            <h3>${data.recentSubmissions}</h3>
-                            <p class="mb-0">Submissions (30 days)</p>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title text-muted">Unpaid</h6>
+                                    <h3 class="card-value">${unpaidStudents}</h3>
+                                    <p class="text-muted mt-2 mb-0">
+                                        <span class="badge bg-danger">${unpaidPercentage}%</span>
+                                        of total students
+                                    </p>
+                                </div>
+                                <div class="icon-circle bg-danger text-white">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-danger" style="width: ${unpaidPercentage}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
-        }
+            }
 
-        // Function to render recent activities
-        function renderRecentActivities(activities) {
-            const recentActivityContent = document.getElementById('recentActivityContent');
+            // Function to render activity statistics
+            function renderActivityStats(data) {
+                const activityStatsElement = document.getElementById('activityStats');
 
-            if (activities && activities.length > 0) {
-                let activitiesHTML = `
+                activityStatsElement.innerHTML = `
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-file-upload fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">${data.recentMaterials}</h5>
+                                    <p class="mb-0 opacity-75">Materials (30 days)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-clipboard-list fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">${data.recentAssignments}</h5>
+                                    <p class="mb-0 opacity-75">Assignments (30 days)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-dark text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-file-alt fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">${data.recentSubmissions}</h5>
+                                    <p class="mb-0 opacity-75">Submissions (30 days)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }
+
+            // Function to render recent activities
+            function renderRecentActivities(activities) {
+                const recentActivityContent = document.getElementById('recentActivityContent');
+                const activityCount = document.getElementById('activityCount');
+
+                if (activities && activities.length > 0) {
+                    activityCount.textContent = `${activities.length} activities`;
+
+                    let activitiesHTML = `
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>User</th>
@@ -341,172 +703,309 @@
                             <tbody>
                 `;
 
-                activities.forEach(activity => {
-                    // Determine activity description based on type
-                    let activityDescription = "Account Created";
-                    let activityDetails = `New ${activity.role} account registration`;
+                    activities.forEach(activity => {
+                        // Determine activity description based on type
+                        let activityDescription = "Account Created";
+                        let activityDetails = `New ${activity.role} account registration`;
+                        let activityIcon = "user-plus";
+                        let activityColor = "primary";
 
-                    if (activity.activityType === "assignment_created") {
-                        activityDescription = "Assignment Created";
-                        activityDetails = "Created a new assignment";
-                    } else if (activity.activityType === "submission") {
-                        activityDescription = "Assignment Submitted";
-                        activityDetails = "Submitted an assignment";
-                    } else if (activity.activityType === "login") {
-                        activityDescription = "User Login";
-                        activityDetails = "Logged into the system";
-                    } else if (activity.activityType === "system_update") {
-                        activityDescription = "System Update";
-                        activityDetails = "Performed system maintenance";
-                    }
+                        if (activity.activityType === "assignment_created") {
+                            activityDescription = "Assignment Created";
+                            activityDetails = "Created a new assignment";
+                            activityIcon = "clipboard-list";
+                            activityColor = "success";
+                        } else if (activity.activityType === "submission") {
+                            activityDescription = "Assignment Submitted";
+                            activityDetails = "Submitted an assignment";
+                            activityIcon = "file-upload";
+                            activityColor = "info";
+                        } else if (activity.activityType === "login") {
+                            activityDescription = "User Login";
+                            activityDetails = "Logged into the system";
+                            activityIcon = "sign-in-alt";
+                            activityColor = "warning";
+                        } else if (activity.activityType === "system_update") {
+                            activityDescription = "System Update";
+                            activityDetails = "Performed system maintenance";
+                            activityIcon = "cogs";
+                            activityColor = "dark";
+                        } else if (activity.activityType === "payment") {
+                            activityDescription = "Payment Recorded";
+                            activityDetails = "Tuition payment recorded";
+                            activityIcon = "money-bill";
+                            activityColor = "success";
+                        }
 
-                    activitiesHTML += `
+                        activitiesHTML += `
                         <tr>
                             <td>
-                                <strong>${activity.firstName} ${activity.lastName}</strong>
-                                <br>
-                                <small class="text-muted">${activity.idNumber}</small>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-${activityColor} text-white me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                        ${activity.firstName ? activity.firstName.charAt(0).toUpperCase() : ''}
+                                        ${activity.lastName ? activity.lastName.charAt(0).toUpperCase() : ''}
+                                    </div>
+                                    <div>
+                                        <strong>${activity.firstName || ''} ${activity.lastName || ''}</strong>
+                                        <br>
+                                        <small class="text-muted">${activity.idNumber || ''}</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-${activity.role === 'admin' ? 'danger' :
-                            activity.role === 'teacher' ? 'warning' : 'info'
-                        }">
+                                activity.role === 'teacher' ? 'warning' :
+                                    activity.role === 'parent' ? 'purple' : 'info'}">
                                     ${activity.role}
                                 </span>
                             </td>
-                            <td>${activityDescription}</td>
-                            <td>${new Date(activity.createdAt).toLocaleString()}</td>
-                            <td>${activityDetails}</td>
+                            <td>
+                                <i class="fas fa-${activityIcon} text-${activityColor} me-2"></i>
+                                ${activityDescription}
+                            </td>
+                            <td>
+                                <small>${new Date(activity.createdAt).toLocaleDateString()}</small>
+                                <br>
+                                <small class="text-muted">${new Date(activity.createdAt).toLocaleTimeString()}</small>
+                            </td>
+                            <td>
+                                <small class="text-muted">${activityDetails}</small>
+                            </td>
                         </tr>
                     `;
-                });
+                    });
 
-                activitiesHTML += `
+                    activitiesHTML += `
                             </tbody>
                         </table>
                     </div>
                 `;
 
-                recentActivityContent.innerHTML = activitiesHTML;
-            } else {
-                recentActivityContent.innerHTML = `
-                    <div class="text-center py-4">
+                    recentActivityContent.innerHTML = activitiesHTML;
+                } else {
+                    activityCount.textContent = "0 activities";
+                    recentActivityContent.innerHTML = `
+                    <div class="text-center py-5">
                         <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                        <h5>No activity data available</h5>
+                        <h5>No recent activity</h5>
                         <p class="text-muted">Activity data will appear here as users interact with the system.</p>
                     </div>
                 `;
-            }
-        }
-
-        // Function to render charts
-        function renderCharts(overviewData, gradesData) {
-            // User Distribution Chart
-            const userCtx = document.getElementById('userDistributionChart').getContext('2d');
-
-            // Destroy previous chart instance if it exists
-            if (userDistributionChartInstance) {
-                userDistributionChartInstance.destroy();
+                }
             }
 
-            userDistributionChartInstance = new Chart(userCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Students', 'Teachers', 'Admins'],
-                    datasets: [{
-                        data: [
-                            overviewData.totalStudents,
-                            overviewData.totalTeachers,
-                            overviewData.totalAdmins || 1
-                        ],
-                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+            // Function to render charts
+            function renderCharts(overviewData, tuitionData, gradesData) {
+                // User Distribution Chart
+                const userCtx = document.getElementById('userDistributionChart').getContext('2d');
+
+                // Destroy previous chart instance if it exists
+                if (userDistributionChartInstance) {
+                    userDistributionChartInstance.destroy();
+                }
+
+                userDistributionChartInstance = new Chart(userCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Students', 'Teachers', 'Admins', 'Parents'],
+                        datasets: [{
+                            data: [
+                                overviewData.totalStudents,
+                                overviewData.totalTeachers,
+                                overviewData.totalAdmins || 0,
+                                overviewData.totalParents || 0
+                            ],
+                            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#6f42c1'],
+                            hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#5936a9'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((context.raw / total) * 100);
+                                        return `${context.label}: ${context.raw} (${percentage}%)`;
+                                    }
+                                }
+                            }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = Math.round((context.raw / total) * 100);
-                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                        cutout: '60%'
+                    }
+                });
+
+                // Tuition Status Chart
+                const tuitionCtx = document.getElementById('tuitionStatusChart').getContext('2d');
+
+                // Destroy previous chart instance if it exists
+                if (tuitionStatusChartInstance) {
+                    tuitionStatusChartInstance.destroy();
+                }
+
+                const paidStudents = tuitionData.paidStudents || 0;
+                const partialStudents = tuitionData.partialStudents || 0;
+                const unpaidStudents = tuitionData.unpaidStudents || 0;
+
+                tuitionStatusChartInstance = new Chart(tuitionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Paid', 'Partial', 'Unpaid'],
+                        datasets: [{
+                            data: [paidStudents, partialStudents, unpaidStudents],
+                            backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                            hoverBackgroundColor: ['#218838', '#e0a800', '#c82333'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((context.raw / total) * 100);
+                                        return `${context.label}: ${context.raw} (${percentage}%)`;
+                                    }
                                 }
                             }
                         }
                     }
+                });
+
+                // Grade Distribution Chart
+                const gradeCtx = document.getElementById('gradeDistributionChart').getContext('2d');
+
+                // Destroy previous chart instance if it exists
+                if (gradeDistributionChartInstance) {
+                    gradeDistributionChartInstance.destroy();
                 }
-            });
 
-            // Grade Distribution Chart
-            const gradeCtx = document.getElementById('gradeDistributionChart').getContext('2d');
+                // Prepare grade distribution data
+                const gradeLabels = ['A (90-100)', 'B (80-89)', 'C (70-79)', 'D (60-69)', 'F (0-59)'];
+                const gradeData = [
+                    gradesData.distribution['90-100'] || 0,
+                    gradesData.distribution['80-89'] || 0,
+                    gradesData.distribution['70-79'] || 0,
+                    gradesData.distribution['60-69'] || 0,
+                    gradesData.distribution['0-59'] || 0
+                ];
 
-            // Destroy previous chart instance if it exists
-            if (gradeDistributionChartInstance) {
-                gradeDistributionChartInstance.destroy();
-            }
-
-            gradeDistributionChartInstance = new Chart(gradeCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['90-100', '80-89', '70-79', '60-69', '0-59'],
-                    datasets: [{
-                        label: 'Number of Grades',
-                        data: [
-                            gradesData.distribution['90-100'] || 0,
-                            gradesData.distribution['80-89'] || 0,
-                            gradesData.distribution['70-79'] || 0,
-                            gradesData.distribution['60-69'] || 0,
-                            gradesData.distribution['0-59'] || 0
-                        ],
-                        backgroundColor: '#4e73df'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Grades'
+                gradeDistributionChartInstance = new Chart(gradeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: gradeLabels,
+                        datasets: [{
+                            label: 'Number of Grades',
+                            data: gradeData,
+                            backgroundColor: ['#28a745', '#20c997', '#ffc107', '#fd7e14', '#dc3545'],
+                            borderColor: ['#218838', '#17a673', '#e0a800', '#e46c0a', '#c82333'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Students'
+                                },
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Grade Range'
+                                }
                             }
                         },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Grade Range'
+                        plugins: {
+                            legend: {
+                                display: false
                             }
                         }
                     }
-                }
+                });
+
+                // Update grade legend
+                const gradeLegend = document.getElementById('gradeLegend');
+                let legendHTML = '<h6>Grade Distribution</h6>';
+                gradeLabels.forEach((label, index) => {
+                    const percentage = gradeData.reduce((a, b) => a + b, 0) > 0 ?
+                        Math.round((gradeData[index] / gradeData.reduce((a, b) => a + b, 0)) * 100) : 0;
+                    legendHTML += `
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="grade-distribution-bar grade-${['a', 'b', 'c', 'd', 'f'][index]}" style="width: 20px;"></div>
+                        <div class="ms-2 flex-grow-1">
+                            <small>${label}</small>
+                        </div>
+                        <div class="text-end">
+                            <small class="fw-bold">${gradeData[index]} (${percentage}%)</small>
+                        </div>
+                    </div>
+                `;
+                });
+                gradeLegend.innerHTML = legendHTML;
+            }
+
+            // Function to refresh data
+            function refreshData() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                setTimeout(() => {
+                    fetchData();
+                }, 500);
+            }
+
+            // Export functions
+            function exportData(format) {
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    alert(`Data exported as ${format.toUpperCase()} successfully!`);
+                }, 1000);
+            }
+
+            // Loading functions
+            function showLoading() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            }
+
+            function hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+
+            // Initialize the dashboard when the page loads
+            document.addEventListener('DOMContentLoaded', function () {
+                fetchData();
+                // Update last updated time every minute
+                setInterval(updateLastUpdated, 60000);
             });
-        }
 
-        // Function to refresh data
-        function refreshData() {
-            fetchData();
-        }
-
-        // Export functions
-        function exportData(format) {
-            // In a real application, this would fetch current data and export it
-            alert(`Exporting data as ${format.toUpperCase()}...`);
-
-            // For demonstration purposes, we'll just show an alert
-            // You would implement actual export functionality here
-        }
-
-        // Initialize the dashboard when the page loads
-        document.addEventListener('DOMContentLoaded', function () {
-            fetchData();
-        });
-    </script>
+            // Auto-refresh every 5 minutes
+            setInterval(refreshData, 300000);
+        </script>
 </body>
 
 </html>

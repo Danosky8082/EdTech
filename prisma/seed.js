@@ -147,11 +147,9 @@ async function main() {
 
   console.log('✅ Teacher (different school) created: teacher002 / 12345');
 
-  // Create sample class
-  const mathClass = await prisma.class.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  // Create sample class - FIXED: Use create instead of upsert with hardcoded ID
+  const mathClass = await prisma.class.create({
+    data: {
       name: 'Mathematics 101',
       grade: '10',
       section: 'A',
@@ -245,40 +243,24 @@ async function main() {
 
   console.log('✅ Students created for both schools');
 
-  // Enroll students in classes
-  await prisma.enrollment.upsert({
-    where: {
-      studentId_classId: {
-        studentId: student1.id,
-        classId: mathClass.id
-      }
-    },
-    update: {},
-    create: {
+  // Enroll students in classes - FIXED: Use create instead of upsert with wrong constraint name
+  await prisma.enrollment.create({
+    data: {
       studentId: student1.id,
       classId: mathClass.id
     }
   });
 
-  await prisma.enrollment.upsert({
-    where: {
-      studentId_classId: {
-        studentId: student2.id,
-        classId: mathClass.id
-      }
-    },
-    update: {},
-    create: {
+  await prisma.enrollment.create({
+    data: {
       studentId: student2.id,
       classId: mathClass.id
     }
   });
 
   // Create tuition payment records
-  await prisma.tuitionPayment.upsert({
-    where: { receiptNumber: 'REC001' },
-    update: {},
-    create: {
+  await prisma.tuitionPayment.create({
+    data: {
       receiptNumber: 'REC001',
       amount: 500.00,
       status: 'verified',
@@ -292,10 +274,8 @@ async function main() {
   console.log('✅ Enrollment and payment records created');
 
   // Create sample materials and assignments
-  const material = await prisma.material.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  const material = await prisma.material.create({
+    data: {
       title: 'Algebra Basics',
       description: 'Introduction to algebraic expressions and equations',
       type: 'textbook',
@@ -308,10 +288,8 @@ async function main() {
     }
   });
 
-  const assignment = await prisma.assignment.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  const assignment = await prisma.assignment.create({
+    data: {
       title: 'Algebra Assignment 1',
       description: 'Solve the algebraic equations',
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now

@@ -1,95 +1,64 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
-// Configure storage for submissions
-const submissionStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads/submissions/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Ensure upload directories exist
+const materialsDir = path.join(__dirname, '../../public/uploads/materials');
+if (!fs.existsSync(materialsDir)) {
+  fs.mkdirSync(materialsDir, { recursive: true });
+  console.log('✅ Created upload directory:', materialsDir);
+}
 
 // Configure storage for materials
 const materialStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/materials/');
+    cb(null, materialsDir);
   },
   filename: function (req, file, cb) {
-    // Preserve original file extension
+    // Create unique filename with timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = file.fieldname + '-' + uniqueSuffix + ext;
+    cb(null, filename);
   }
 });
 
-// Configure storage for profile images
-const profileStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/profiles/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+// File filter for materials
+const materialFileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'video/mp4',
+    'video/mpeg',
+    'application/zip',
+    'application/x-rar-compressed'
+  ];
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only documents, images, videos, and compressed files are allowed.'), false);
   }
-});
-
-// File filter for all uploads
-const fileFilter = (req, file, cb) => {
-  // Accept all file types for submissions and materials
-  cb(null, true);
 };
 
-// Create multer instances for different purposes
-const upload = multer({
-  storage: submissionStorage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limit for submissions
-  }
-});
-
-const uploadMaterial = multer({
+// Create multer instance for materials
+const materialUpload = multer({
   storage: materialStorage,
-  fileFilter: fileFilter,
+  fileFilter: materialFileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit for materials (videos can be large)
+    fileSize: 100 * 1024 * 1024 // 100MB max file size
   }
 });
-
-const uploadProfile = multer({
-  storage: profileStorage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for profile images
-  }
-});
-
-// Single file upload helpers (for backward compatibility)
-const uploadSingle = (fieldName) => upload.single(fieldName);
-const uploadMaterialSingle = (fieldName) => uploadMaterial.single(fieldName);
-const uploadProfileSingle = (fieldName) => uploadProfile.single(fieldName);
-
-// Multiple file upload helpers (if needed)
-const uploadMultiple = (fieldName, maxCount = 5) => upload.array(fieldName, maxCount);
-const uploadMaterialMultiple = (fieldName, maxCount = 5) => uploadMaterial.array(fieldName, maxCount);
 
 module.exports = {
-  // Main instances
-  upload,
-  uploadMaterial,
-  uploadProfile,
-  
-  // Single file upload helpers
-  uploadSingle,
-  uploadMaterialSingle,
-  uploadProfileSingle,
-  
-  // Multiple file upload helpers
-  uploadMultiple,
-  uploadMaterialMultiple,
-  
-  // Original export for backward compatibility
-  ...upload
+  upload: materialUpload
 };

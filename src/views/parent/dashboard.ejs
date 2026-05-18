@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdTech - Parent Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            border: none;
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .student-card {
+            border-left: 4px solid #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .student-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .wallet-balance {
+            font-size: 2em;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .savings-card {
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .savings-progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #0d6efd;
+            font-weight: bold;
+        }
+
+        .subject-progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .wallet-card {
+            border-left: 4px solid #28a745;
+        }
+
+        .transaction-item {
+            border-left: 3px solid #007bff;
+            padding-left: 15px;
+        }
+
+        .deposit-amount {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .payment-amount {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border 0.75s linear infinite;
+        }
+
+        @keyframes spinner-border {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .transaction-history-card {
+            border-left: 4px solid #6f42c1;
+        }
+
+        .savings-goal-card {
+            transition: all 0.3s ease;
+        }
+
+        .savings-goal-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .school-header {
+            background-color: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #0d6efd;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+
+
+        <!-- Flash Messages -->
+        <div class="container-fluid">
+            <% if (typeof messages !=='undefined' ) { %>
+                <% if (messages.error) { %>
+                    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <%= messages.error %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <% } %>
+
+                        <% if (messages.success) { %>
+                            <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <%= messages.success %>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            <% } %>
+
+                                <% if (messages.warning) { %>
+                                    <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        <%= messages.warning %>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                    <% } %>
+                                        <% } %>
+        </div>
+
+        <div class="container-fluid py-4">
+            <!-- Header Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h2 class="card-title mb-1">
+                                        <i class="fas fa-user-tie me-2"></i>Welcome,
+                                        <%= user.firstName %>!
+                                    </h2>
+                                    <p class="card-text mb-0">Parent Dashboard - Monitor your children's progress and
+                                        manage payments</p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="wallet-balance">
+                                        =N=<%= wallet ? wallet.balance.toFixed(2) : '0.00' %>
+                                    </div>
+                                    <small class="text-light">Wallet Balance</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>
+                                        <% let totalStudents=0; if (studentsBySchool) {
+                                            Object.keys(studentsBySchool).forEach(school=> {
+                                            totalStudents += studentsBySchool[school].length;
+                                            });
+                                            }
+                                            %>
+                                            <%= totalStudents %>
+                                    </h4>
+                                    <p>Linked Students</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>=N=<%= totalSavings ? totalSavings.toFixed(2) : '0.00' %>
+                                    </h4>
+                                    <p>Total Savings</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-piggy-bank fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>
+                                        <%= pendingPayments ? pendingPayments.length : 0 %>
+                                    </h4>
+                                    <p>Pending Payments</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>
+                                        <%= savingsGoals ? savingsGoals.length : 0 %>
+                                    </h4>
+                                    <p>Active Goals</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-bullseye fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="row">
+                <!-- Students List & Savings Goals -->
+                <div class="col-lg-8">
+                    <!-- Students List -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-graduation-cap me-2"></i>My Students
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <% if (studentsBySchool) { %>
+                                <% Object.keys(studentsBySchool).forEach(school=> { %>
+                                    <div class="mb-4">
+                                        <h6 class="mb-2 school-header">
+                                            <i class="fas fa-school me-2"></i>
+                                            <%= school %>
+                                        </h6>
+                                        <div class="row">
+                                            <% studentsBySchool[school].forEach(studentRel=> {
+                                                const student = studentRel.student;
+                                                const progress = studentRel.progress;
+                                                %>
+                                                <div class="col-md-6 mb-4">
+                                                    <!-- Student card code remains the same -->
+                                                    <div class="card student-card h-100">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-3">
+                                                                <div>
+                                                                    <h6 class="card-title mb-1">
+                                                                        <%= student.user.firstName %>
+                                                                            <%= student.user.lastName %>
+                                                                    </h6>
+                                                                    <p class="text-muted small mb-0">
+                                                                        ID: <%= student.user.idNumber %> | Grade: <%=
+                                                                                student.grade %> - <%= student.section
+                                                                                    %>
+                                                                    </p>
+                                                                    <p class="text-muted small mb-0">
+                                                                        <i class="fas fa-school me-1"></i>
+                                                                        <%= student.user.school || 'Unknown School' %>
+                                                                    </p>
+                                                                </div>
+                                                                <span class="badge bg-<%= 
+                                                                student.tuitionStatus === 'paid' ? 'success' : 
+                                                                student.tuitionStatus === 'partial' ? 'warning' : 'danger' 
+                                                            %>">
+                                                                    <%= student.tuitionStatus %>
+                                                                </span>
+                                                            </div>
+
+                                                            <!-- Tuition Information -->
+                                                            <div class="mb-3">
+                                                                <small class="text-muted">Tuition Status</small>
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
+                                                                    <span>
+                                                                        <%= student.tuitionStatus.toUpperCase() %>
+                                                                    </span>
+                                                                    <% if (student.tuitionPayments &&
+                                                                        student.tuitionPayments.length> 0) { %>
+                                                                        <span class="badge bg-info">
+                                                                            <%= student.tuitionPayments.length %>
+                                                                                payment(s)
+                                                                        </span>
+                                                                        <% } %>
+                                                                </div>
+                                                            </div>
+
+                                                        <!-- Actions -->
+                                                        <div class="d-grid gap-2">
+                                                            <button class="btn btn-outline-primary btn-sm" onclick="viewStudentDetails('<%= student.id %>')">
+                                                                <i class="fas fa-eye me-1"></i>View Details
+                                                            </button>
+                                                            <button class="btn btn-success btn-sm" onclick="makePayment('<%= student.id %>')">
+                                                                <i class="fas fa-money-bill me-1"></i>
+                                                                <% if (student.tuitionStatus==='paid' ) { %>
+                                                                    Make Additional Payment
+                                                                    <% } else { %>
+                                                                        Make Payment
+                                                                        <% } %>
+                                                            </button>
+                                                        </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <% }); %>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <div class="text-center py-4">
+                                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                                <h5>No Students Linked</h5>
+                                                <p class="text-muted">Contact your school administrator to link students
+                                                    to your
+                                                    account.</p>
+                                            </div>
+                                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Savings Goals -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-bullseye me-2"></i>My Savings Goals
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span>Track your savings progress for school fees</span>
+                                <button class="btn btn-primary btn-sm" onclick="showCreateGoalModal()">
+                                    <i class="fas fa-plus me-1"></i>New Goal
+                                </button>
+                            </div>
+
+                            <% if (savingsGoals && savingsGoals.length> 0) { %>
+                                <div class="row">
+                                    <% savingsGoals.forEach(goal=> {
+                                        const progress = (goal.currentAmount / goal.targetAmount) * 100;
+                                        %>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card savings-goal-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="card-title mb-0">
+                                                            <%= goal.name %>
+                                                        </h6>
+                                                        <span
+                                                            class="badge bg-<%= goal.isActive ? 'success' : 'secondary' %>">
+                                                            <%= goal.isActive ? 'Active' : 'Completed' %>
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <small>Progress</small>
+                                                            <small>
+                                                                <%= progress.toFixed(1) %>%
+                                                            </small>
+                                                        </div>
+                                                        <div class="progress savings-progress">
+                                                            <div class="progress-bar bg-success" role="progressbar"
+                                                                style="width: <%= progress %>%"></div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="d-flex justify-content-between text-sm mb-2">
+                                                        <span>Saved: =N=<%= goal.currentAmount.toFixed(2) %></span>
+                                                        <span>Target: =N=<%= goal.targetAmount.toFixed(2) %></span>
+                                                    </div>
+
+                                                    <% if (goal.isActive) { %>
+                                                        <div class="d-grid gap-1">
+                                                            <button class="btn btn-outline-success btn-sm" onclick="addToSavings('<%= goal.id %>')">
+                                                                <i class="fas fa-plus me-1"></i>Add Savings
+                                                            </button>
+                                                            <button class="btn btn-outline-primary btn-sm" onclick="transferToWallet('<%= goal.id %>')">
+                                                                <i class="fas fa-exchange-alt me-1"></i>Transfer to Wallet
+                                                            </button>
+                                                        </div>
+                                                        <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% }); %>
+                                </div>
+                                <% } else { %>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-bullseye fa-3x text-muted mb-3"></i>
+                                        <h5>No Savings Goals</h5>
+                                        <p class="text-muted">Create your first savings goal to start saving for school
+                                            fees.</p>
+                                        <button class="btn btn-primary" onclick="showCreateGoalModal()">
+                                            <i class="fas fa-plus me-1"></i>Create First Goal
+                                        </button>
+                                    </div>
+                                    <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Quick Actions -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-bolt me-2"></i>Quick Actions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Current Wallet Balance -->
+                            <div class="mb-3 p-3 bg-light rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">Current Balance:</span>
+                                    <span class="wallet-balance fs-5">=N=<%= wallet ? wallet.balance.toFixed(2) : '0.00'
+                                            %></span>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" onclick="addFundsToWallet()">
+                                    <i class="fas fa-wallet me-2"></i>Add Funds to Wallet
+                                </button>
+                                <button class="btn btn-outline-success" onclick="showCreateGoalModal()">
+                                    <i class="fas fa-bullseye me-2"></i>Create Savings Goal
+                                </button>
+                                <a href="/parent/progress-reports" class="btn btn-outline-info">
+                                    <i class="fas fa-chart-line me-2"></i>Progress Reports
+                                </a>
+                                <button class="btn btn-outline-warning" onclick="contactSchool()">
+                                    <i class="fas fa-envelope me-2"></i>Contact School
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-history me-2"></i>Recent Activity
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivityList">
+                                <div class="text-center">
+                                    <div class="loading-spinner text-primary me-2"></div>
+                                    Loading activities...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card transaction-history-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-history me-2"></i>Transaction History
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th>Type</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactionHistory">
+                                        <tr>
+                                            <td colspan="5" class="text-center">
+                                                <div class="loading-spinner text-primary me-2"></div>
+                                                Loading transactions...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <%- include('./modals/student-details-modal') %>
+            <%- include('./modals/payment-modal') %>
+                <%- include('./modals/add-funds-modal') %>
+                    <%- include('./modals/savings-modals') %>
+                        <%- include('./modals/contact-modal') %>
+
+                           <script>
+                            // Global variables
+                            let currentStudentId = null;
+                            let currentSavingsGoalId = null;
+
+                            // Helper function to check if response is JSON
+                            async function parseJSONResponse(response) {
+                                const text = await response.text();
+                                try {
+                                    return JSON.parse(text);
+                                } catch (error) {
+                                    console.error('Failed to parse JSON:', text.substring(0, 200));
+                                    return {
+                                        success: false,
+                                        message: 'Server returned an invalid response. Please try again.'
+                                    };
+                                }
+                            }
+
+                            // Helper function for fetch with timeout
+                            async function fetchWithTimeout(url, options, timeout = 30000) {
+                                const controller = new AbortController();
+                                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                                try {
+                                    const response = await fetch(url, {
+                                        ...options,
+                                        signal: controller.signal
+                                    });
+                                    clearTimeout(timeoutId);
+                                    return response;
+                                } catch (error) {
+                                    clearTimeout(timeoutId);
+                                    throw error;
+                                }
+                            }
+
+                            // View Student Details
+                            // View Student Details
+                                async function viewStudentDetails(studentId) {
+                                    try {
+                                        const response = await fetch(`/parent/student/${studentId}`);
+                                        const result = await parseJSONResponse(response);
+
+                                        if (result.success) {
+                                            const student = result.student;
+                                            const modalBody = document.getElementById('studentDetailsBody');
+
+                                            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        ${student.user.avatar ?
+                                                    `<img src="/${student.user.avatar}" alt="Avatar" class="rounded-circle" width="100" height="100">` :
+                                                    `<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px;">
+                                <i class="fas fa-user text-white fa-2x"></i>
+                            </div>`
+                                                }
+                        <h5 class="mt-3">${student.user.firstName} ${student.user.lastName}</h5>
+                        <p class="text-muted">${student.user.idNumber}</p>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <strong>Grade:</strong> ${student.grade}
+                            </div>
+                            <div class="col-6 mb-3">
+                                <strong>Section:</strong> ${student.section}
+                            </div>
+                            <div class="col-6 mb-3">
+                                <strong>Email:</strong> ${student.user.email || 'N/A'}
+                            </div>
+                            <div class="col-6 mb-3">
+                                <strong>Date of Birth:</strong> ${student.user.dateOfBirth ? new Date(student.user.dateOfBirth).toLocaleDateString() : 'N/A'}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <strong>Tuition Status:</strong>
+                                <span class="badge bg-${student.tuitionStatus === 'paid' ? 'success' : student.tuitionStatus === 'partial' ? 'warning' : 'danger'}">
+                                    ${student.tuitionStatus.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment History Section -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                ${student.parentPayments && student.parentPayments.length > 0 ? `
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Fee Type</th>
+                                                    <th>Description</th>
+                                                    <th>Amount</th>
+                                                    
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${student.parentPayments.map(payment => `
+                                                    <tr>
+                                                        <td>${new Date(payment.createdAt).toLocaleDateString()}</td>
+                                                        <td>
+                                                            <span class="badge bg-info">
+                                                                ${payment.feeType ? payment.feeType.toUpperCase() : 'TUITION'}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="text-wrap" style="min-width: 150px;">
+                                                                ${payment.description || `Payment for ${payment.feeType || 'tuition'}`}
+                                                                ${payment.reason ? `<br><small class="text-muted">Reason: ${payment.reason}</small>` : ''}
+                                                            </div>
+                                                        </td>
+                                                        <td class="fw-bold">=N=${payment.amount ? payment.amount.toFixed(2) : '0.00'}</td>
+                            
+                                                        <td>
+                                                            <span class="badge bg-${payment.status === 'confirmed' ? 'success' :
+                                                        payment.status === 'rejected' ? 'danger' :
+                                                            payment.status === 'pending' ? 'warning' : 'secondary'}">
+                                                                ${payment.status}
+                                                            </span>
+                                                            ${payment.confirmedAt ? `<br><small class="text-muted">Confirmed: ${new Date(payment.confirmedAt).toLocaleDateString()}</small>` : ''}
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ` : `
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                        <h6>No Payment History</h6>
+                                        <p class="text-muted small">No payments have been made for this student yet.</p>
+                                    </div>
+                                `}
+                            </div>
+                            ${student.parentPayments && student.parentPayments.length > 0 ? `
+                                <div class="card-footer bg-light">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">
+                                                Total Payments: ${student.parentPayments.length}
+                                            </small>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="text-muted">
+                                                Total Amount: =N=${student.parentPayments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Additional Student Information if needed -->
+                        ${student.tuitionPayments && student.tuitionPayments.length > 0 ? `
+                            <div class="card mt-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Official Tuition Records</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Amount</th>
+                                                    <th>Receipt</th>
+                                                    <th>Term</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${student.tuitionPayments.map(payment => `
+                                                    <tr>
+                                                        <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                                                        <td>=N=${payment.amount ? payment.amount.toFixed(2) : '0.00'}</td>
+                                                        <td>${payment.receiptNumber || 'N/A'}</td>
+                                                        <td>${payment.semester || 'N/A'}</td>
+                                                        <td><span class="badge bg-${payment.status === 'verified' ? 'success' : 'warning'}">${payment.status}</span></td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+                                            const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+                                            modal.show();
+                                        } else {
+                                            alert('Error: ' + result.message);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error:', error);
+                                        alert('An error occurred while loading student details');
+                                    }
+                                }
+
+                            // Make Payment
+                            async function makePayment(studentId) {
+                                    currentStudentId = studentId;
+                                    const modalBody = document.getElementById('feePaymentModalBody');
+
+                                    try {
+                                        const response = await fetch(`/parent/student/${studentId}`);
+                                        const result = await parseJSONResponse(response);
+
+                                        if (result.success) {
+                                            const student = result.student;
+                                            const walletBalance = <%= wallet ?wallet.balance: 0 %>;
+
+                                            modalBody.innerHTML = `
+                <div class="mb-3">
+                    <label class="form-label">Student</label>
+                    <input type="text" class="form-control" 
+                        value="${student.user.firstName} ${student.user.lastName}" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Fee Type *</label>
+                    <select class="form-select" id="feeType" required>
+                        <option value="tuition">Tuition Fee</option>
+                        <option value="exam">Exam Fee</option>
+                        <option value="pta">PTA Fee</option>
+                        <option value="library">Library Fee</option>
+                        <option value="sports">Sports Fee</option>
+                        <option value="activity">Activity Fee</option>
+                        <option value="uniform">Uniform Fee</option>
+                        <option value="other">Other Fee</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Amount *</label>
+                    <input type="number" class="form-control" id="paymentAmount" 
+                        placeholder="Enter amount" min="1" step="0.01" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Payment Method *</label>
+                    <select class="form-select" id="paymentMethod" required>
+                        <option value="wallet">Wallet Balance (Current: =N=${walletBalance.toFixed(2)})</option>
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="transfer">Bank Transfer</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="paymentDescription" 
+                        placeholder="Optional: Add payment details or notes" rows="2"></textarea>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Note:</strong> Only tuition payments affect student's tuition status. 
+                    Other fees (exam, PTA, etc.) can be paid anytime.
+                </div>
+                
+                <div class="d-grid">
+                    <button type="button" class="btn btn-success" onclick="processFeePayment()">
+                        <i class="fas fa-lock me-2"></i>Proceed to Pay
+                    </button>
+                </div>
+            `;
+                                        } else {
+                                            modalBody.innerHTML = '<div class="alert alert-danger">Error loading student details</div>';
+                                        }
+                                    } catch (error) {
+                                        console.error('Error loading student details:', error);
+                                        modalBody.innerHTML = '<div class="alert alert-danger">Error loading student details</div>';
+                                    }
+
+                                    const modal = new bootstrap.Modal(document.getElementById('feePaymentModal'));
+                                    modal.show();
+                                }
+
+                                // Process Fee Payment (Updated)
+                                async function processFeePayment() {
+                                    const amount = document.getElementById('paymentAmount').value;
+                                    const method = document.getElementById('paymentMethod').value;
+                                    const feeType = document.getElementById('feeType').value;
+                                    const description = document.getElementById('paymentDescription').value;
+                                    const walletBalance = <%= wallet ?wallet.balance: 0 %>;
+
+                                    if (!amount || amount <= 0) {
+                                        alert('Please enter a valid amount');
+                                        return;
+                                    }
+
+                                    if (method === 'wallet' && parseFloat(amount) > walletBalance) {
+                                        alert('Insufficient wallet balance. Current balance: =N=' + walletBalance.toFixed(2));
+                                        return;
+                                    }
+
+                                    try {
+                                        const button = document.querySelector('#feePaymentModal .btn-success');
+                                        const originalText = button.innerHTML;
+                                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                                        button.disabled = true;
+
+                                        const response = await fetchWithTimeout('/parent/payment', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                studentId: currentStudentId,
+                                                amount: parseFloat(amount),
+                                                paymentMethod: method,
+                                                feeType: feeType,
+                                                description: description || `${feeType} fee payment`
+                                            })
+                                        });
+
+                                        const result = await parseJSONResponse(response);
+
+                                        if (result.success) {
+                                            const modal = bootstrap.Modal.getInstance(document.getElementById('feePaymentModal'));
+                                            modal.hide();
+
+                                            // Show success message with receipt
+                                            showPaymentReceiptModal(result.receiptNumber, amount, feeType, 'pending');
+
+                                            // Reload data
+                                            loadTransactionHistory();
+                                            loadRecentActivity();
+                                            loadPendingPayments();
+                                        } else {
+                                            alert('Error: ' + result.message);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error:', error);
+                                        if (error.name === 'AbortError') {
+                                            alert('Request timeout. Please try again.');
+                                        } else {
+                                            alert('An error occurred while processing payment: ' + error.message);
+                                        }
+                                    } finally {
+                                        const button = document.querySelector('#feePaymentModal .btn-success');
+                                        button.innerHTML = '<i class="fas fa-lock me-2"></i>Proceed to Pay';
+                                        button.disabled = false;
+                                    }
+                                }
+
+                                // New function to show payment receipt
+                                function showPaymentReceiptModal(receiptNumber, amount, feeType, status) {
+                                    const modal = document.createElement('div');
+                                    modal.className = 'modal fade';
+                                    modal.id = 'paymentReceiptModal';
+
+                                    const feeTypeNames = {
+                                        tuition: 'Tuition Fee',
+                                        exam: 'Exam Fee',
+                                        pta: 'PTA Fee',
+                                        library: 'Library Fee',
+                                        sports: 'Sports Fee',
+                                        activity: 'Activity Fee',
+                                        uniform: 'Uniform Fee',
+                                        other: 'Other Fee'
+                                    };
+
+                                    modal.innerHTML = `
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-receipt me-2"></i>Payment Submitted
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h4>Payment Submitted</h4>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Receipt Number</p>
+                        <h5 class="fw-bold">${receiptNumber}</h5>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Fee Type</p>
+                        <h6 class="text-primary">${feeTypeNames[feeType] || feeType}</h6>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Amount</p>
+                        <h4 class="text-success">=N=${parseFloat(amount).toFixed(2)}</h4>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Status</p>
+                        <span class="badge bg-${status === 'pending' ? 'warning' : 'success'}">
+                            ${status === 'pending' ? 'Pending Confirmation' : 'Confirmed'}
+                        </span>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Your ${feeTypeNames[feeType] || feeType} payment is awaiting cashier confirmation.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="printReceipt('${receiptNumber}')">
+                        <i class="fas fa-print me-2"></i>Print Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+                                    document.body.appendChild(modal);
+                                    const bsModal = new bootstrap.Modal(modal);
+                                    bsModal.show();
+
+                                    // Remove modal from DOM after hiding
+                                    modal.addEventListener('hidden.bs.modal', function () {
+                                        document.body.removeChild(modal);
+                                    });
+                                }
+
+                            // Wallet Functions
+                            function addFundsToWallet() {
+                                const modal = new bootstrap.Modal(document.getElementById('addFundsModal'));
+                                document.getElementById('addFundsAmount').value = '';
+                                document.getElementById('addFundsMethod').value = 'card';
+                                modal.show();
+                            }
+
+                            async function processAddFunds() {
+                                const amount = document.getElementById('addFundsAmount').value;
+                                const method = document.getElementById('addFundsMethod').value;
+
+                                if (!amount || amount <= 0) {
+                                    alert('Please enter a valid amount (minimum =N=1.00)');
+                                    return;
+                                }
+
+                                try {
+                                    const addButton = document.querySelector('#addFundsModal .btn-success');
+                                    const originalText = addButton.innerHTML;
+                                    addButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                                    addButton.disabled = true;
+
+                                    const response = await fetchWithTimeout('/parent/wallet/add-funds', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                            amount: parseFloat(amount),
+                                            paymentMethod: method
+                                        })
+                                    }, 30000); // 30 second timeout
+
+                                    // Check if response is OK
+                                    if (!response.ok) {
+                                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                                    }
+
+                                    const result = await parseJSONResponse(response);
+
+                                    if (result.success) {
+                                        const modal = bootstrap.Modal.getInstance(document.getElementById('addFundsModal'));
+                                        modal.hide();
+                                        alert('✅ Funds added successfully!\nNew balance: =N=' + (result.balance ? result.balance.toFixed(2) : amount));
+                                        loadTransactionHistory();
+                                        loadRecentActivity();
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + result.message);
+                                    }
+
+                                } catch (error) {
+                                    console.error('Error adding funds:', error);
+                                    if (error.name === 'AbortError') {
+                                        alert('The request is taking too long. Please check your internet connection and try again.');
+                                    } else {
+                                        alert('An error occurred while adding funds. Please try again. Error: ' + error.message);
+                                    }
+                                } finally {
+                                    const addButton = document.querySelector('#addFundsModal .btn-success');
+                                    addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Add Funds';
+                                    addButton.disabled = false;
+                                }
+                            }
+
+                            // Savings Functions
+                            function showCreateGoalModal() {
+                                const modal = new bootstrap.Modal(document.getElementById('createGoalModal'));
+                                document.getElementById('goalName').value = '';
+                                document.getElementById('targetAmount').value = '';
+                                document.getElementById('targetDate').value = '';
+                                modal.show();
+                            }
+
+                            async function createSavingsGoal() {
+                                const name = document.getElementById('goalName').value;
+                                const targetAmount = document.getElementById('targetAmount').value;
+                                const targetDate = document.getElementById('targetDate').value;
+
+                                if (!name || !targetAmount || targetAmount <= 0) {
+                                    alert('Please fill in all required fields with valid values');
+                                    return;
+                                }
+
+                                try {
+                                    const button = document.querySelector('#createGoalModal .btn-success');
+                                    const originalText = button.innerHTML;
+                                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+                                    button.disabled = true;
+
+                                    const response = await fetchWithTimeout('/parent/savings/goals', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                            name: name,
+                                            targetAmount: parseFloat(targetAmount),
+                                            targetDate: targetDate || null
+                                        })
+                                    });
+
+                                    const result = await parseJSONResponse(response);
+
+                                    if (result.success) {
+                                        alert('Savings goal created successfully!');
+                                        const modal = bootstrap.Modal.getInstance(document.getElementById('createGoalModal'));
+                                        modal.hide();
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + result.message);
+                                    }
+                                } catch (error) {
+                                    console.error('Error creating goal:', error);
+                                    alert('An error occurred while creating savings goal: ' + error.message);
+                                } finally {
+                                    const button = document.querySelector('#createGoalModal .btn-success');
+                                    button.innerHTML = '<i class="fas fa-plus me-2"></i>Create Goal';
+                                    button.disabled = false;
+                                }
+                            }
+
+                            function addToSavings(goalId) {
+                                currentSavingsGoalId = goalId;
+                                const modal = new bootstrap.Modal(document.getElementById('addToSavingsModal'));
+                                document.getElementById('savingsAmount').value = '';
+                                document.getElementById('savingsDescription').value = 'Savings deposit';
+                                modal.show();
+                            }
+
+                            async function processAddToSavings() {
+                                const amount = document.getElementById('savingsAmount').value;
+                                const description = document.getElementById('savingsDescription').value;
+
+                                console.log('🔄 Add to Savings - Data:', {
+                                    goalId: currentSavingsGoalId,
+                                    amount: amount,
+                                    description: description
+                                });
+
+                                if (!amount || amount <= 0) {
+                                    alert('Please enter a valid amount');
+                                    return;
+                                }
+
+                                if (!currentSavingsGoalId) {
+                                    alert('Error: No savings goal selected');
+                                    return;
+                                }
+
+                                try {
+                                    // Show loading state
+                                    const button = document.querySelector('#addToSavingsModal .btn-success');
+                                    if (!button) {
+                                        alert('Error: Could not find the submit button');
+                                        return;
+                                    }
+
+                                    const originalText = button.innerHTML;
+                                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+                                    button.disabled = true;
+
+                                    // Get current wallet balance from the page
+                                    const currentWalletBalance = <%= wallet ?wallet.balance: 0 %>;
+                                    console.log('💳 Current wallet balance from page:', currentWalletBalance);
+                                    console.log('💵 Amount requested:', amount);
+
+                                    const requestBody = {
+                                        goalId: currentSavingsGoalId,
+                                        amount: parseFloat(amount),
+                                        description: description || 'Savings deposit'
+                                    };
+
+                                    console.log('📤 Sending request:', requestBody);
+
+                                    const response = await fetchWithTimeout('/parent/savings/deposit', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify(requestBody)
+                                    });
+
+                                    const result = await parseJSONResponse(response);
+                                    console.log('📥 Server response:', result);
+
+                                    if (result.success) {
+                                        alert(result.message || 'Savings added successfully!');
+                                        const modal = bootstrap.Modal.getInstance(document.getElementById('addToSavingsModal'));
+                                        if (modal) modal.hide();
+                                        location.reload();
+                                    } else {
+                                        // Show more detailed error message
+                                        let errorMsg = result.message || 'Unknown error';
+                                        if (errorMsg.includes('Insufficient wallet balance')) {
+                                            errorMsg += `\n\nYour current wallet balance is: =N=${currentWalletBalance.toFixed(2)}\nClick "Add Funds to Wallet" to add money first.`;
+                                        }
+                                        alert('Error: ' + errorMsg);
+                                        // Reset button
+                                        button.innerHTML = originalText;
+                                        button.disabled = false;
+                                    }
+                                } catch (error) {
+                                    console.error('Error adding to savings:', error);
+                                    alert('An error occurred while adding to savings: ' + error.message);
+                                    // Reset button
+                                    const button = document.querySelector('#addToSavingsModal .btn-success');
+                                    if (button) {
+                                        button.innerHTML = '<i class="fas fa-plus me-1"></i>Add to Savings';
+                                        button.disabled = false;
+                                    }
+                                }
+                            }
+
+                            // Transfer savings to wallet
+                            async function transferToWallet(goalId) {
+                                console.log('🔄 Transfer to Wallet - goalId:', goalId);
+
+                                try {
+                                    // First, let's get the goal details to show current amount
+                                    const goalResponse = await fetchWithTimeout(`/parent/savings/goal/${goalId}`);
+
+                                    if (!goalResponse.ok) {
+                                        throw new Error(`Server error: ${goalResponse.status} ${goalResponse.statusText}`);
+                                    }
+
+                                    const goalResult = await parseJSONResponse(goalResponse);
+
+                                    console.log('📊 Goal details:', goalResult);
+
+                                    if (!goalResult.success) {
+                                        alert('Error: ' + goalResult.message);
+                                        return;
+                                    }
+
+                                    const goal = goalResult.goal;
+
+                                    if (!goal.currentAmount || goal.currentAmount <= 0) {
+                                        alert(`Cannot transfer: Current savings is =N=${goal.currentAmount ? goal.currentAmount.toFixed(2) : '0.00'}. Please add savings first.`);
+                                        return;
+                                    }
+
+                                    if (!confirm(`Are you sure you want to transfer =N=${goal.currentAmount.toFixed(2)} from "${goal.name}" to your wallet? This will close the goal.`)) {
+                                        return;
+                                    }
+
+                                    const requestBody = {
+                                        goalId: goalId
+                                    };
+
+                                    console.log('📤 Sending transfer request:', requestBody);
+
+                                    // Show loading state by disabling the button
+                                    const buttons = document.querySelectorAll(`button[onclick*="${goalId}"]`);
+                                    let transferButton = null;
+
+                                    buttons.forEach(btn => {
+                                        if (btn.innerHTML.includes('Transfer to Wallet')) {
+                                            transferButton = btn;
+                                            const originalText = btn.innerHTML;
+                                            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Transferring...';
+                                            btn.disabled = true;
+                                        }
+                                    });
+
+                                    const response = await fetchWithTimeout('/parent/savings/transfer-to-wallet', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify(requestBody)
+                                    });
+
+                                    if (!response.ok) {
+                                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                                    }
+
+                                    const result = await parseJSONResponse(response);
+                                    console.log('📥 Server response:', result);
+
+                                    if (result.success) {
+                                        alert(result.message || 'Savings transferred to wallet successfully!');
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + result.message);
+                                        // Reset button
+                                        if (transferButton) {
+                                            transferButton.innerHTML = '<i class="fas fa-exchange-alt me-1"></i>Transfer to Wallet';
+                                            transferButton.disabled = false;
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Error transferring savings:', error);
+                                    alert('An error occurred while transferring savings. Please check the console for details. Error: ' + error.message);
+                                    // Reset any buttons that might be in loading state
+                                    const buttons = document.querySelectorAll('button');
+                                    buttons.forEach(btn => {
+                                        if (btn.innerHTML.includes('Transferring...')) {
+                                            btn.innerHTML = '<i class="fas fa-exchange-alt me-1"></i>Transfer to Wallet';
+                                            btn.disabled = false;
+                                        }
+                                    });
+                                }
+                            }
+
+                            // Load transaction history
+                            async function loadTransactionHistory() {
+                                try {
+                                    const response = await fetchWithTimeout('/parent/transactions');
+                                    const result = await parseJSONResponse(response);
+
+                                    if (result.success) {
+                                        const tbody = document.getElementById('transactionHistory');
+
+                                        if (result.transactions.length === 0) {
+                                            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No transactions found</td></tr>';
+                                            return;
+                                        }
+
+                                        tbody.innerHTML = result.transactions.map(transaction => `
+                                            <tr>
+                                                <td>${new Date(transaction.createdAt).toLocaleDateString()}</td>
+                                                <td>${transaction.description}</td>
+                                                <td>
+                                                    <span class="badge bg-${getTransactionBadgeColor(transaction.type)}">
+                                                        ${transaction.type.replace('_', ' ').toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td class="${transaction.amount >= 0 ? 'text-success' : 'text-danger'}">
+                                                    =N=${Math.abs(transaction.amount).toFixed(2)}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-${transaction.status === 'completed' ? 'success' : transaction.status === 'pending' ? 'warning' : 'secondary'}">
+                                                        ${transaction.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('');
+                                    } else {
+                                        const tbody = document.getElementById('transactionHistory');
+                                        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading transactions: ' + result.message + '</td></tr>';
+                                    }
+                                } catch (error) {
+                                    console.error('Error loading transaction history:', error);
+                                    const tbody = document.getElementById('transactionHistory');
+                                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading transactions: ' + error.message + '</td></tr>';
+                                }
+                            }
+
+                            // Load recent activity
+                            async function loadRecentActivity() {
+                                try {
+                                    const response = await fetchWithTimeout('/parent/recent-activity');
+                                    const result = await parseJSONResponse(response);
+
+                                    if (result.success) {
+                                        const activityList = document.getElementById('recentActivityList');
+
+                                        if (result.activities.length === 0) {
+                                            activityList.innerHTML = '<p class="text-muted text-center">No recent activity</p>';
+                                            return;
+                                        }
+
+                                        activityList.innerHTML = result.activities.map(activity => `
+                                            <div class="list-group-item px-0">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">${activity.title}</h6>
+                                                    <small class="text-muted">${new Date(activity.timestamp).toLocaleDateString()}</small>
+                                                </div>
+                                                <p class="mb-1">${activity.description}</p>
+                                                <small class="text-muted">${activity.type}</small>
+                                            </div>
+                                        `).join('');
+                                    } else {
+                                        document.getElementById('recentActivityList').innerHTML = '<p class="text-muted text-center">Error loading activities: ' + result.message + '</p>';
+                                    }
+                                } catch (error) {
+                                    console.error('Error loading recent activity:', error);
+                                    document.getElementById('recentActivityList').innerHTML = '<p class="text-muted text-center">Error loading activities: ' + error.message + '</p>';
+                                }
+                            }
+
+                            // Utility functions
+                            function getTransactionBadgeColor(type) {
+                                const colors = {
+                                    'deposit': 'success',
+                                    'withdrawal': 'danger',
+                                    'payment': 'primary',
+                                    'savings_deposit': 'info',
+                                    'savings_transfer': 'warning'
+                                };
+                                return colors[type] || 'secondary';
+                            }
+
+                            // Contact school function
+                            function contactSchool() {
+                                const modal = new bootstrap.Modal(document.getElementById('contactModal'));
+                                modal.show();
+                            }
+
+                            async function sendContactMessage() {
+                                const subject = document.getElementById('contactSubject').value;
+                                const message = document.getElementById('contactMessage').value;
+                                const studentId = document.getElementById('contactStudent').value;
+
+                                if (!subject || !message) {
+                                    alert('Please fill in all required fields');
+                                    return;
+                                }
+
+                                try {
+                                    const button = document.querySelector('#contactModal .btn-primary');
+                                    const originalText = button.innerHTML;
+                                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                                    button.disabled = true;
+
+                                    const response = await fetchWithTimeout('/parent/contact-school', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                            subject: subject,
+                                            message: message,
+                                            studentId: studentId
+                                        })
+                                    });
+
+                                    const result = await parseJSONResponse(response);
+
+                                    if (result.success) {
+                                        alert('Your message has been sent to the school. We will get back to you soon!');
+                                        const modal = bootstrap.Modal.getInstance(document.getElementById('contactModal'));
+                                        modal.hide();
+                                    } else {
+                                        alert('Error: ' + result.message);
+                                    }
+                                } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    alert('An error occurred while sending your message: ' + error.message);
+                                } finally {
+                                    const button = document.querySelector('#contactModal .btn-primary');
+                                    button.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Message';
+                                    button.disabled = false;
+                                }
+                            }
+
+                            // View progress reports (placeholder)
+                            function viewProgressReports() {
+                                    window.location.href = '/parent/progress-reports';
+                                }
+
+                            // Load pending payments
+                                async function loadPendingPayments() {
+                                    try {
+                                        const response = await fetch('/parent/pending-payments');
+                                        const result = await parseJSONResponse(response);
+
+                                        if (result.success) {
+                                            // Update pending payments count in quick stats
+                                            const pendingBadge = document.querySelector('.badge.bg-warning');
+                                            if (pendingBadge && result.payments.length > 0) {
+                                                pendingBadge.textContent = result.payments.length;
+                                            }
+
+                                            // Display pending payments in a dedicated section if needed
+                                            displayPendingPayments(result.payments);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error loading pending payments:', error);
+                                    }
+                                }
+
+                                // Display pending payments in the transaction history
+                                function displayPendingPayments(payments) {
+                                    const tbody = document.getElementById('transactionHistory');
+
+                                    if (!tbody) return;
+
+                                    // Add pending payments to the transaction history
+                                    payments.forEach(payment => {
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+            <td>${new Date(payment.createdAt).toLocaleDateString()}</td>
+            <td>${payment.description || 'Tuition Payment'}</td>
+            <td>
+                <span class="badge bg-warning">
+                    PAYMENT PENDING
+                </span>
+            </td>
+            <td class="text-danger">
+                =N=${payment.amount.toFixed(2)}
+            </td>
+            <td>
+                <span class="badge bg-warning">
+                    <i class="fas fa-clock me-1"></i>Pending
+                </span>
+                <br>
+                <small class="text-muted">Receipt: ${payment.receiptNumber}</small>
+            </td>
+        `;
+                                        tbody.prepend(row);
+                                    });
+                                }
+
+                                // Check payment status periodically
+                                async function checkPaymentStatus() {
+                                    try {
+                                        // This could be called when the page loads or periodically
+                                        // You might want to implement WebSocket or SSE for real-time updates
+                                        loadPendingPayments();
+                                        loadTransactionHistory();
+                                    } catch (error) {
+                                        console.error('Error checking payment status:', error);
+                                    }
+                                }
+
+                                // Update the processPayment function to show receipt number
+                                async function processPayment() {
+                                    const amount = document.getElementById('paymentAmount').value;
+                                    const method = document.getElementById('paymentMethod').value;
+                                    const description = document.getElementById('paymentDescription').value;
+                                    const walletBalance = <%= wallet ?wallet.balance: 0 %>;
+
+                                    if (!amount || amount <= 0) {
+                                        alert('Please enter a valid amount');
+                                        return;
+                                    }
+
+                                    if (method === 'wallet' && parseFloat(amount) > walletBalance) {
+                                        alert('Insufficient wallet balance. Current balance: =N=' + walletBalance.toFixed(2));
+                                        return;
+                                    }
+
+                                    try {
+                                        const button = document.querySelector('#paymentModal .btn-success');
+                                        const originalText = button.innerHTML;
+                                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                                        button.disabled = true;
+
+                                        const response = await fetchWithTimeout('/parent/payment', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                studentId: currentStudentId,
+                                                amount: parseFloat(amount),
+                                                paymentMethod: method,
+                                                description: description
+                                            })
+                                        });
+
+                                        const result = await parseJSONResponse(response);
+
+                                        if (result.success) {
+                                            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+                                            modal.hide();
+
+                                            // Show success message with receipt number
+                                            alert(`✅ Payment initiated successfully!\n\nReceipt Number: ${result.receiptNumber}\nAmount: =N=${amount}\nStatus: Pending Cashier Confirmation\n\nYou will be notified when the payment is confirmed.`);
+
+                                            // Reload data
+                                            loadTransactionHistory();
+                                            loadRecentActivity();
+                                            loadPendingPayments();
+
+                                            // You might want to show the receipt in a modal
+                                            showReceiptModal(result.receiptNumber, amount, 'pending');
+                                        } else {
+                                            alert('Error: ' + result.message);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error:', error);
+                                        if (error.name === 'AbortError') {
+                                            alert('Request timeout. Please try again.');
+                                        } else {
+                                            alert('An error occurred while processing payment: ' + error.message);
+                                        }
+                                    } finally {
+                                        const button = document.querySelector('#paymentModal .btn-success');
+                                        // button.innerHTML = '<i class="fas fa-lock me-2"></i>Proceed to Pay';
+                                        button.disabled = false;
+                                    }
+                                }
+
+                                // Show receipt modal
+                                function showReceiptModal(receiptNumber, amount, status) {
+                                    const modal = document.createElement('div');
+                                    modal.className = 'modal fade';
+                                    modal.id = 'receiptModal';
+                                    modal.innerHTML = `
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-receipt me-2"></i>Payment Receipt
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h4>Payment Submitted</h4>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Receipt Number</p>
+                        <h5 class="fw-bold">${receiptNumber}</h5>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Amount</p>
+                        <h4 class="text-success">=N=${parseFloat(amount).toFixed(2)}</h4>
+                    </div>
+                    <div class="mb-3">
+                        <p class="mb-1">Status</p>
+                        <span class="badge bg-${status === 'pending' ? 'warning' : 'success'}">
+                            ${status === 'pending' ? 'Pending Confirmation' : 'Confirmed'}
+                        </span>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Your payment is awaiting cashier confirmation. You will be notified when it's confirmed.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="printReceipt()">
+                        <i class="fas fa-print me-2"></i>Print Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+                                    document.body.appendChild(modal);
+                                    const bsModal = new bootstrap.Modal(modal);
+                                    bsModal.show();
+
+                                    // Remove modal from DOM after hiding
+                                    modal.addEventListener('hidden.bs.modal', function () {
+                                        document.body.removeChild(modal);
+                                    });
+                                }
+
+                                // Print receipt
+                                function printReceipt() {
+                                    window.print();
+                                }
+
+                                // Update DOMContentLoaded to load pending payments
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    loadTransactionHistory();
+                                    loadRecentActivity();
+                                    loadPendingPayments(); // Add this line
+
+                                    // Auto-refresh every 30 seconds for payment status
+                                    setInterval(() => {
+                                        loadPendingPayments();
+                                        loadTransactionHistory();
+                                    }, 30000);
+                                });
+                        </script>
+</body>
+
+</html>

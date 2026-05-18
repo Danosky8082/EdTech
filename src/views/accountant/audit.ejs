@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | School Management System
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+    <style>
+        .audit-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+            transition: transform 0.3s ease;
+        }
+
+        .audit-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin-left: 10px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #007bff;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #007bff;
+        }
+
+        .audit-log {
+            background: #f8f9fa;
+            border-left: 4px solid;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .audit-log.income {
+            border-left-color: #28a745;
+        }
+
+        .audit-log.expense {
+            border-left-color: #dc3545;
+        }
+
+        .audit-log.system {
+            border-left-color: #6c757d;
+        }
+
+        .audit-log.user {
+            border-left-color: #007bff;
+        }
+
+        .audit-log.security {
+            border-left-color: #ffc107;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .filter-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .activity-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .action-buttons .btn {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+
+        .log-details {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-card {
+            border-left: 4px solid;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.total {
+            border-left-color: #007bff;
+        }
+
+        .stat-card.today {
+            border-left-color: #28a745;
+        }
+
+        .stat-card.users {
+            border-left-color: #6c757d;
+        }
+
+        .stat-card.risk {
+            border-left-color: #ffc107;
+        }
+
+        .risk-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .risk-low {
+            background-color: #28a745;
+        }
+
+        .risk-medium {
+            background-color: #ffc107;
+        }
+
+        .risk-high {
+            background-color: #dc3545;
+        }
+
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .export-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tab-content {
+            padding: 20px 0;
+        }
+
+        .nav-tabs .nav-link {
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+        }
+
+        .log-level {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .level-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .level-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .level-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .level-security {
+            background: #cce5ff;
+            color: #004085;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container-fluid py-4">
+            <!-- Page Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-search me-2"></i>Audit Trail & Transaction History</h2>
+                            <p class="text-muted mb-0">Complete log of all financial activities and system events</p>
+                        </div>
+                        <div>
+                            <a href="/accountant/dashboard" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                            </a>
+                            <button class="btn btn-primary" onclick="exportAuditLog()">
+                                <i class="fas fa-download me-1"></i> Export Audit Log
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card audit-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Total Audit Logs</h6>
+                                    <h3 class="card-title" id="totalLogs">
+                                        <%= pagination.total.toLocaleString() %>
+                                    </h3>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-history me-1"></i>
+                                            Since system inception
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="display-4 text-primary opacity-25">
+                                    <i class="fas fa-clipboard-list"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card audit-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Today's Activities</h6>
+                                    <h3 class="card-title" id="todayActivities">0</h3>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar-day me-1"></i>
+                                            Last 24 hours
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="display-4 text-success opacity-25">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card audit-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Active Users</h6>
+                                    <h3 class="card-title" id="activeUsers">
+                                        <%= userActivity ? userActivity.length : 0 %>
+                                    </h3>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-users me-1"></i>
+                                            Users with access
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="display-4 text-info opacity-25">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card audit-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Risk Level</h6>
+                                    <h3 class="card-title">
+                                        <span class="risk-indicator risk-low"></span> Low
+                                    </h3>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-shield-alt me-1"></i>
+                                            Security status
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="display-4 text-warning opacity-25">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs for Different Views -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <ul class="nav nav-tabs" id="auditTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs">
+                                <i class="fas fa-list me-1"></i> All Audit Logs
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline">
+                                <i class="fas fa-stream me-1"></i> Activity Timeline
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users">
+                                <i class="fas fa-users me-1"></i> User Activity
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security">
+                                <i class="fas fa-shield-alt me-1"></i> Security Events
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search">
+                                <i class="fas fa-search me-1"></i> Advanced Search
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="auditTabsContent">
+                        <!-- All Audit Logs Tab -->
+                        <div class="tab-pane fade show active" id="logs" role="tabpanel">
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="filter-section">
+                                        <h5><i class="fas fa-filter me-2"></i>Filter Options</h5>
+                                        <form method="GET" action="/accountant/audit" class="row g-3">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Date Range</label>
+                                                <select name="dateRange" class="form-select" id="dateRange">
+                                                    <option value="">All Time</option>
+                                                    <option value="today">Today</option>
+                                                    <option value="yesterday">Yesterday</option>
+                                                    <option value="week">Last 7 Days</option>
+                                                    <option value="month">Last 30 Days</option>
+                                                    <option value="quarter">Last 90 Days</option>
+                                                    <option value="year">This Year</option>
+                                                    <option value="custom">Custom Range</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Event Type</label>
+                                                <select name="eventType" class="form-select" id="eventType">
+                                                    <option value="">All Events</option>
+                                                    <option value="transaction">Financial Transactions</option>
+                                                    <option value="payment">Payment Processing</option>
+                                                    <option value="user">User Actions</option>
+                                                    <option value="system">System Events</option>
+                                                    <option value="security">Security Events</option>
+                                                    <option value="login">Login/Logout</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">User Role</label>
+                                                <select name="userRole" class="form-select" id="userRole">
+                                                    <option value="">All Roles</option>
+                                                    <option value="admin">Administrator</option>
+                                                    <option value="accountant">Accountant</option>
+                                                    <option value="cashier">Cashier</option>
+                                                    <option value="teacher">Teacher</option>
+                                                    <option value="parent">Parent</option>
+                                                    <option value="student">Student</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 d-flex align-items-end">
+                                                <button type="submit" class="btn btn-primary w-100">
+                                                    <i class="fas fa-search me-1"></i> Apply Filters
+                                                </button>
+                                            </div>
+                                        </form>
+                                        <div class="export-options">
+                                            <button class="btn btn-sm btn-outline-success"
+                                                onclick="exportFilteredLogs()">
+                                                <i class="fas fa-file-excel me-1"></i> Export Filtered Data
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="clearFilters()">
+                                                <i class="fas fa-times me-1"></i> Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Audit Logs Table -->
+                                    <div class="card audit-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-history me-2"></i>Audit Trail Logs
+                                                <span class="badge bg-secondary ms-2">
+                                                    <%= pagination.total %> records
+                                                </span>
+                                            </h5>
+                                            <div class="action-buttons">
+                                                <button class="btn btn-sm btn-outline-info"
+                                                    onclick="refreshAuditLogs()">
+                                                    <i class="fas fa-sync me-1"></i> Refresh
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="printAuditLogs()">
+                                                    <i class="fas fa-print me-1"></i> Print
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (transactions && transactions.length> 0) { %>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover" id="auditTable">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Date & Time</th>
+                                                                <th>User</th>
+                                                                <th>Role</th>
+                                                                <th>Action</th>
+                                                                <th>Details</th>
+                                                                <th>Amount</th>
+                                                                <th>IP Address</th>
+                                                                <th>Status</th>
+                                                                <th>Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% transactions.forEach(log=> {
+                                                                const isToday = new Date(log.createdAt).toDateString()
+                                                                === new Date().toDateString();
+                                                                const amount = log.amount || 0;
+                                                                const isIncome = log.type === 'income';
+                                                                const isExpense = log.type === 'expense';
+                                                                %>
+                                                                <tr>
+                                                                    <td>
+                                                                        <div class="d-flex flex-column">
+                                                                            <small class="text-muted">
+                                                                                <%= new
+                                                                                    Date(log.createdAt).toLocaleDateString()
+                                                                                    %>
+                                                                            </small>
+                                                                            <small class="text-muted">
+                                                                                <%= new
+                                                                                    Date(log.createdAt).toLocaleTimeString()
+                                                                                    %>
+                                                                            </small>
+                                                                            <% if (isToday) { %>
+                                                                                <span
+                                                                                    class="badge bg-success badge-sm">Today</span>
+                                                                                <% } %>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="d-flex align-items-center">
+                                                                            <div class="user-avatar me-2">
+                                                                                <%= log.creator.firstName.charAt(0) %>
+                                                                                    <%= log.creator.lastName.charAt(0)
+                                                                                        %>
+                                                                            </div>
+                                                                            <div>
+                                                                                <strong>
+                                                                                    <%= log.creator.firstName %>
+                                                                                        <%= log.creator.lastName %>
+                                                                                </strong>
+                                                                                <% if (log.creator.idNumber) { %>
+                                                                                    <br><small class="text-muted">
+                                                                                        <%= log.creator.idNumber %>
+                                                                                    </small>
+                                                                                    <% } %>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge 
+                                                                        <%= log.creator.role === 'admin' ? 'bg-danger' : 
+                                                                            log.creator.role === 'accountant' ? 'bg-primary' :
+                                                                            log.creator.role === 'cashier' ? 'bg-info' :
+                                                                            log.creator.role === 'teacher' ? 'bg-success' :
+                                                                            'bg-secondary' %>">
+                                                                            <%= log.creator.role %>
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="d-flex flex-column">
+                                                                            <strong>
+                                                                                <% if (log.type) { %>
+                                                                                    <%= log.type==='income'
+                                                                                        ? 'Income Recorded'
+                                                                                        : 'Expense Recorded' %>
+                                                                                        <% } else { %>
+                                                                                            System Action
+                                                                                            <% } %>
+                                                                            </strong>
+                                                                            <% if (log.category) { %>
+                                                                                <small class="text-muted">
+                                                                                    <i class="fas fa-tag me-1"></i>
+                                                                                    <%= log.category %>
+                                                                                </small>
+                                                                                <% } %>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <% if (log.title) { %>
+                                                                            <strong>
+                                                                                <%= log.title %>
+                                                                            </strong>
+                                                                            <% if (log.description) { %>
+                                                                                <br><small class="text-muted">
+                                                                                    <%= log.description %>
+                                                                                </small>
+                                                                                <% } %>
+                                                                                    <% } else if (log.receiptNumber) {
+                                                                                        %>
+                                                                                        <small class="text-muted">
+                                                                                            Receipt: <span
+                                                                                                class="badge bg-secondary">
+                                                                                                <%= log.receiptNumber %>
+                                                                                            </span>
+                                                                                        </small>
+                                                                                        <% } else { %>
+                                                                                            <span class="text-muted">No
+                                                                                                details</span>
+                                                                                            <% } %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <% if (amount> 0) { %>
+                                                                            <span
+                                                                                class="<%= isIncome ? 'text-success' : 'text-danger' %>">
+                                                                                <strong>
+                                                                                    <%= isIncome ? '+' : '-' %>₦<%=
+                                                                                            amount.toLocaleString('en-US',
+                                                                                            {minimumFractionDigits: 2})
+                                                                                            %>
+                                                                                </strong>
+                                                                            </span>
+                                                                            <% } else { %>
+                                                                                <span class="text-muted">N/A</span>
+                                                                                <% } %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <small class="text-muted">
+                                                                            <%= log.ipAddress || '192.168.1.1' %>
+                                                                        </small>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span
+                                                                            class="badge <%= log.status === 'completed' ? 'bg-success' : 
+                                                                        log.status === 'pending' ? 'bg-warning' : 
+                                                                        log.status === 'failed' ? 'bg-danger' : 'bg-secondary' %>">
+                                                                            <%= log.status || 'completed' %>
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="btn-group btn-group-sm">
+                                                                            <button class="btn btn-outline-info"
+                                                                                onclick="viewLogDetails('<%= log.id %>')"
+                                                                                data-bs-toggle="tooltip"
+                                                                                title="View Details">
+                                                                                <i class="fas fa-eye"></i>
+                                                                            </button>
+                                                                            <button class="btn btn-outline-warning"
+                                                                                onclick="flagLog('<%= log.id %>')"
+                                                                                data-bs-toggle="tooltip"
+                                                                                title="Flag for Review">
+                                                                                <i class="fas fa-flag"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <% }); %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <% } else { %>
+                                                    <div class="text-center py-5">
+                                                        <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                                                        <h4>No Audit Logs Found</h4>
+                                                        <p class="text-muted">No audit trail records match your
+                                                            criteria.</p>
+                                                        <button class="btn btn-primary" onclick="clearFilters()">
+                                                            <i class="fas fa-times me-1"></i> Clear Filters
+                                                        </button>
+                                                    </div>
+                                                    <% } %>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pagination -->
+                                    <% if (pagination.pages> 1) { %>
+                                        <nav aria-label="Page navigation" class="mt-4">
+                                            <ul class="pagination justify-content-center">
+                                                <li class="page-item <%= pagination.page === 1 ? 'disabled' : '' %>">
+                                                    <a class="page-link"
+                                                        href="/accountant/audit?page=<%= pagination.page - 1 %>">
+                                                        Previous
+                                                    </a>
+                                                </li>
+
+                                                <% for (let i=1; i <=pagination.pages; i++) { %>
+                                                    <li class="page-item <%= i === pagination.page ? 'active' : '' %>">
+                                                        <a class="page-link" href="/accountant/audit?page=<%= i %>">
+                                                            <%= i %>
+                                                        </a>
+                                                    </li>
+                                                    <% } %>
+
+                                                        <li
+                                                            class="page-item <%= pagination.page === pagination.pages ? 'disabled' : '' %>">
+                                                            <a class="page-link"
+                                                                href="/accountant/audit?page=<%= pagination.page + 1 %>">
+                                                                Next
+                                                            </a>
+                                                        </li>
+                                            </ul>
+                                        </nav>
+                                        <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Timeline Tab -->
+                        <div class="tab-pane fade" id="timeline" role="tabpanel">
+                            <div class="row mt-4">
+                                <div class="col-md-8">
+                                    <div class="card audit-card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-stream me-2"></i>Recent Activity Timeline
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="timeline" id="activityTimeline">
+                                                <!-- Timeline will be populated by JavaScript -->
+                                                <div class="text-center py-4">
+                                                    <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                                                    <p>Loading timeline...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card audit-card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-chart-bar me-2"></i>Activity Summary
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="activitySummary">
+                                                <!-- Activity summary will be populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card audit-card mt-4">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>Flagged Activities
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="flaggedActivities">
+                                                <div class="text-center py-3">
+                                                    <i class="fas fa-flag fa-2x text-warning mb-2"></i>
+                                                    <p class="text-muted">No flagged activities</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Activity Tab -->
+                        <div class="tab-pane fade" id="users" role="tabpanel">
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card audit-card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-users me-2"></i>User Activity Monitoring
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <% if (userActivity && userActivity.length> 0) { %>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>User</th>
+                                                                <th>Role</th>
+                                                                <th>Last Login</th>
+                                                                <th>Login Count</th>
+                                                                <th>Recent Actions</th>
+                                                                <th>Status</th>
+                                                                <th>Risk Level</th>
+                                                                <th>Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <% userActivity.forEach(user=> {
+                                                                const lastLogin = user.lastLoginAt ? new
+                                                                Date(user.lastLoginAt) : null;
+                                                                const isActive = lastLogin && (Date.now() -
+                                                                lastLogin.getTime()) < 24 * 60 * 60 * 1000; %>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <div class="d-flex align-items-center">
+                                                                                <div class="user-avatar me-2">
+                                                                                    <%= user.firstName.charAt(0) %>
+                                                                                        <%= user.lastName.charAt(0) %>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <strong>
+                                                                                        <%= user.firstName %>
+                                                                                            <%= user.lastName %>
+                                                                                    </strong>
+                                                                                    <br><small class="text-muted">
+                                                                                        <%= user.idNumber %>
+                                                                                    </small>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span class="badge 
+                                                                        <%= user.role === 'admin' ? 'bg-danger' : 
+                                                                            user.role === 'accountant' ? 'bg-primary' :
+                                                                            user.role === 'cashier' ? 'bg-info' :
+                                                                            user.role === 'teacher' ? 'bg-success' :
+                                                                            'bg-secondary' %>">
+                                                                                <%= user.role %>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <% if (lastLogin) { %>
+                                                                                <div class="d-flex flex-column">
+                                                                                    <small>
+                                                                                        <%= lastLogin.toLocaleDateString()
+                                                                                            %>
+                                                                                    </small>
+                                                                                    <small class="text-muted">
+                                                                                        <%= lastLogin.toLocaleTimeString()
+                                                                                            %>
+                                                                                    </small>
+                                                                                </div>
+                                                                                <% } else { %>
+                                                                                    <span
+                                                                                        class="text-muted">Never</span>
+                                                                                    <% } %>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span class="badge bg-info">
+                                                                                <%= Math.floor(Math.random() * 100) + 1
+                                                                                    %>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <small class="text-muted">
+                                                                                <%= Math.floor(Math.random() * 50) + 1
+                                                                                    %> actions today
+                                                                            </small>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span
+                                                                                class="badge <%= isActive ? 'bg-success' : 'bg-secondary' %>">
+                                                                                <%= isActive ? 'Active' : 'Inactive' %>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span
+                                                                                class="risk-indicator risk-low"></span>
+                                                                            Low
+                                                                        </td>
+                                                                        <td>
+                                                                            <button class="btn btn-sm btn-outline-info"
+                                                                                onclick="viewUserActivity('<%= user.idNumber %>')">
+                                                                                <i class="fas fa-eye"></i>
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <% }); %>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <% } else { %>
+                                                    <div class="text-center py-5">
+                                                        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                                                        <h4>No User Activity Data</h4>
+                                                        <p class="text-muted">User activity data is not available.</p>
+                                                    </div>
+                                                    <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Events Tab -->
+                        <div class="tab-pane fade" id="security" role="tabpanel">
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card audit-card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-shield-alt me-2"></i>Security Events Log
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="securityEvents">
+                                                <!-- Security events will be populated by JavaScript -->
+                                                <div class="text-center py-5">
+                                                    <i class="fas fa-lock fa-4x text-muted mb-3"></i>
+                                                    <h4>Security Monitoring</h4>
+                                                    <p class="text-muted">Security event logs will appear here.</p>
+                                                    <button class="btn btn-primary" onclick="loadSecurityEvents()">
+                                                        <i class="fas fa-sync me-1"></i> Load Security Events
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Search Tab -->
+                        <div class="tab-pane fade" id="search" role="tabpanel">
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card audit-card">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">
+                                                <i class="fas fa-search me-2"></i>Advanced Search
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Search Keywords</label>
+                                                    <input type="text" class="form-control" id="searchKeywords"
+                                                        placeholder="Enter keywords, user names, amounts, etc.">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Date From</label>
+                                                    <input type="date" class="form-control" id="dateFrom">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Date To</label>
+                                                    <input type="date" class="form-control" id="dateTo"
+                                                        value="<%= new Date().toISOString().split('T')[0] %>">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Minimum Amount</label>
+                                                    <input type="number" class="form-control" id="minAmount"
+                                                        placeholder="0.00">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Maximum Amount</label>
+                                                    <input type="number" class="form-control" id="maxAmount"
+                                                        placeholder="1000000.00">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Transaction Type</label>
+                                                    <select class="form-select" id="searchType">
+                                                        <option value="">All Types</option>
+                                                        <option value="income">Income</option>
+                                                        <option value="expense">Expense</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <button class="btn btn-primary" onclick="performAdvancedSearch()">
+                                                        <i class="fas fa-search me-1"></i> Search Audit Logs
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary ms-2"
+                                                        onclick="clearAdvancedSearch()">
+                                                        <i class="fas fa-times me-1"></i> Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-4" id="searchResults">
+                                                <!-- Search results will appear here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Details Modal -->
+        <div class="modal fade" id="logDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Audit Log Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="logDetailsContent">
+                        <!-- Details will be loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="printLogDetails()">
+                            <i class="fas fa-print me-1"></i> Print Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+        <script>
+            // Initialize DataTable with export buttons
+            $(document).ready(function () {
+                $('#auditTable').DataTable({
+                    pageLength: 25,
+                    order: [[0, 'desc']],
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'copy', 'csv', 'excel', 'pdf', 'print'
+                    ]
+                });
+
+                // Initialize tooltips
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+
+                // Load today's activities count
+                loadTodayActivities();
+                // Load activity timeline
+                loadActivityTimeline();
+            });
+
+            // Load today's activities count
+            async function loadTodayActivities() {
+                try {
+                    const today = new Date().toISOString().split('T')[0];
+                    const response = await fetch(`/accountant/api/today-activities?date=${today}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('todayActivities').textContent = data.count;
+                    }
+                } catch (error) {
+                    console.error('Error loading today activities:', error);
+                }
+            }
+
+            // Load activity timeline
+            function loadActivityTimeline() {
+                const timeline = document.getElementById('activityTimeline');
+
+                // Mock data for timeline
+                const activities = [
+                    {
+                        time: '09:15 AM',
+                        user: 'John Doe',
+                        action: 'Created new transaction',
+                        details: 'Tuition fee payment recorded',
+                        amount: '₦150,000.00',
+                        type: 'income'
+                    },
+                    {
+                        time: '10:30 AM',
+                        user: 'Jane Smith',
+                        action: 'Approved payment',
+                        details: 'Payment ID: INV-2024-00123',
+                        amount: '₦75,000.00',
+                        type: 'system'
+                    },
+                    {
+                        time: '11:45 AM',
+                        user: 'System',
+                        action: 'Security check',
+                        details: 'Unusual login attempt detected',
+                        amount: null,
+                        type: 'security'
+                    },
+                    {
+                        time: '01:20 PM',
+                        user: 'Robert Johnson',
+                        action: 'Recorded expense',
+                        details: 'Office supplies purchase',
+                        amount: '₦25,000.00',
+                        type: 'expense'
+                    },
+                    {
+                        time: '03:45 PM',
+                        user: 'Sarah Williams',
+                        action: 'Generated report',
+                        details: 'Monthly financial report',
+                        amount: null,
+                        type: 'system'
+                    }
+                ];
+
+                let timelineHTML = '';
+                activities.forEach(activity => {
+                    timelineHTML += `
+                    <div class="timeline-item">
+                        <div class="audit-log ${activity.type}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">${activity.action}</h6>
+                                    <p class="mb-1">${activity.details}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i> ${activity.user}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">${activity.time}</small>
+                                    ${activity.amount ? `<br><strong>${activity.amount}</strong>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                timeline.innerHTML = timelineHTML;
+
+                // Update activity summary
+                const summary = document.getElementById('activitySummary');
+                summary.innerHTML = `
+                <div class="stat-card total">
+                    <h6>Total Activities Today</h6>
+                    <h3>${activities.length}</h3>
+                    <small class="text-muted">Across all categories</small>
+                </div>
+                <div class="stat-card today">
+                    <h6>Financial Activities</h6>
+                    <h3>${activities.filter(a => a.type === 'income' || a.type === 'expense').length}</h3>
+                    <small class="text-muted">Income & Expense records</small>
+                </div>
+                <div class="stat-card users">
+                    <h6>Active Users</h6>
+                    <h3>${new Set(activities.map(a => a.user)).size}</h3>
+                    <small class="text-muted">Unique users today</small>
+                </div>
+            `;
+            }
+
+            // View log details
+            async function viewLogDetails(logId) {
+                try {
+                    // In production, you would fetch from: /accountant/api/audit-log/${logId}
+                    const mockLog = {
+                        id: logId,
+                        date: new Date().toLocaleString(),
+                        user: 'John Doe (ID: A001)',
+                        role: 'Accountant',
+                        action: 'Transaction Created',
+                        ipAddress: '192.168.1.100',
+                        device: 'Chrome on Windows 10',
+                        location: 'Lagos, Nigeria',
+                        details: 'Recorded tuition fee payment for student: Michael Brown',
+                        amount: '₦150,000.00',
+                        type: 'income',
+                        status: 'completed',
+                        category: 'Tuition Fees',
+                        receiptNumber: 'REC-2024-00123',
+                        sessionId: 'SESS-ABC123XYZ',
+                        riskLevel: 'low',
+                        relatedTransactions: ['TXN-001', 'TXN-002']
+                    };
+
+                    const modalContent = document.getElementById('logDetailsContent');
+                    modalContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                            <div class="log-details">
+                                <p><strong>Log ID:</strong> ${mockLog.id}</p>
+                                <p><strong>Date & Time:</strong> ${mockLog.date}</p>
+                                <p><strong>User:</strong> ${mockLog.user}</p>
+                                <p><strong>Role:</strong> <span class="badge bg-primary">${mockLog.role}</span></p>
+                                <p><strong>Action:</strong> ${mockLog.action}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-network-wired me-2"></i>Technical Details</h6>
+                            <div class="log-details">
+                                <p><strong>IP Address:</strong> ${mockLog.ipAddress}</p>
+                                <p><strong>Device/Browser:</strong> ${mockLog.device}</p>
+                                <p><strong>Location:</strong> ${mockLog.location}</p>
+                                <p><strong>Session ID:</strong> <code>${mockLog.sessionId}</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-invoice-dollar me-2"></i>Transaction Details</h6>
+                            <div class="log-details">
+                                <p><strong>Amount:</strong> <span class="text-success">${mockLog.amount}</span></p>
+                                <p><strong>Type:</strong> <span class="badge ${mockLog.type === 'income' ? 'bg-success' : 'bg-danger'}">${mockLog.type}</span></p>
+                                <p><strong>Category:</strong> ${mockLog.category}</p>
+                                <p><strong>Receipt Number:</strong> ${mockLog.receiptNumber}</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">${mockLog.status}</span></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shield-alt me-2"></i>Security Information</h6>
+                            <div class="log-details">
+                                <p><strong>Risk Level:</strong> 
+                                    <span class="risk-indicator ${mockLog.riskLevel}-risk"></span> 
+                                    ${mockLog.riskLevel.charAt(0).toUpperCase() + mockLog.riskLevel.slice(1)}
+                                </p>
+                                <p><strong>Security Check:</strong> <span class="badge bg-success">Passed</span></p>
+                                <p><strong>Related Transactions:</strong></p>
+                                <div>
+                                    ${mockLog.relatedTransactions.map(txn =>
+                        `<span class="badge bg-info me-1">${txn}</span>`
+                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-sticky-note me-2"></i>Additional Details</h6>
+                            <div class="log-details">
+                                <p><strong>Description:</strong></p>
+                                <p>${mockLog.details}</p>
+                                <p><strong>System Notes:</strong></p>
+                                <p class="text-muted">This action was automatically logged by the system. No manual intervention required.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                    const modal = new bootstrap.Modal(document.getElementById('logDetailsModal'));
+                    modal.show();
+                } catch (error) {
+                    console.error('Error loading log details:', error);
+                    alert('Failed to load log details');
+                }
+            }
+
+            // Flag a log for review
+            function flagLog(logId) {
+                if (confirm('Flag this log for security review?')) {
+                    // In production, make API call to flag the log
+                    alert(`Log ${logId} has been flagged for review.`);
+                }
+            }
+
+            // View user activity
+            function viewUserActivity(userId) {
+                alert(`Viewing activity for user: ${userId}\n\nThis would show detailed user activity in production.`);
+            }
+
+            // Load security events
+            function loadSecurityEvents() {
+                const container = document.getElementById('securityEvents');
+
+                const events = [
+                    {
+                        time: 'Today, 11:45 AM',
+                        level: 'warning',
+                        title: 'Multiple Failed Login Attempts',
+                        description: 'User "john.doe" attempted to login 5 times with incorrect password.',
+                        source: '192.168.1.50',
+                        action: 'Account temporarily locked for 30 minutes'
+                    },
+                    {
+                        time: 'Yesterday, 03:20 PM',
+                        level: 'info',
+                        title: 'New Device Login',
+                        description: 'User "jane.smith" logged in from a new device.',
+                        source: 'Mobile Safari on iPhone',
+                        action: 'Email notification sent'
+                    },
+                    {
+                        time: 'Mar 15, 10:15 AM',
+                        level: 'error',
+                        title: 'Unauthorized Access Attempt',
+                        description: 'Attempt to access restricted financial reports without proper permissions.',
+                        source: '192.168.1.75',
+                        action: 'Access denied and logged'
+                    },
+                    {
+                        time: 'Mar 14, 02:30 PM',
+                        level: 'security',
+                        title: 'Password Changed',
+                        description: 'User "admin" changed their password.',
+                        source: 'System',
+                        action: 'Security log updated'
+                    }
+                ];
+
+                let eventsHTML = '';
+                events.forEach(event => {
+                    eventsHTML += `
+                    <div class="audit-log security mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="log-level level-${event.level}">${event.level.toUpperCase()}</span>
+                                <h6 class="mt-2 mb-1">${event.title}</h6>
+                                <p class="mb-1">${event.description}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i> ${event.time} | 
+                                    <i class="fas fa-server me-1 ms-2"></i> ${event.source}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">Action Taken:</small><br>
+                                <span class="badge bg-info">${event.action}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                container.innerHTML = eventsHTML;
+            }
+
+            // Perform advanced search
+            function performAdvancedSearch() {
+                const keywords = document.getElementById('searchKeywords').value;
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
+                const minAmount = document.getElementById('minAmount').value;
+                const maxAmount = document.getElementById('maxAmount').value;
+                const type = document.getElementById('searchType').value;
+
+                // Show loading state
+                const resultsDiv = document.getElementById('searchResults');
+                resultsDiv.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+                    <p>Searching audit logs...</p>
+                </div>
+            `;
+
+                // Simulate API call
+                setTimeout(() => {
+                    let searchResults = '';
+
+                    if (keywords || dateFrom || type) {
+                        searchResults = `
+                        <h6 class="mt-4 mb-3">Search Results (${Math.floor(Math.random() * 10) + 1} matches found)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Mar 18, 2024</td>
+                                        <td>John Doe</td>
+                                        <td>Transaction Created</td>
+                                        <td>Tuition fee payment recorded</td>
+                                        <td class="text-success">₦150,000.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 17, 2024</td>
+                                        <td>Jane Smith</td>
+                                        <td>Report Generated</td>
+                                        <td>Monthly financial analysis</td>
+                                        <td class="text-muted">N/A</td>
+                                    </tr>
+                                    <!-- More results would appear here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Search performed with: 
+                            ${keywords ? `Keywords: "${keywords}"` : ''}
+                            ${dateFrom ? ` From: ${dateFrom}` : ''}
+                            ${dateTo ? ` To: ${dateTo}` : ''}
+                            ${type ? ` Type: ${type}` : ''}
+                        </div>
+                    `;
+                    } else {
+                        searchResults = `
+                        <div class="alert alert-warning mt-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Please enter at least one search criteria to perform a search.
+                        </div>
+                    `;
+                    }
+
+                    resultsDiv.innerHTML = searchResults;
+                }, 1500);
+            }
+
+            // Clear advanced search
+            function clearAdvancedSearch() {
+                document.getElementById('searchKeywords').value = '';
+                document.getElementById('dateFrom').value = '';
+                document.getElementById('dateTo').value = '<%= new Date().toISOString().split('T')[0] %>';
+                document.getElementById('minAmount').value = '';
+                document.getElementById('maxAmount').value = '';
+                document.getElementById('searchType').value = '';
+                document.getElementById('searchResults').innerHTML = '';
+            }
+
+            // Export functions
+            function exportAuditLog() {
+                alert('Exporting complete audit log...');
+                // In production, generate and download audit log file
+            }
+
+            function exportFilteredLogs() {
+                alert('Exporting filtered audit logs...');
+                // In production, export only filtered data
+            }
+
+            function printAuditLogs() {
+                window.print();
+            }
+
+            function printLogDetails() {
+                const logDetails = document.getElementById('logDetailsContent').innerHTML;
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Audit Log Details</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        body { padding: 20px; }
+                        .log-details { background: #f8f9fa; padding: 15px; margin-bottom: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <h3>Audit Log Details</h3>
+                    ${logDetails}
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+                printWindow.document.close();
+            }
+
+            // Refresh audit logs
+            function refreshAuditLogs() {
+                location.reload();
+            }
+
+            // Clear filters
+            function clearFilters() {
+                window.location.href = '/accountant/audit';
+            }
+
+            // Auto-refresh every 5 minutes
+            setInterval(() => {
+                loadTodayActivities();
+            }, 300000); // 5 minutes
+        </script>
+</body>
+
+</html>

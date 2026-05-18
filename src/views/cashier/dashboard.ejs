@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | School Management System
+    </title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        .dashboard-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card {
+            color: white;
+        }
+
+        .revenue-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .payments-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .pending-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .today-card {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+    
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+                        <!-- Welcome Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card dashboard-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h4 class="card-title mb-1">Welcome, <%= cashier.user.firstName %>!</h4>
+                                                <p class="text-muted mb-0">
+                                                    <i class="fas fa-school me-1"></i>
+                                                    <%= userSchool || 'All Schools' %>
+                                                        <% if (isSuperAdmin) { %>
+                                                            <span class="badge bg-warning ms-2">Super Admin</span>
+                                                            <% } %>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-primary">
+                                                    <i class="fas fa-cash-register me-1"></i>
+                                                    Cashier
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card dashboard-card revenue-card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-2">Total Revenue</h6>
+                                                <h3 class="card-title">₦<%= totalRevenue.toLocaleString('en-US',
+                                                        {minimumFractionDigits: 2}) %>
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                                            </div>
+                                        </div>
+                                        <p class="card-text mb-0">
+                                            <small>From all confirmed payments</small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="card dashboard-card payments-card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-2">Today's Payments</h6>
+                                                <h3 class="card-title">
+                                                    <%= todaysPayments %>
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-calendar-day fa-2x opacity-50"></i>
+                                            </div>
+                                        </div>
+                                        <p class="card-text mb-0">
+                                            <small>Confirmed payments today</small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="card dashboard-card pending-card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-2">Pending Payments</h6>
+                                                <h3 class="card-title">
+                                                    <%= pendingPayments %>
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-clock fa-2x opacity-50"></i>
+                                            </div>
+                                        </div>
+                                        <p class="card-text mb-0">
+                                            <small>Awaiting confirmation</small>
+                                        </p>
+                                        <% if (pendingPayments> 0) { %>
+                                            <a href="/cashier/pending-payments" class="btn btn-light btn-sm mt-2">
+                                                View All
+                                            </a>
+                                            <% } %>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <div class="card dashboard-card today-card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-2">Today's Balance</h6>
+                                                <h3 class="card-title">₦<%= today.netBalance.toLocaleString('en-US',
+                                                        {minimumFractionDigits: 2}) %>
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-balance-scale fa-2x opacity-50"></i>
+                                            </div>
+                                        </div>
+                                        <p class="card-text mb-0">
+                                            <small>
+                                                <%= today.transactionCount %> transactions today
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card dashboard-card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3 mb-3">
+                                                <a href="#" class="btn btn-primary w-100" data-bs-toggle="modal"
+                                                    data-bs-target="#recordFeeModal">
+                                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                                    Record Fee Payment
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <a href="#" class="btn btn-success w-100" data-bs-toggle="modal"
+                                                    data-bs-target="#recordIncomeModal">
+                                                    <i class="fas fa-plus-circle me-2"></i>
+                                                    Record Other Income
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <a href="#" class="btn btn-warning w-100" data-bs-toggle="modal"
+                                                    data-bs-target="#recordExpenseModal">
+                                                    <i class="fas fa-receipt me-2"></i>
+                                                    Record Expense
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <a href="/cashier/transactions" class="btn btn-info w-100">
+                                                    <i class="fas fa-history me-2"></i>
+                                                    View Transactions
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Payments -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="card dashboard-card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-history me-2"></i>Recent Payments
+                                        </h5>
+                                        <a href="/cashier/transactions" class="btn btn-sm btn-outline-primary">
+                                            View All
+                                        </a>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (recentPayments && recentPayments.length> 0) { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Parent</th>
+                                                            <th>Student</th>
+                                                            <th>Amount</th>
+                                                            <th>Status</th>
+                                                            <th>Receipt</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% recentPayments.forEach(payment=> { %>
+                                                            <tr>
+                                                                <td>
+                                                                    <%= new Date(payment.createdAt).toLocaleDateString()
+                                                                        %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= payment.parent.user.firstName %>
+                                                                        <%= payment.parent.user.lastName %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= payment.student.user.firstName %>
+                                                                        <%= payment.student.user.lastName %>
+                                                                </td>
+                                                                <td>₦<%= payment.amount.toFixed(2) %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (payment.status==='completed' ) { %>
+                                                                        <span class="badge bg-success">Confirmed</span>
+                                                                        <% } else if (payment.status==='pending' ) { %>
+                                                                            <span
+                                                                                class="badge bg-warning">Pending</span>
+                                                                            <% } else { %>
+                                                                                <span class="badge bg-secondary">
+                                                                                    <%= payment.status %>
+                                                                                </span>
+                                                                                <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge bg-info">
+                                                                        <%= payment.receiptNumber %>
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                            <% }) %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <% } else { %>
+                                                <p class="text-muted text-center py-4">No recent payments found.</p>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pending Payments -->
+                            <div class="col-md-4">
+                                <div class="card dashboard-card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-clock me-2"></i>Pending for Confirmation
+                                        </h5>
+                                        <span class="badge bg-warning">
+                                            <%= pendingForConfirmation.length %>
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (pendingForConfirmation && pendingForConfirmation.length> 0) { %>
+                                            <div class="list-group">
+                                                <% pendingForConfirmation.forEach(payment=> { %>
+                                                    <div class="list-group-item list-group-item-action">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1">
+                                                                <%= payment.parent.user.firstName %>
+                                                                    <%= payment.parent.user.lastName %>
+                                                            </h6>
+                                                            <small>₦<%= payment.amount.toFixed(2) %></small>
+                                                        </div>
+                                                        <p class="mb-1">
+                                                            For: <%= payment.student.user.firstName %>
+                                                                <%= payment.student.user.lastName %>
+                                                        </p>
+                                                        <small class="text-muted">
+                                                            <%= payment.description || 'No description' %>
+                                                        </small>
+                                                        <div class="mt-2">
+                                                            <!-- Changed from direct POST to link to details page -->
+                                                            <a href="/cashier/payment/<%= payment.id %>" class="btn btn-success btn-sm">
+                                                                <i class="fas fa-eye me-1"></i>View & Process
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                    <% }) %>
+                                            </div>
+                                            <% } else { %>
+                                                <p class="text-muted text-center py-4">No pending payments.</p>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Daily Transactions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card dashboard-card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-exchange-alt me-2"></i>Recent Daily Transactions
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (recentTransactions && recentTransactions.length> 0) { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Type</th>
+                                                            <th>Student/Parent</th>
+                                                            <th>Amount</th>
+                                                            <th>Method</th>
+                                                            <th>Receipt</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% recentTransactions.forEach(transaction=> { %>
+                                                            <tr>
+                                                                <td>
+                                                                    <%= new
+                                                                        Date(transaction.createdAt).toLocaleDateString()
+                                                                        %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (transaction.type==='fee_payment' ) { %>
+                                                                        <span class="badge bg-primary">Fee
+                                                                            Payment</span>
+                                                                        <% } else if (transaction.type==='other_income'
+                                                                            ) { %>
+                                                                            <span class="badge bg-success">Other
+                                                                                Income</span>
+                                                                            <% } else if (transaction.type==='expense' )
+                                                                                { %>
+                                                                                <span
+                                                                                    class="badge bg-danger">Expense</span>
+                                                                                <% } else { %>
+                                                                                    <span class="badge bg-secondary">
+                                                                                        <%= transaction.type %>
+                                                                                    </span>
+                                                                                    <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (transaction.student) { %>
+                                                                        <%= transaction.student.user.firstName %>
+                                                                            <%= transaction.student.user.lastName %>
+                                                                                <% } else if (transaction.parent) { %>
+                                                                                    <%= transaction.parent.user.firstName
+                                                                                        %>
+                                                                                        <%= transaction.parent.user.lastName
+                                                                                            %>
+                                                                                            <% } else { %>
+                                                                                                <span
+                                                                                                    class="text-muted">N/A</span>
+                                                                                                <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <% if (transaction.type==='expense' ) { %>
+                                                                        <span class="text-danger">-₦<%=
+                                                                                transaction.amount.toFixed(2) %></span>
+                                                                        <% } else { %>
+                                                                            <span class="text-success">+₦<%=
+                                                                                    transaction.amount.toFixed(2) %>
+                                                                                    </span>
+                                                                            <% } %>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge bg-info">
+                                                                        <%= transaction.paymentMethod %>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small>
+                                                                        <%= transaction.receiptNumber %>
+                                                                    </small>
+                                                                </td>
+                                                            </tr>
+                                                            <% }) %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <% } else { %>
+                                                <p class="text-muted text-center py-4">No recent transactions found.</p>
+                                                <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    </div>
+
+    <!-- Modals for Quick Actions -->
+    <!-- Record Fee Payment Modal -->
+    <div class="modal fade" id="recordFeeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Record Fee Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please use the full payment form for recording fee payments.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="/cashier/record-payment" class="btn btn-primary">Go to Payment Form</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+</body>
+
+</html>

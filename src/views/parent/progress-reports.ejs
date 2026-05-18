@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | School Management System
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .progress-card {
+            border-left: 4px solid #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .progress-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-overview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+
+        .subject-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .grade-badge {
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .attendance-chart {
+            height: 100px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .attendance-bar {
+            height: 100%;
+            display: inline-block;
+        }
+
+        .timeline-item {
+            border-left: 3px solid #0d6efd;
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container-fluid py-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1><i class="fas fa-chart-line me-2"></i>Student Progress Reports</h1>
+                    <p class="text-muted">Track your children's academic performance and progress</p>
+                </div>
+                <a href="/parent/dashboard" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Flash Messages -->
+            <% if (error_msg) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <%= error_msg %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <% } %>
+
+                    <% if (success_msg) { %>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <%= success_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <% } %>
+
+                            <% if (students && students.length> 0) { %>
+                                <div class="row">
+                                    <!-- Student List Sidebar -->
+                                    <div class="col-lg-3 mb-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5 class="card-title mb-0">
+                                                    <i class="fas fa-users me-2"></i>My Students
+                                                </h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="list-group" id="studentList">
+                                                    <% students.forEach((studentData, index)=> {
+                                                        const student = studentData.student;
+                                                        const progress = studentData.progress;
+                                                        %>
+                                                        <a href="#student-<%= student.id %>"
+                                                            class="list-group-item list-group-item-action <%= index === 0 ? 'active' : '' %>"
+                                                            onclick="showStudentReport('<%= student.id %>')">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <h6 class="mb-1">
+                                                                        <%= student.user.firstName %>
+                                                                            <%= student.user.lastName %>
+                                                                    </h6>
+                                                                    <small class="text-muted">
+                                                                        <%= student.user.idNumber %>
+                                                                    </small>
+                                                                </div>
+                                                                <span
+                                                                    class="badge bg-<%= progress.overall >= 80 ? 'success' : progress.overall >= 60 ? 'warning' : 'danger' %>">
+                                                                    <%= progress.overall.toFixed(0) %>%
+                                                                </span>
+                                                            </div>
+                                                        </a>
+                                                        <% }) %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Progress Reports Content -->
+                                    <div class="col-lg-9">
+                                        <% students.forEach((studentData, index)=> {
+                                            const student = studentData.student;
+                                            const progress = studentData.progress;
+                                            %>
+                                            <div class="card progress-card mb-4 student-report <%= index === 0 ? '' : 'd-none' %>"
+                                                id="student-<%= student.id %>">
+                                                <div class="card-header">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <h5 class="card-title mb-1">
+                                                                <%= student.user.firstName %>
+                                                                    <%= student.user.lastName %>
+                                                            </h5>
+                                                            <p class="text-muted mb-0">
+                                                                ID: <%= student.user.idNumber %> |
+                                                                    Grade: <%= student.grade %> - <%= student.section %>
+                                                                            |
+                                                                            School: <%= student.user.school || 'N/A' %>
+                                                            </p>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <span
+                                                                class="badge bg-<%= student.tuitionStatus === 'paid' ? 'success' : student.tuitionStatus === 'partial' ? 'warning' : 'danger' %>">
+                                                                <%= student.tuitionStatus.toUpperCase() %>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- Quick Stats -->
+                                                    <div class="row mb-4">
+                                                        <div class="col-md-3 mb-3">
+                                                            <div class="progress-overview text-center py-3">
+                                                                <h2>
+                                                                    <%= progress.overall.toFixed(0) %>%
+                                                                </h2>
+                                                                <p class="mb-0">Overall Progress</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 mb-3">
+                                                            <div class="bg-light rounded p-3 text-center">
+                                                                <h4 class="mb-1">
+                                                                    <%= progress.averageGrade %>
+                                                                </h4>
+                                                                <p class="text-muted mb-0">Average Grade</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 mb-3">
+                                                            <div class="bg-light rounded p-3 text-center">
+                                                                <h4 class="mb-1">
+                                                                    <%= progress.attendance.rate %>%
+                                                                </h4>
+                                                                <p class="text-muted mb-0">Attendance Rate</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 mb-3">
+                                                            <div class="bg-light rounded p-3 text-center">
+                                                                <h4 class="mb-1">
+                                                                    <%= progress.assignments.length %>
+                                                                </h4>
+                                                                <p class="text-muted mb-0">Graded Assignments</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Attendance Visualization -->
+                                                    <div class="row mb-4">
+                                                        <div class="col-12">
+                                                            <h6 class="mb-3">
+                                                                <i class="fas fa-calendar-check me-2"></i>Attendance
+                                                                Overview
+                                                            </h6>
+                                                            <div class="attendance-chart">
+                                                                <div class="attendance-bar bg-success"
+                                                                    style="width: <%= progress.attendance.present %>%"
+                                                                    title="Present: <%= progress.attendance.present %>%">
+                                                                </div>
+                                                                <div class="attendance-bar bg-danger"
+                                                                    style="width: <%= progress.attendance.absent %>%"
+                                                                    title="Absent: <%= progress.attendance.absent %>%">
+                                                                </div>
+                                                                <div class="attendance-bar bg-warning"
+                                                                    style="width: <%= progress.attendance.late %>%"
+                                                                    title="Late: <%= progress.attendance.late %>%">
+                                                                </div>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between mt-2">
+                                                                <small>
+                                                                    <span class="badge bg-success">Present: <%=
+                                                                            progress.attendance.present %>%</span>
+                                                                </small>
+                                                                <small>
+                                                                    <span class="badge bg-danger">Absent: <%=
+                                                                            progress.attendance.absent %>%</span>
+                                                                </small>
+                                                                <small>
+                                                                    <span class="badge bg-warning">Late: <%=
+                                                                            progress.attendance.late %>%</span>
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Classes -->
+                                                    <% if (progress.classes && progress.classes.length> 0) { %>
+                                                        <div class="row mb-4">
+                                                            <div class="col-12">
+                                                                <h6 class="mb-3">
+                                                                    <i
+                                                                        class="fas fa-chalkboard-teacher me-2"></i>Enrolled
+                                                                    Classes
+                                                                </h6>
+                                                                <div class="row">
+                                                                    <% progress.classes.forEach(cls=> { %>
+                                                                        <div class="col-md-4 mb-2">
+                                                                            <div class="subject-card">
+                                                                                <h6 class="mb-1">
+                                                                                    <%= cls.name %>
+                                                                                </h6>
+                                                                                <p class="text-muted small mb-1">
+                                                                                    <%= cls.grade %>-<%= cls.section %>
+                                                                                </p>
+                                                                                <% if (cls.teacher && cls.teacher.user) { %>
+                                                                                    <p class="text-muted small mb-0">
+                                                                                        Teacher: <%= cls.teacher.user.firstName %>
+                                                                                            <%= cls.teacher.user.lastName %>
+                                                                                    </p>
+                                                                                    <% } else if (cls.teacher) { %>
+                                                                                        <p class="text-muted small mb-0">
+                                                                                            Teacher: ID <%= cls.teacher.id %>
+                                                                                        </p>
+                                                                                        <% } else { %>
+                                                                                            <p class="text-muted small mb-0">
+                                                                                                Teacher: Not assigned
+                                                                                            </p>
+                                                                                            <% } %>
+                                                                            </div>
+                                                                        </div>
+                                                                        <% }) %>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <% } %>
+
+                                                            <!-- Recent Grades -->
+                                                            <div class="row">
+                                                                <div class="col-md-6 mb-4">
+                                                                    <h6 class="mb-3">
+                                                                        <i class="fas fa-file-alt me-2"></i>Recent
+                                                                        Assignments
+                                                                    </h6>
+                                                                    <% if (progress.assignments &&
+                                                                        progress.assignments.length> 0) { %>
+                                                                        <div class="list-group">
+                                                                            <% progress.assignments.slice(0,
+                                                                                5).forEach(assignment=> { %>
+                                                                                <div class="list-group-item">
+                                                                                    <div
+                                                                                        class="d-flex justify-content-between align-items-center">
+                                                                                        <div>
+                                                                                            <h6 class="mb-1">
+                                                                                                <%= assignment.title %>
+                                                                                            </h6>
+                                                                                            <small class="text-muted">
+                                                                                                <%= new
+                                                                                                    Date(assignment.date).toLocaleDateString()
+                                                                                                    %>
+                                                                                            </small>
+                                                                                        </div>
+                                                                                        <span
+                                                                                            class="badge bg-<%= assignment.grade >= 80 ? 'success' : assignment.grade >= 60 ? 'warning' : 'danger' %> grade-badge">
+                                                                                            <%= assignment.grade %>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <% if (assignment.feedback) { %>
+                                                                                        <small
+                                                                                            class="text-muted d-block mt-1">
+                                                                                            <i
+                                                                                                class="fas fa-comment me-1"></i>
+                                                                                            <%= assignment.feedback.substring(0,
+                                                                                                50) %>...
+                                                                                        </small>
+                                                                                        <% } %>
+                                                                                </div>
+                                                                                <% }) %>
+                                                                        </div>
+                                                                        <% } else { %>
+                                                                            <div class="alert alert-info">
+                                                                                <i class="fas fa-info-circle me-2"></i>
+                                                                                No assignment grades available yet.
+                                                                            </div>
+                                                                            <% } %>
+                                                                </div>
+
+                                                                <div class="col-md-6 mb-4">
+                                                                    <h6 class="mb-3">
+                                                                        <i
+                                                                            class="fas fa-clipboard-check me-2"></i>Recent
+                                                                        Exams & Quizzes
+                                                                    </h6>
+                                                                    <% if (progress.exams && progress.exams.length> 0) {
+                                                                        %>
+                                                                        <div class="list-group">
+                                                                            <% progress.exams.slice(0, 5).forEach(exam=>
+                                                                                { %>
+                                                                                <div class="list-group-item">
+                                                                                    <div
+                                                                                        class="d-flex justify-content-between align-items-center">
+                                                                                        <div>
+                                                                                            <h6 class="mb-1">
+                                                                                                <%= exam.title %>
+                                                                                            </h6>
+                                                                                            <small class="text-muted">
+                                                                                                <%= new
+                                                                                                    Date(exam.date).toLocaleDateString()
+                                                                                                    %>
+                                                                                            </small>
+                                                                                        </div>
+                                                                                        <span
+                                                                                            class="badge bg-<%= exam.score >= 80 ? 'success' : exam.score >= 60 ? 'warning' : 'danger' %> grade-badge">
+                                                                                            <%= exam.score.toFixed(1) %>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <% }) %>
+                                                                        </div>
+                                                                        <% } else { %>
+                                                                            <div class="alert alert-info">
+                                                                                <i class="fas fa-info-circle me-2"></i>
+                                                                                No exam results available yet.
+                                                                            </div>
+                                                                            <% } %>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Class Work -->
+                                                            <% if (progress.classWork && progress.classWork.length> 0) {
+                                                                %>
+                                                                <div class="row">
+                                                                    <div class="col-12">
+                                                                        <h6 class="mb-3">
+                                                                            <i class="fas fa-tasks me-2"></i>Recent
+                                                                            Class Work
+                                                                        </h6>
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Title</th>
+                                                                                        <th>Type</th>
+                                                                                        <th>Score</th>
+                                                                                        <th>Date</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    <% progress.classWork.slice(0,
+                                                                                        5).forEach(cw=> { %>
+                                                                                        <tr>
+                                                                                            <td>
+                                                                                                <%= cw.title %>
+                                                                                            </td>
+                                                                                            <td><span
+                                                                                                    class="badge bg-info">
+                                                                                                    <%= cw.type %>
+                                                                                                </span></td>
+                                                                                            <td>
+                                                                                                <span
+                                                                                                    class="badge bg-<%= cw.score >= 80 ? 'success' : cw.score >= 60 ? 'warning' : 'danger' %>">
+                                                                                                    <%= cw.score.toFixed(1)
+                                                                                                        %>
+                                                                                                </span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <%= new
+                                                                                                    Date(cw.date).toLocaleDateString()
+                                                                                                    %>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <% }) %>
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <% } %>
+
+                                                                    <!-- Print/Download Button -->
+                                                                    <div class="mt-4">
+                                                                        <button class="btn btn-outline-primary"
+                                                                            onclick="printReport('<%= student.id %>')">
+                                                                            <i class="fas fa-print me-2"></i>Print
+                                                                            Report
+                                                                        </button>
+                                                                        <button class="btn btn-outline-success ms-2"
+                                                                            onclick="downloadReport('<%= student.id %>')">
+                                                                            <i class="fas fa-download me-2"></i>Download
+                                                                            PDF
+                                                                        </button>
+                                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }) %>
+                                    </div>
+                                </div>
+                                <% } else { %>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No students found. Please link students to your account to view progress
+                                        reports.
+                                    </div>
+                                    <% } %>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Show specific student report
+            function showStudentReport(studentId) {
+                // Hide all reports
+                document.querySelectorAll('.student-report').forEach(report => {
+                    report.classList.add('d-none');
+                });
+
+                // Show selected report
+                const selectedReport = document.getElementById(`student-${studentId}`);
+                if (selectedReport) {
+                    selectedReport.classList.remove('d-none');
+                }
+
+                // Update active state in sidebar
+                document.querySelectorAll('#studentList .list-group-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('href') === `#student-${studentId}`) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+
+            // Print report
+            function printReport(studentId) {
+                const reportElement = document.getElementById(`student-${studentId}`);
+                if (reportElement) {
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Progress Report - ${studentId}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            body { padding: 20px; }
+                            @media print {
+                                .no-print { display: none; }
+                                .card { border: 1px solid #000; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${reportElement.innerHTML}
+                        <script>
+                            window.onload = function() {
+                                window.print();
+                                setTimeout(function() { window.close(); }, 500);
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                }
+            }
+
+            // Download report as PDF
+            function downloadReport(studentId) {
+                alert('PDF download feature would be implemented here.\nIn a real application, this would generate and download a PDF report.');
+                // In a real app, you would call an API endpoint to generate PDF
+                // window.location.href = `/parent/report/${studentId}/pdf`;
+            }
+
+            // Auto-dismiss alerts
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+
+            // Initialize first student report as active
+            document.addEventListener('DOMContentLoaded', function () {
+                const firstStudentLink = document.querySelector('#studentList .list-group-item:first-child');
+                if (firstStudentLink) {
+                    const firstStudentId = firstStudentLink.getAttribute('href').replace('#student-', '');
+                    showStudentReport(firstStudentId);
+                }
+            });
+        </script>
+</body>
+
+</html>

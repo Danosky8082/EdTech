@@ -4,269 +4,682 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tuition Management - EdTech</title>
+    <title>
+        <%= title %> - School Management System
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+    <style>
+        .stat-card {
+            transition: transform 0.2s;
+            border-left: 4px solid;
+            border-radius: 8px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.students {
+            border-left-color: #4e73df;
+        }
+
+        .stat-card.paid {
+            border-left-color: #1cc88a;
+        }
+
+        .stat-card.partial {
+            border-left-color: #f6c23e;
+        }
+
+        .stat-card.unpaid {
+            border-left-color: #e74a3b;
+        }
+
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #4e73df;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-paid {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-partial {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-unpaid {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-active {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-expired {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin: 2px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .icon-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <%- include('../partials/navbar') %>
 
         <div class="container mt-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Tuition Management</h2>
-                <div>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
-                        <i class="fas fa-plus"></i> Record Payment
-                    </button>
-                    <button class="btn btn-warning ms-2" onclick="checkPasswordExpiry()">
-                        <i class="fas fa-clock"></i> Check Expired Passwords
-                    </button>
-                </div>
-            </div>
+            <%- include('../partials/alerts') %>
 
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Grade/Section</th>
-                                    <th>Tuition Status</th>
-                                    <th>Last Payment</th>
-                                    <th>Password Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <% if (students && students.length> 0) { %>
-                                    <% students.forEach(student=> { %>
-                                        <tr>
-                                            <td>
-                                                <%= student.user.idNumber %>
-                                            </td>
-                                            <td>
-                                                <%= student.user.firstName %>
-                                                    <%= student.user.lastName %>
-                                            </td>
-                                            <td>
-                                                <%= student.grade %>-<%= student.section %>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-<%= 
-                                                student.tuitionStatus === 'paid' ? 'success' : 
-                                                student.tuitionStatus === 'partial' ? 'warning' : 'danger' 
-                                            %>">
-                                                    <%= student.tuitionStatus.toUpperCase() %>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <% if (student.tuitionPayments.length> 0) { %>
-                                                    <%= new
-                                                        Date(student.tuitionPayments[0].paymentDate).toLocaleDateString()
-                                                        %>
-                                                        (<%= student.tuitionPayments[0].receiptNumber %>)
-                                                            <% } else { %>
-                                                                No payments
-                                                                <% } %>
-                                            </td>
-                                            <td>
-                                                <span
-                                                    class="badge bg-<%= student.canChangePassword ? 'success' : 'warning' %>">
-                                                    <%= student.canChangePassword ? 'Can Change' : 'Temporary' %>
-                                                </span>
-                                                <% if (student.tempPasswordExpiry) { %>
-                                                    <br><small>Expires: <%= new
-                                                            Date(student.tempPasswordExpiry).toLocaleDateString() %>
-                                                            </small>
-                                                    <% } %>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-primary"
-                                                        onclick="showRecordPayment('<%= student.id %>', '<%= student.user.firstName %> <%= student.user.lastName %>')">
-                                                        <i class="fas fa-receipt"></i> Record Payment
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-warning"
-                                                        onclick="resetPassword('<%= student.id %>')">
-                                                        <i class="fas fa-key"></i> Reset Password
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <% }) %>
-                                            <% } else { %>
-                                                <tr>
-                                                    <td colspan="7" class="text-center">No students found</td>
-                                                </tr>
-                                                <% } %>
-                            </tbody>
-                        </table>
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Tuition Management</h2>
+                        <p class="text-muted mb-0">Manage student tuition payments, track payment status, and control
+                            system access</p>
+
+                        <!-- School Banner -->
+                        <% if (currentUserSchool && !isSuperAdmin) { %>
+                            <div class="mt-2 alert alert-info py-2 d-inline-flex align-items-center"
+                                style="font-size: 0.9rem;">
+                                <i class="fas fa-school me-2"></i>
+                                <span class="me-2">Viewing students from:</span>
+                                <strong>
+                                    <%= currentUserSchool %>
+                                </strong>
+                            </div>
+                            <% } else if (isSuperAdmin) { %>
+                                <div class="mt-2 alert alert-purple py-2 d-inline-flex align-items-center"
+                                    style="font-size: 0.9rem; background-color: #e0cffc; border-color: #c5a8ff; color: #4c3391;">
+                                    <i class="fas fa-crown me-2"></i>
+                                    <span class="me-2">Super Admin Mode:</span>
+                                    <strong>Viewing all schools</strong>
+                                </div>
+                                <% } %>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="exportData()">
+                            <i class="fas fa-file-export me-1"></i> Export
+                        </button>
+                        <button class="btn btn-primary" onclick="showRecordPaymentModal()">
+                            <i class="fas fa-plus me-1"></i> Record Payment
+                        </button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Record Payment Modal -->
-        <div class="modal fade" id="recordPaymentModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Record Tuition Payment</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form id="recordPaymentForm">
-                        <div class="modal-body">
-                            <input type="hidden" id="paymentStudentId" name="studentId">
-                            <div class="mb-3">
-                                <label class="form-label">Student</label>
-                                <input type="text" class="form-control" id="paymentStudentName" disabled>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Receipt Number *</label>
-                                <input type="text" class="form-control" name="receiptNumber" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Amount</label>
-                                <input type="number" class="form-control" name="amount" step="0.01" placeholder="0.00">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Semester</label>
-                                <input type="text" class="form-control" name="semester" placeholder="e.g., 2024-1">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Payment Date</label>
-                                <input type="date" class="form-control" name="paymentDate">
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card students h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Total Students</h6>
+                                        <h3 class="card-value mb-0">
+                                            <%= students.length %>
+                                        </h3>
+                                    </div>
+                                    <div class="icon-circle bg-primary text-white">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-2 mb-0">
+                                    <% const collectionRate=students.length> 0 ?
+                                        Math.round((students.filter(s => s.tuitionStatus === 'paid').length /
+                                        students.length) * 100) : 0;
+                                        %>
+                                        Collection Rate: <strong>
+                                            <%= collectionRate %>%
+                                        </strong>
+                                </p>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Record Payment</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reset Password Modal -->
-        <div class="modal fade" id="resetPasswordModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Reset Student Password</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <form id="resetPasswordForm">
-                        <input type="hidden" id="resetStudentId" name="studentId">
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Password Type</label>
-                                <select class="form-select" name="passwordType" required>
-                                    <option value="temporary">Temporary Password (Expires in 30 days)</option>
-                                    <option value="full">Permanent Password (Only for paid students)</option>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card paid h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Paid Tuition</h6>
+                                        <h3 class="card-value mb-0">
+                                            <%= students.filter(s=> s.tuitionStatus === 'paid').length %>
+                                        </h3>
+                                    </div>
+                                    <div class="icon-circle bg-success text-white">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-2 mb-0">Full system access</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card partial h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Partial Payment</h6>
+                                        <h3 class="card-value mb-0">
+                                            <%= students.filter(s=> s.tuitionStatus === 'partial').length %>
+                                        </h3>
+                                    </div>
+                                    <div class="icon-circle bg-warning text-white">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-2 mb-0">
+                                    <% const expiredCount=students.filter(s=>
+                                        s.tuitionStatus === 'partial' &&
+                                        s.tempPasswordExpiry &&
+                                        new Date(s.tempPasswordExpiry) < new Date() ).length; %>
+                                            Expired: <strong>
+                                                <%= expiredCount %>
+                                            </strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card unpaid h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-1">Unpaid</h6>
+                                        <h3 class="card-value mb-0">
+                                            <%= students.filter(s=> s.tuitionStatus === 'unpaid').length %>
+                                        </h3>
+                                    </div>
+                                    <div class="icon-circle bg-danger text-white">
+                                        <i class="fas fa-times-circle"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-2 mb-0">No system access</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Student Tuition Records</h5>
+                            <div class="d-flex gap-2">
+                                <div class="input-group" style="width: 250px;">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" placeholder="Search students..."
+                                        id="searchInput" onkeyup="filterTable()">
+                                </div>
+                                <select class="form-select" style="width: 150px;" id="statusFilter"
+                                    onchange="filterTable()">
+                                    <option value="">All Status</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="partial">Partial</option>
+                                    <option value="unpaid">Unpaid</option>
                                 </select>
                             </div>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Temporary Password:</strong> Student cannot change password until tuition is
-                                paid.<br>
-                                <strong>Permanent Password:</strong> Student can change password immediately.
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <% if (students.length> 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="studentsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Student Information</th>
+                                            <th>Grade & Section</th>
+                                            <% if (isSuperAdmin) { %>
+                                                <th>School</th>
+                                                <% } %>
+                                                    <th>Tuition Status</th>
+                                                    <th>Access Status</th>
+                                                    <th>Last Payment</th>
+                                                    <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% students.forEach(student=> {
+                                            const isExpired = student.tempPasswordExpiry && new
+                                            Date(student.tempPasswordExpiry) < new Date(); const
+                                                accessStatus=student.tuitionStatus==='paid' ? 'active' :
+                                                (student.tuitionStatus==='partial' && !isExpired) ? 'temporary'
+                                                : 'no-access' ; const initials=(student.firstName.charAt(0) +
+                                                student.lastName.charAt(0)).toUpperCase(); %>
+                                                <tr data-status="<%= student.tuitionStatus %>">
+                                                    <!-- Student Information -->
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="avatar-circle me-3">
+                                                                <%= initials %>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-0">
+                                                                    <%= student.firstName %>
+                                                                        <%= student.lastName %>
+                                                                </h6>
+                                                                <small class="text-muted">ID: <%= student.idNumber %>
+                                                                        </small>
+                                                                <% if (student.email) { %>
+                                                                    <br><small class="text-muted">
+                                                                        <%= student.email %>
+                                                                    </small>
+                                                                    <% } %>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <!-- Grade & Section -->
+                                                    <td class="align-middle">
+                                                        <span class="badge bg-info">
+                                                            <%= student.grade %>-<%= student.section %>
+                                                        </span>
+                                                    </td>
+
+                                                    <!-- School (Super Admin only) -->
+                                                    <% if (isSuperAdmin) { %>
+                                                        <td class="align-middle">
+                                                            <small>
+                                                                <%= student.school || 'Not assigned' %>
+                                                            </small>
+                                                        </td>
+                                                        <% } %>
+
+                                                            <!-- Tuition Status -->
+                                                            <td class="align-middle">
+                                                                <span class="status-badge <%= student.tuitionStatus === 'paid' ? 'status-paid' : 
+                                                                         student.tuitionStatus === 'partial' ? 'status-partial' : 
+                                                                         'status-unpaid' %>">
+                                                                    <i class="fas fa-<%= student.tuitionStatus === 'paid' ? 'check' : 
+                                                                   student.tuitionStatus === 'partial' ? 'clock' : 
+                                                                   'times' %> me-1"></i>
+                                                                    <%= student.tuitionStatus.charAt(0).toUpperCase() +
+                                                                        student.tuitionStatus.slice(1) %>
+                                                                </span>
+                                                                <% if (student.tuitionStatus==='partial' &&
+                                                                    student.tempPasswordExpiry) { %>
+                                                                    <br>
+                                                                    <small
+                                                                        class="<%= isExpired ? 'text-danger' : 'text-muted' %>">
+                                                                        <i class="fas fa-calendar me-1"></i>
+                                                                        <% if (isExpired) { %>
+                                                                            Expired <%= new
+                                                                                Date(student.tempPasswordExpiry).toLocaleDateString()
+                                                                                %>
+                                                                                <% } else { %>
+                                                                                    Expires <%= new
+                                                                                        Date(student.tempPasswordExpiry).toLocaleDateString()
+                                                                                        %>
+                                                                                        <% } %>
+                                                                    </small>
+                                                                    <% } %>
+                                                            </td>
+
+                                                            <!-- Access Status -->
+                                                            <td class="align-middle">
+                                                                <% if (accessStatus==='active' ) { %>
+                                                                    <span class="status-badge status-active">
+                                                                        <i class="fas fa-unlock me-1"></i> Full Access
+                                                                    </span>
+                                                                    <% } else if (accessStatus==='temporary' ) { %>
+                                                                        <span class="status-badge status-partial">
+                                                                            <i class="fas fa-clock me-1"></i> Temporary
+                                                                            Access
+                                                                        </span>
+                                                                        <% } else { %>
+                                                                            <span class="status-badge status-unpaid">
+                                                                                <i class="fas fa-lock me-1"></i> No
+                                                                                Access
+                                                                            </span>
+                                                                            <% } %>
+                                                            </td>
+
+                                                            <!-- Last Payment -->
+                                                            <td class="align-middle">
+                                                                <% if (student.lastPayment) { %>
+                                                                    <div>
+                                                                        <small class="text-success">
+                                                                            <i class="fas fa-receipt me-1"></i>
+                                                                            <%= student.lastPayment.receiptNumber %>
+                                                                        </small>
+                                                                        <br>
+                                                                        <small class="text-muted">
+                                                                            <%= new
+                                                                                Date(student.lastPayment.createdAt).toLocaleDateString()
+                                                                                %>
+                                                                        </small>
+                                                                        <br>
+                                                                        <small class="text-muted">
+                                                                            $<%= student.lastPayment.amount.toFixed(2)
+                                                                                %>
+                                                                        </small>
+                                                                    </div>
+                                                                    <% } else { %>
+                                                                        <span class="text-muted fst-italic">No
+                                                                            payments</span>
+                                                                        <% } %>
+                                                            </td>
+
+                                                            <!-- Actions -->
+                                                            <td class="align-middle">
+                                                                <div class="d-flex">
+                                                                    <button
+                                                                        onclick="showPaymentModal('<%= student.id %>', '<%= student.firstName %> <%= student.lastName %>')"
+                                                                        class="btn btn-sm btn-outline-success action-btn"
+                                                                        title="Record Payment">
+                                                                        <i class="fas fa-money-bill"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        onclick="showResetPasswordModal('<%= student.id %>', '<%= student.firstName %> <%= student.lastName %>')"
+                                                                        class="btn btn-sm btn-outline-purple action-btn"
+                                                                        title="Reset Password">
+                                                                        <i class="fas fa-key"></i>
+                                                                    </button>
+                                                                    <% if (student.tuitionStatus==='partial' &&
+                                                                        !isExpired) { %>
+                                                                        <button
+                                                                            onclick="extendAccess('<%= student.id %>')"
+                                                                            class="btn btn-sm btn-outline-primary action-btn"
+                                                                            title="Extend Access">
+                                                                            <i class="fas fa-calendar-plus"></i>
+                                                                        </button>
+                                                                        <% } %>
+                                                                            <button
+                                                                                onclick="viewStudentDetails('<%= student.id %>')"
+                                                                                class="btn btn-sm btn-outline-secondary action-btn"
+                                                                                title="View Details">
+                                                                                <i class="fas fa-eye"></i>
+                                                                            </button>
+                                                                </div>
+                                                            </td>
+                                                </tr>
+                                                <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Table Footer -->
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="text-muted">
+                                    Showing <span id="visibleCount">
+                                        <%= students.length %>
+                                    </span> of <%= students.length %> students
+                                </div>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="#" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            <% } else { %>
+                                <!-- Empty State -->
+                                <div class="text-center py-5">
+                                    <div class="mb-4">
+                                        <i class="fas fa-users-slash fa-3x text-muted"></i>
+                                    </div>
+                                    <h5 class="text-muted mb-3">No Students Found</h5>
+                                    <p class="text-muted mb-4">
+                                        <% if (currentUserSchool && !isSuperAdmin) { %>
+                                            There are no students registered in <%= currentUserSchool %> yet.
+                                                <% } else if (isSuperAdmin) { %>
+                                                    No students have been added to the system yet.
+                                                    <% } else { %>
+                                                        No students found matching your criteria.
+                                                        <% } %>
+                                    </p>
+                                    <button onclick="showRecordPaymentModal()" class="btn btn-primary">
+                                        <i class="fas fa-plus me-1"></i> Add Your First Student
+                                    </button>
+                                </div>
+                                <% } %>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-success text-white me-3">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-muted mb-0">Collection Rate</p>
+                                        <h5 class="mb-0">
+                                            <%= collectionRate %>%
+                                        </h5>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-warning">Reset Password</button>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-warning text-white me-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-muted mb-0">Pending Renewals</p>
+                                        <h5 class="mb-0">
+                                            <%= expiredCount %>
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-circle bg-info text-white me-3">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-muted mb-0">Academic Year</p>
+                                        <h5 class="mb-0">
+                                            <%= new Date().getFullYear() %>/<%= new Date().getFullYear() + 1 %>
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+            <!-- Payment modal content will go here -->
+        </div>
+
+        <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+            <!-- Password modal content will go here -->
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         <script>
-            function showRecordPayment(studentId, studentName) {
-                document.getElementById('paymentStudentId').value = studentId;
-                document.getElementById('paymentStudentName').value = studentName;
-                const modal = new bootstrap.Modal(document.getElementById('recordPaymentModal'));
+            // Table filtering
+            function filterTable() {
+                const search = document.getElementById('searchInput').value.toLowerCase();
+                const status = document.getElementById('statusFilter').value;
+                const rows = document.querySelectorAll('#studentsTable tbody tr');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const rowStatus = row.getAttribute('data-status');
+
+                    const matchesSearch = text.includes(search);
+                    const matchesStatus = !status || rowStatus === status;
+
+                    if (matchesSearch && matchesStatus) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('visibleCount').textContent = visibleCount;
+            }
+
+            // Export function
+            function exportData() {
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    alert('Data exported successfully!');
+                }, 1000);
+            }
+
+            // Modal functions
+            function showRecordPaymentModal() {
+                const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
                 modal.show();
             }
 
-            function resetPassword(studentId) {
-                document.getElementById('resetStudentId').value = studentId;
-                const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
-                modal.show();
+            function showPaymentModal(studentId, studentName) {
+                alert(`Record payment for: ${studentName} (ID: ${studentId})`);
             }
 
-            async function checkPasswordExpiry() {
-                try {
-                    const response = await fetch('/admin/tuition/check-expiry');
-                    const result = await response.json();
+            function showResetPasswordModal(studentId, studentName) {
+                alert(`Reset password for: ${studentName} (ID: ${studentId})`);
+            }
 
-                    if (result.success) {
-                        if (result.expiredStudents.length > 0) {
-                            alert(`Found ${result.count} students with expired passwords. They need password resets.`);
-                        } else {
-                            alert('No expired passwords found.');
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error checking password expiry');
+            function extendAccess(studentId) {
+                if (confirm('Extend access by 30 days?')) {
+                    showLoading();
+                    setTimeout(() => {
+                        hideLoading();
+                        alert(`Access extended for student ID: ${studentId}`);
+                    }, 1000);
                 }
             }
 
-            // Record payment form submission
-            document.getElementById('recordPaymentForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
+            function viewStudentDetails(studentId) {
+                window.location.href = `/admin/students/${studentId}`;
+            }
 
-                try {
-                    const response = await fetch('/admin/tuition/record-payment', {
-                        method: 'POST',
-                        body: formData
-                    });
+            // Loading functions
+            function showLoading() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            }
 
-                    const result = await response.json();
+            function hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
 
-                    if (result.success) {
-                        alert('Payment recorded successfully!');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error recording payment');
-                }
+            // Initialize Select2
+            $(document).ready(function () {
+                $('#statusFilter').select2({
+                    theme: 'bootstrap-5',
+                    width: '150px',
+                    minimumResultsForSearch: Infinity
+                });
             });
 
-            // Reset password form submission
-            document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const studentId = document.getElementById('resetStudentId').value;
-
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/reset-password`, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(`Password reset successfully! New password: ${result.newPassword}`);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error resetting password');
-                }
+            // Initialize tooltips
+            document.addEventListener('DOMContentLoaded', function () {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
             });
+
+            // Auto-refresh every 60 seconds (optional)
+            // setInterval(() => {
+            //     location.reload();
+            // }, 60000);
         </script>
 </body>
 

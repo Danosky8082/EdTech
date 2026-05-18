@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .danger-zone {
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+
+        .warning-zone {
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: rgba(255, 193, 7, 0.05);
+        }
+
+        .info-zone {
+            border: 2px solid #0dcaf0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: rgba(13, 202, 240, 0.05);
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .confirmation-input {
+            font-family: monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            color: white;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="mt-3">Processing...</div>
+            </div>
+        </div>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2><i class="fas fa-redo me-2"></i>System Reset & Maintenance</h2>
+                        <p class="text-muted">Manage system-wide resets for new terms and user maintenance</p>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> These operations are irreversible. Please proceed with caution.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center stat-card">
+                            <div class="card-body">
+                                <h1 class="display-6"><strong>
+                                        <%= statistics.totalStudents %>
+                                    </strong></h1>
+                                <p class="card-text"><strong>Total Students</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center stat-card">
+                            <div class="card-body">
+                                <h1 class="display-6"><strong>
+                                        <%= statistics.paidStudents %>
+                                    </strong></h1>
+                                <p class="card-text"><strong>Paid Students</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center stat-card">
+                            <div class="card-body">
+                                <h1 class="display-6"><strong>
+                                        <%= statistics.unpaidStudents %>
+                                    </strong></h1>
+                                <p class="card-text"><strong>Unpaid Students</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center stat-card">
+                            <div class="card-body">
+                                <h1 class="display-6"><strong>
+                                        <%= statistics.totalTeachers %>
+                                    </strong></h1>
+                                <p class="card-text"><strong>Teachers</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Reset Section -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="danger-zone">
+                            <h3 class="text-danger"><i class="fas fa-money-bill-wave me-2"></i>Reset Payment Status</h3>
+                            <p>Reset all student payment statuses at the start of a new term or section.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Reset Type:</label>
+                                <select class="form-select" id="resetType">
+                                    <option value="unpaid">Reset to UNPAID (Full reset)</option>
+                                    <option value="partial">Reset to PARTIAL (30-day temporary access)</option>
+                                </select>
+                                <div class="form-text">
+                                    <strong>UNPAID:</strong> Students cannot access system<br>
+                                    <strong>PARTIAL:</strong> Students get 30-day temporary access
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirmation:</label>
+                                <input type="text" class="form-control confirmation-input" id="paymentConfirmation"
+                                    placeholder="Type CONFIRM to proceed" required>
+                                <div class="form-text">You must type "CONFIRM" exactly to proceed</div>
+                            </div>
+
+                            <button class="btn btn-danger w-100" onclick="resetPayments()">
+                                <i class="fas fa-redo me-2"></i>Reset All Payments
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="danger-zone">
+                            <h3 class="text-danger"><i class="fas fa-trash-alt me-2"></i>Delete Users</h3>
+                            <p>Bulk delete users from the system. This action cannot be undone.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">User Type:</label>
+                                <select class="form-select" id="userType">
+                                    <option value="all">All Users</option>
+                                    <option value="student">Students Only</option>
+                                    <option value="teacher">Teachers Only</option>
+                                    <option value="parent">Parents Only</option>
+                                    <option value="admin">Admins Only</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">User IDs (Optional):</label>
+                                <textarea class="form-control" id="userIds" rows="3"
+                                    placeholder="Enter specific User IDs to delete (one per line). Leave empty to delete all of selected type."></textarea>
+                                <div class="form-text">Leave empty to delete all users of selected type</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirmation:</label>
+                                <input type="text" class="form-control confirmation-input" id="deleteConfirmation"
+                                    placeholder="Type DELETE to proceed" required>
+                                <div class="form-text">You must type "DELETE" exactly to proceed</div>
+                            </div>
+
+                            <button class="btn btn-danger w-100" onclick="deleteUsers()">
+                                <i class="fas fa-trash me-2"></i>Delete Selected Users
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Term/Section Reset -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="warning-zone">
+                            <h3 class="text-warning"><i class="fas fa-calendar-alt me-2"></i>New Term/Section Setup</h3>
+                            <p>Prepare the system for a new school term or section.</p>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Term:</label>
+                                        <select class="form-select" id="term">
+                                            <option value="">Select Term</option>
+                                            <option value="1">First Term</option>
+                                            <option value="2">2nd Term</option>
+                                            <option value="3">3rd Term</option>
+                                            <!-- <option value="Semester1">Semester 1</option>
+                                            <option value="Semester2">Semester 2</option> -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Section/Grade:</label>
+                                        <input type="text" class="form-control" id="section"
+                                            placeholder="e.g., Primary 1, Jss 1, SS1">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Academic Year:</label>
+                                        <input type="number" class="form-control" id="year"
+                                            value="<%= new Date().getFullYear() %>">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirmation:</label>
+                                <input type="text" class="form-control confirmation-input" id="termConfirmation"
+                                    placeholder="Type RESET to proceed" required>
+                                <div class="form-text">You must type "RESET" exactly to proceed</div>
+                            </div>
+
+                            <button class="btn btn-warning w-100" onclick="resetNewTerm()">
+                                <i class="fas fa-calendar-plus me-2"></i>Setup New Term/Section
+                            </button>
+
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    This will: Reset payments, update grades/sections, and prepare for new term
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current School Info -->
+                <% if (userSchool) { %>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="info-zone">
+                                <h4><i class="fas fa-school me-2"></i>School Information</h4>
+                                <p><strong>School:</strong>
+                                    <%= userSchool %>
+                                </p>
+                                <p><strong>Admin Level:</strong>
+                                    <%= isSuperAdmin ? 'Super Admin (All Schools)' : 'School Admin' %>
+                                </p>
+                                <p><strong>Current Date:</strong>
+                                    <%= new Date().toLocaleDateString() %>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <% } %>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            function showLoading() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            }
+
+            function hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+
+            function showAlert(message, type = 'success') {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+                document.querySelector('.container').prepend(alertDiv);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+
+            async function resetPayments() {
+                const resetType = document.getElementById('resetType').value;
+                const confirmation = document.getElementById('paymentConfirmation').value;
+
+                if (confirmation !== 'CONFIRM') {
+                    showAlert('Please type CONFIRM exactly to proceed', 'danger');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to reset ALL student payments to ${resetType.toUpperCase()}? This action cannot be undone.`)) {
+                    return;
+                }
+
+                showLoading();
+
+                try {
+                    const response = await fetch('/admin/reset-payments', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            resetType,
+                            confirmation
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        document.getElementById('paymentConfirmation').value = '';
+
+                        // Reload page after 2 seconds to update statistics
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert('Error: ' + data.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                    console.error('Error:', error);
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            async function deleteUsers() {
+                const userType = document.getElementById('userType').value;
+                const userIdsInput = document.getElementById('userIds').value;
+                const confirmation = document.getElementById('deleteConfirmation').value;
+
+                if (confirmation !== 'DELETE') {
+                    showAlert('Please type DELETE exactly to proceed', 'danger');
+                    return;
+                }
+
+                // Parse user IDs
+                let userIds = [];
+                if (userIdsInput.trim()) {
+                    userIds = userIdsInput.split('\n')
+                        .map(id => id.trim())
+                        .filter(id => id.length > 0);
+                }
+
+                const message = userIds.length > 0
+                    ? `Are you sure you want to delete ${userIds.length} specific users? This action cannot be undone.`
+                    : `Are you sure you want to delete ALL users of type "${userType}"? This action cannot be undone.`;
+
+                if (!confirm(message)) {
+                    return;
+                }
+
+                showLoading();
+
+                try {
+                    const response = await fetch('/admin/delete-users', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userType,
+                            userIds,
+                            confirmation
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        document.getElementById('deleteConfirmation').value = '';
+                        document.getElementById('userIds').value = '';
+
+                        // Reload page after 2 seconds
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert('Error: ' + data.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                    console.error('Error:', error);
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            async function resetNewTerm() {
+                const term = document.getElementById('term').value;
+                const section = document.getElementById('section').value;
+                const year = document.getElementById('year').value;
+                const confirmation = document.getElementById('termConfirmation').value;
+
+                if (confirmation !== 'RESET') {
+                    showAlert('Please type RESET exactly to proceed', 'danger');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to reset the system for new term/section? This will update all student records.`)) {
+                    return;
+                }
+
+                showLoading();
+
+                try {
+                    const response = await fetch('/admin/reset-term', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            term,
+                            section,
+                            year,
+                            confirmation
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        document.getElementById('termConfirmation').value = '';
+
+                        // Reload page after 2 seconds
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert('Error: ' + data.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                    console.error('Error:', error);
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            // Add confirmation input validation
+            document.querySelectorAll('.confirmation-input').forEach(input => {
+                input.addEventListener('input', function () {
+                    this.value = this.value.toUpperCase();
+                });
+            });
+
+
+            // Add this function to your system-reset.ejs script section
+                async function refreshNotifications() {
+                    try {
+                        const response = await fetch('/admin/notifications/recent');
+
+                        // Check if response is OK
+                        if (!response.ok) {
+                            console.error('Failed to fetch notifications:', response.status);
+                            return;
+                        }
+
+                        // Parse the response as JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            console.error('Expected JSON response, got:', contentType);
+                            return;
+                        }
+
+                        const data = await response.json();
+
+                        // Update notification count in navbar if needed
+                        if (data.notifications && data.notifications.length > 0) {
+                            const notificationBadge = document.getElementById('notificationBadge');
+                            if (notificationBadge) {
+                                notificationBadge.textContent = data.notifications.length;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error refreshing notifications:', error);
+                        // Don't show error to user, just log it
+                    }
+                }
+
+                // Call refreshNotifications when page loads and periodically
+                document.addEventListener('DOMContentLoaded', function () {
+                    refreshNotifications();
+
+                    // Refresh notifications every 60 seconds
+                    setInterval(refreshNotifications, 60000);
+                });
+        </script>
+</body>
+
+</html>

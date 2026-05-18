@@ -4,36 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EdTech - Results: <%= exam.title %>
+    <title>
+        <%= title %> - EdTech
     </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .exam-results-card {
+            border-left: 4px solid #0d6efd;
         }
 
-        .status-submitted {
-            background-color: #fff3e0;
-            color: #f57c00;
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
-        .status-graded {
-            background-color: #e8f5e8;
-            color: #388e3c;
+        .score-cell {
+            min-width: 120px;
         }
 
-        .status-published {
-            background-color: #e3f2fd;
-            color: #1976d2;
+        .passed {
+            color: #198754;
+            font-weight: bold;
         }
 
-        .status-in_progress {
-            background-color: #f5f5f5;
-            color: #666;
+        .failed {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .not-attempted {
+            color: #6c757d;
+            font-style: italic;
         }
     </style>
 </head>
@@ -44,72 +48,109 @@
         <div class="container mt-4">
             <%- include('../partials/alerts') %>
 
-                <!-- Header Section -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2>Results: <%= exam.title %>
-                        </h2>
-                        <p class="text-muted mb-0">
-                            <%= exam.class.name %> - <%= new Date(exam.date).toLocaleDateString() %>
-                        </p>
-                    </div>
-                    <div class="btn-group">
-                        <a href="/teacher/exam/<%= exam.id %>" class="btn btn-outline-primary">
-                            <i class="fas fa-eye"></i> View Exam
-                        </a>
-                        <a href="/teacher/exams" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Exams
-                        </a>
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool || 'All Schools' %>
+                        <% if (isSuperAdmin) { %>
+                            <span class="badge bg-warning ms-2">Super Admin</span>
+                            <% } %>
+                </div>
+
+                <!-- Back Button -->
+                <div class="mb-4">
+                    <a href="/teacher/exam/<%= exam.id %>" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Exam Details
+                    </a>
+                    <a href="/teacher/exams" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-clipboard-list me-1"></i> All Exams
+                    </a>
+                </div>
+
+                <!-- Exam Results Header -->
+                <div class="card exam-results-card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h1 class="mb-2">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Exam Results: <%= exam.title %>
+                                </h1>
+                                <div class="mb-3">
+                                    <span class="badge bg-primary me-2">
+                                        Class: <%= exam.class ? exam.class.name : 'N/A' %>
+                                    </span>
+                                    <span class="badge bg-secondary me-2">
+                                        Total Marks: <%= exam.totalMarks %>
+                                    </span>
+                                    <span class="badge bg-info">
+                                        Date: <%= new Date(exam.date).toLocaleDateString() %>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-primary" onclick="exportToCSV()">
+                                        <i class="fas fa-download me-1"></i> Export CSV
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="printResults()">
+                                        <i class="fas fa-print me-1"></i> Print
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Statistics Cards -->
+                <!-- Results Statistics -->
                 <div class="row mb-4">
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-primary text-white">
                             <div class="card-body">
-                                <h3 class="text-primary">
-                                    <%= exam.attempts.length %>
-                                </h3>
-                                <p class="text-muted mb-0">Total Attempts</p>
+                                <h2 class="mb-0">
+                                    <% const totalStudents=examResults.length; %>
+                                        <%= totalStudents %>
+                                </h2>
+                                <small>Total Students</small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center bg-success text-white">
                             <div class="card-body">
-                                <h3 class="text-success">
-                                    <% const enrolledStudents=exam.class.enrollments.length; const
-                                        participationRate=enrolledStudents> 0 ?
-                                        Math.round((exam.attempts.length / enrolledStudents) * 100) : 0;
+                                <h2 class="mb-0">
+                                    <% const attemptedStudents=examResults.filter(function(result) { return
+                                        result.submitted; }).length; %>
+                                        <%= attemptedStudents %>
+                                </h2>
+                                <small>Attempted</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-white">
+                            <div class="card-body">
+                                <h2 class="mb-0">
+                                    <% const pendingStudents=totalStudents - attemptedStudents; %>
+                                        <%= pendingStudents %>
+                                </h2>
+                                <small>Not Attempted</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-info text-white">
+                            <div class="card-body">
+                                <h2 class="mb-0">
+                                    <% let totalScore=0; let scoredStudents=0; examResults.forEach(function(result) { if
+                                        (result.score !==null) { totalScore +=result.score; scoredStudents++; } });
+                                        const averageScore=scoredStudents> 0 ? (totalScore / scoredStudents).toFixed(1)
+                                        : 0;
                                         %>
-                                        <%= participationRate %>%
-                                </h3>
-                                <p class="text-muted mb-0">Participation Rate</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h3 class="text-info">
-                                    <% const avgScore=exam.attempts.length> 0 ?
-                                        exam.attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0) /
-                                        exam.attempts.length : 0;
-                                        %>
-                                        <%= avgScore.toFixed(1) %>
-                                </h3>
-                                <p class="text-muted mb-0">Average Score</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h3 class="text-warning">
-                                    <%= enrolledStudents %>
-                                </h3>
-                                <p class="text-muted mb-0">Enrolled Students</p>
+                                        <%= averageScore %>
+                                </h2>
+                                <small>Average Score</small>
                             </div>
                         </div>
                     </div>
@@ -119,230 +160,318 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Student Results</h5>
-                        <button class="btn btn-outline-success btn-sm">
-                            <i class="fas fa-download"></i> Export Results
-                        </button>
+                        <span class="badge bg-primary">
+                            <%= attemptedStudents %> / <%= totalStudents %> Attempted
+                        </span>
                     </div>
                     <div class="card-body">
-                        <% if (exam.attempts && exam.attempts.length> 0) { %>
+                        <% if (examResults.length> 0) { %>
                             <div class="table-responsive">
-                                <table class="table table-striped">
+                                <table class="table table-hover" id="resultsTable">
                                     <thead>
                                         <tr>
-                                            <th>Student Name</th>
-                                            <th>Score</th>
-                                            <th>Percentage</th>
-                                            <th>Status</th>
-                                            <th>Submitted At</th>
-                                            <th>Actions</th>
+                                            <th>#</th>
+                                            <th>Student</th>
+                                            <th>ID Number</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center score-cell">Score</th>
+                                            <th class="text-center">Percentage</th>
+                                            <th class="text-center">Grade</th>
+                                            <th class="text-center">Submitted On</th>
+                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <% exam.attempts.forEach(attempt=> { %>
+                                        <% examResults.forEach(function(result, index) { const student=result.student;
+                                            const percentage=result.score !==null ? ((result.score / exam.totalMarks) *
+                                            100).toFixed(1) : 0; let grade='N/A' ; let gradeClass='not-attempted' ; if
+                                            (result.submitted) { if (result.score !==null) { if (percentage>= 80) {
+                                            grade = 'A';
+                                            gradeClass = 'passed';
+                                            } else if (percentage >= 60) {
+                                            grade = 'B';
+                                            gradeClass = 'passed';
+                                            } else if (percentage >= 40) {
+                                            grade = 'C';
+                                            gradeClass = 'passed';
+                                            } else {
+                                            grade = 'F';
+                                            gradeClass = 'failed';
+                                            }
+                                            } else {
+                                            grade = 'Pending';
+                                            gradeClass = 'not-attempted';
+                                            }
+                                            }
+                                            %>
                                             <tr>
                                                 <td>
-                                                    <%= attempt.student.user.firstName %>
-                                                        <%= attempt.student.user.lastName %>
+                                                    <%= index + 1 %>
                                                 </td>
                                                 <td>
-                                                    <strong>
-                                                        <%= attempt.score !==null ? attempt.score : 'Not graded' %>
-                                                    </strong>
-                                                    / <%= exam.totalMarks || 100 %>
+                                                    <div class="d-flex align-items-center">
+                                                        <% if (student.user.avatar) { %>
+                                                            <img src="<%= student.user.avatar.startsWith('/') ? student.user.avatar : '/' + student.user.avatar %>"
+                                                                class="student-avatar me-3"
+                                                                onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                                            <% } else { %>
+                                                                <img src="/images/default-profile.png"
+                                                                    class="student-avatar me-3">
+                                                                <% } %>
+                                                                    <div>
+                                                                        <strong>
+                                                                            <%= student.user.firstName %>
+                                                                                <%= student.user.lastName %>
+                                                                        </strong>
+                                                                    </div>
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <% if (attempt.score !==null) { const percentage=(attempt.score /
-                                                        (exam.totalMarks || 100)) * 100; %>
-                                                        <span class="badge bg-<%= 
-                                                    percentage >= 80 ? 'success' : 
-                                                    percentage >= 60 ? 'warning' : 'danger'
-                                                %>">
-                                                            <%= percentage.toFixed(1) %>%
-                                                        </span>
+                                                    <%= student.user.idNumber %>
+                                                </td>
+                                                <td class="text-center">
+                                                    <% if (result.submitted) { %>
+                                                        <% if (result.score !==null) { %>
+                                                            <span class="badge bg-success">Graded</span>
+                                                            <% } else { %>
+                                                                <span class="badge bg-warning">Pending</span>
+                                                                <% } %>
+                                                                    <% } else { %>
+                                                                        <span class="badge bg-secondary">Not
+                                                                            Attempted</span>
+                                                                        <% } %>
+                                                </td>
+                                                <td class="text-center">
+                                                    <% if (result.score !==null) { %>
+                                                        <strong>
+                                                            <%= result.score %> / <%= exam.totalMarks %>
+                                                        </strong>
                                                         <% } else { %>
-                                                            <span class="badge bg-secondary">N/A</span>
+                                                            <span class="text-muted">-</span>
                                                             <% } %>
                                                 </td>
-                                                <td>
-                                                    <span class="status-badge status-<%= attempt.status %>">
-                                                        <% let statusText='' ; switch(attempt.status) {
-                                                            case 'in_progress' : statusText='In Progress' ; break;
-                                                            case 'submitted' : statusText='Submitted' ; break;
-                                                            case 'graded' : statusText='Graded' ; break;
-                                                            case 'published' : statusText='Published' ; break; default:
-                                                            statusText=attempt.status; } %>
-                                                            <%= statusText %>
-                                                    </span>
+                                                <td class="text-center">
+                                                    <% if (result.score !==null) { %>
+                                                        <div class="progress"
+                                                            style="height: 6px; width: 80px; margin: 0 auto;">
+                                                            <div class="progress-bar 
+                                                        <% if (percentage >= 80) { %>bg-success
+                                                        <% } else if (percentage >= 60) { %>bg-warning
+                                                        <% } else { %>bg-danger<% } %>"
+                                                                style="width: <%= percentage %>%">
+                                                            </div>
+                                                        </div>
+                                                        <small>
+                                                            <%= percentage %>%
+                                                        </small>
+                                                        <% } else { %>
+                                                            <span class="text-muted">-</span>
+                                                            <% } %>
                                                 </td>
-                                                <td>
-                                                    <%= attempt.submittedAt ? new
-                                                        Date(attempt.submittedAt).toLocaleString() : 'Not submitted' %>
+                                                <td class="text-center <%= gradeClass %>">
+                                                    <%= grade %>
                                                 </td>
-                                                <td>
-                                                    <a href="/teacher/exams/attempts/<%= attempt.id %>/grade"
-                                                        class="btn btn-sm btn-outline-info">
-                                                        <i class="fas fa-search"></i> Review
-                                                    </a>
+                                                <td class="text-center">
+                                                    <% if (result.submittedAt) { %>
+                                                        <%= new Date(result.submittedAt).toLocaleDateString() %>
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                <%= new Date(result.submittedAt).toLocaleTimeString([],
+                                                                    {hour: '2-digit' , minute:'2-digit'}) %>
+                                                            </small>
+                                                            <% } else { %>
+                                                                <span class="text-muted">-</span>
+                                                                <% } %>
+                                                </td>
+                                                <td class="text-center">
+                                                    <% if (result.submitted) { %>
+                                                        <button class="btn btn-sm btn-outline-primary"
+                                                            onclick="viewExamAttempt('<%= result.student.id %>', '<%= exam.id %>')">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </button>
+                                                        <% } else { %>
+                                                            <span class="text-muted">N/A</span>
+                                                            <% } %>
                                                 </td>
                                             </tr>
-                                            <% }) %>
+                                            <% }); %>
                                     </tbody>
                                 </table>
                             </div>
                             <% } else { %>
-                                <div class="text-center py-4">
-                                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
-                                    <h5>No Results Yet</h5>
-                                    <p class="text-muted">No students have attempted this exam yet.</p>
+                                <div class="text-center py-5">
+                                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                    <h4>No Students Enrolled</h4>
+                                    <p class="text-muted">There are no students enrolled in this class yet.</p>
                                 </div>
                                 <% } %>
                     </div>
                 </div>
 
-                <!-- Students Without Attempts -->
-                <% const studentsWithAttempts=new Set(exam.attempts.map(attempt=> attempt.student.id));
-                    const studentsWithoutAttempts = exam.class.enrollments
-                    .filter(enrollment => !studentsWithAttempts.has(enrollment.student.id))
-                    .map(enrollment => enrollment.student);
-                    %>
-                    <% if (studentsWithoutAttempts.length> 0) { %>
-                        <div class="card mt-4">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0">Students Yet to Attempt</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <% studentsWithoutAttempts.forEach(student=> { %>
-                                        <div class="col-md-4 mb-2">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-user text-muted me-2"></i>
+                <!-- Summary Statistics -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Performance Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Grade Distribution</h6>
+                                <% let gradeCounts={A: 0, B: 0, C: 0, F: 0, 'Pending' : 0, 'Not Attempted' : 0};
+                                    examResults.forEach(function(result) { if (result.submitted) { if (result.score
+                                    !==null) { const percentage=(result.score / exam.totalMarks) * 100; if (percentage>=
+                                    80) gradeCounts.A++;
+                                    else if (percentage >= 60) gradeCounts.B++;
+                                    else if (percentage >= 40) gradeCounts.C++;
+                                    else gradeCounts.F++;
+                                    } else {
+                                    gradeCounts.Pending++;
+                                    }
+                                    } else {
+                                    gradeCounts['Not Attempted']++;
+                                    }
+                                    });
+                                    %>
+                                    <div class="mt-3">
+                                        <% ['A', 'B' , 'C' , 'F' , 'Pending' , 'Not Attempted' ].forEach(function(grade)
+                                            { const count=gradeCounts[grade]; const percentage=totalStudents> 0 ?
+                                            ((count / totalStudents) * 100).toFixed(1) : 0;
+                                            %>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <div>
+                                                    <span class="badge 
+                                            <% if (grade === 'A') { %>bg-success
+                                            <% } else if (grade === 'B') { %>bg-info
+                                            <% } else if (grade === 'C') { %>bg-warning
+                                            <% } else if (grade === 'F') { %>bg-danger
+                                            <% } else { %>bg-secondary<% } %> me-2">
+                                                        <%= grade %>
+                                                    </span>
+                                                    <span>
+                                                        <%= count %> students
+                                                    </span>
+                                                </div>
                                                 <span>
-                                                    <%= student.user.firstName %>
-                                                        <%= student.user.lastName %>
+                                                    <%= percentage %>%
                                                 </span>
                                             </div>
-                                        </div>
-                                        <% }) %>
+                                            <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress-bar 
+                                        <% if (grade === 'A') { %>bg-success
+                                        <% } else if (grade === 'B') { %>bg-info
+                                        <% } else if (grade === 'C') { %>bg-warning
+                                        <% } else if (grade === 'F') { %>bg-danger
+                                        <% } else { %>bg-secondary<% } %>" style="width: <%= percentage %>%">
+                                                </div>
+                                            </div>
+                                            <% }); %>
+                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Overall Statistics</h6>
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span>Pass Rate (≥40%)</span>
+                                        <strong>
+                                            <% const passedStudents=gradeCounts.A + gradeCounts.B + gradeCounts.C; const
+                                                passRate=attemptedStudents> 0 ?
+                                                ((passedStudents / attemptedStudents) * 100).toFixed(1) : 0;
+                                                %>
+                                                <%= passRate %>%
+                                        </strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span>Average Score</span>
+                                        <strong>
+                                            <%= averageScore %> / <%= exam.totalMarks %>
+                                        </strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span>Highest Score</span>
+                                        <strong>
+                                            <% let highestScore=0; examResults.forEach(function(result) { if
+                                                (result.score !==null && result.score> highestScore) {
+                                                highestScore = result.score;
+                                                }
+                                                });
+                                                %>
+                                                <%= highestScore %> / <%= exam.totalMarks %>
+                                        </strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span>Lowest Score (Attempted)</span>
+                                        <strong>
+                                            <% let lowestScore=exam.totalMarks; let hasAttempted=false;
+                                                examResults.forEach(function(result) { if (result.score !==null) {
+                                                hasAttempted=true; if (result.score < lowestScore) {
+                                                lowestScore=result.score; } } }); if (!hasAttempted) lowestScore=0; %>
+                                                <%= lowestScore %> / <%= exam.totalMarks %>
+                                        </strong>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <% } %>
-
-                            <!-- Publish Results Section -->
-                            <% if (exam.attempts.some(attempt=> attempt.status === 'graded')) { %>
-                                <div class="card mt-4">
-                                    <div class="card-header bg-success text-white">
-                                        <h5 class="mb-0">Publish Results</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>
-                                            You have <strong>
-                                                <%= exam.attempts.filter(a=> a.status === 'graded').length %>
-                                            </strong>
-                                            graded exams ready to be published to students.
-                                        </p>
-                                        <p class="text-muted small">
-                                            <i class="fas fa-bell"></i> Students will receive notifications when results are published.
-                                        </p>
-                                        <button class="btn btn-success" onclick="publishResults(<%= exam.id %>)">
-                                            <i class="fas fa-paper-plane"></i> Publish All Results to Students
-                                        </button>
-                                    </div>
-                                </div>
-                                <% } %>
+                    </div>
+                </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Export results to CSV
+            function exportToCSV() {
+                const table = document.getElementById('resultsTable');
+                let csv = [];
 
-       <Script>
-        function publishResults(examId) {
-            const gradedCount = document.querySelectorAll('.status-graded').length;
+                // Get headers
+                const headers = [];
+                table.querySelectorAll('thead th').forEach(function (th) {
+                    headers.push(th.textContent.trim());
+                });
+                csv.push(headers.join(','));
 
-            if (confirm(`Are you sure you want to publish results for ${gradedCount} student${gradedCount !== 1 ? 's' : ''}? This action cannot be undone.`)) {
-                // Show loading state
-                const publishBtn = event.target;
-                const originalText = publishBtn.innerHTML;
-                publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
-                publishBtn.disabled = true;
-
-                fetch(`/teacher/api/exams/${examId}/publish-results`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Show success message with student count
-                            const message = data.message || `Results published to ${data.notifiedStudents || 0} student${data.notifiedStudents !== 1 ? 's' : ''}!`;
-
-                            // Create a nice success alert instead of default alert
-                            showCustomAlert('success', 'Success!', message);
-
-                            // Reload after a short delay to show the alert
-                            setTimeout(() => {
-                                location.reload();
-                            }, 2000);
-                        } else {
-                            showCustomAlert('error', 'Error', data.error || 'Failed to publish results');
-                            // Reset button
-                            publishBtn.innerHTML = originalText;
-                            publishBtn.disabled = false;
+                // Get rows
+                table.querySelectorAll('tbody tr').forEach(function (row) {
+                    const rowData = [];
+                    row.querySelectorAll('td').forEach(function (cell) {
+                        // Remove HTML and get text content
+                        let text = cell.textContent.trim();
+                        // Remove line breaks and extra spaces
+                        text = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                        // Escape commas
+                        if (text.includes(',')) {
+                            text = '"' + text + '"';
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showCustomAlert('error', 'Error', 'Failed to publish results. Please try again.');
-                        // Reset button
-                        publishBtn.innerHTML = originalText;
-                        publishBtn.disabled = false;
+                        rowData.push(text);
                     });
+                    csv.push(rowData.join(','));
+                });
+
+                // Create download link
+                const csvContent = csv.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'exam-results-<%= exam.title.replace(/[^a-z0-9]/gi, ' - ').toLowerCase() %>.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                alert('Results exported to CSV file!');
             }
-        }
 
-        // Helper function for custom alerts
-        function showCustomAlert(type, title, message) {
-            // Remove any existing custom alerts
-            const existingAlert = document.querySelector('.custom-alert');
-            if (existingAlert) {
-                existingAlert.remove();
+            // Print results
+            function printResults() {
+                window.print();
             }
 
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert ${alertClass} custom-alert alert-dismissible fade show`;
-            alertDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 9999;
-                min-width: 300px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            `;
-            alertDiv.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="fas ${icon} me-2"></i>
-                    <div>
-                        <strong>${title}</strong><br>
-                        ${message}
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            document.body.appendChild(alertDiv);
-
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 5000);
-        }
-    </script>
+            // View exam attempt (placeholder)
+            function viewExamAttempt(studentId, examId) {
+                console.log('Viewing exam attempt for student:', studentId, 'exam:', examId);
+                // This would typically open a modal or redirect to view the exam attempt
+                alert('View exam attempt feature would open here. Student ID: ' + studentId);
+            }
+        </script>
 </body>
 
 </html>

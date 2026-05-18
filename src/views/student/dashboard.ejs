@@ -139,6 +139,44 @@
             margin-bottom: 20px;
             border: 2px solid #ffc107;
         }
+
+        .new-feature-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .feature-card {
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Notification styles for student dashboard */
+        .notification-item {
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            padding: 12px 15px !important;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .notification-item.unread {
+            border-left-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -253,7 +291,8 @@
                                                                             <%= user.firstName %>
                                                                                 <%= user.lastName %>
                                                                         </h4>
-                                                                        <p class="welcome-text">Welcome to your dashboard</p>
+                                                                        <p class="welcome-text">Welcome to your
+                                                                            dashboard</p>
                                                                         <span class="user-role">
                                                                             Student
                                                                         </span>
@@ -263,24 +302,60 @@
                                                                                 <%= userSchool %>
                                                                             </small>
                                                                         </div>
-                                                                        </div>
+                                                        </div>
 
                                                         <div class="card dashboard-card mb-4">
                                                             <div class="card-header">
                                                                 <h5>Quick Actions</h5>
                                                             </div>
                                                             <div class="card-body">
-                                                                <% if (student.canChangePassword) { %>
-                                                                    <a href="/auth/change-password"
-                                                                        class="btn btn-outline-primary w-100 mb-2 action-btn">
-                                                                        <i class="fas fa-key"></i> Change Password
+                                                                <% if (enrollments && enrollments.length> 0) { %>
+                                                                    <a href="#" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                                                        <i class="fas fa-book"></i>Materials
                                                                     </a>
-                                                                    <% } %>
-                                                                        <a href="/student/classes"
-                                                                            class="btn btn-outline-secondary w-100 action-btn">
-                                                                            <i class="fas fa-chalkboard"></i> View All
-                                                                            Classes
-                                                                        </a>
+                                                                    <a href="#" class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                                                        <i class="fas fa-clipboard-list"></i>Assignments
+                                                                    </a>
+                                                                    <a href="#" class="btn btn-outline-success w-100 mb-2 action-btn">
+                                                                        <i class="fas fa-clipboard-list"></i>Exams
+                                                                    </a>
+                                                                    <a href="/student/classes"
+                                                                        class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                                                        <i class="fas fa-tasks"></i> Class Works
+                                                                    </a>
+                                                                    <a href="/student/live-sessions"
+                                                                        class="btn btn-outline-info w-100 mb-2 action-btn">
+                                                                        <i class="fas fa-video"></i> Live Sessions
+                                                                    </a>
+                                                                    <% } else { %>
+                                                                        <button
+                                                                            class="btn btn-outline-secondary w-100 mb-2 action-btn"
+                                                                            disabled>
+                                                                            <i class="fas fa-tasks"></i> Class Works (No
+                                                                            Classes)
+                                                                        </button>
+                                                                        <button
+                                                                            class="btn btn-outline-secondary w-100 mb-2 action-btn"
+                                                                            disabled>
+                                                                            <i class="fas fa-video"></i> Live Sessions
+                                                                            (No Classes)
+                                                                        </button>
+                                                                        <% } %>
+
+                                                                            <% if (student.canChangePassword) { %>
+                                                                                <a href="/auth/change-password"
+                                                                                    class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                                                                    <i class="fas fa-key"></i> Change
+                                                                                    Password
+                                                                                </a>
+                                                                                <% } %>
+                                                                                    <a href="/student/classes"
+                                                                                        class="btn btn-outline-secondary w-100 action-btn">
+                                                                                        <i
+                                                                                            class="fas fa-chalkboard"></i>
+                                                                                        View All
+                                                                                        Classes
+                                                                                    </a>
                                                             </div>
                                                         </div>
 
@@ -429,7 +504,7 @@
 
                                                                                 <!-- Statistics Cards Row -->
                                                                                 <div class="row">
-                                                                                    <div class="col-md-4 mb-4">
+                                                                                    <div class="col-md-3 mb-4">
                                                                                         <div
                                                                                             class="card text-center stat-card">
                                                                                             <div class="card-body">
@@ -448,7 +523,7 @@
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                    <div class="col-md-4 mb-4">
+                                                                                    <div class="col-md-3 mb-4">
                                                                                         <div
                                                                                             class="card text-center stat-card">
                                                                                             <div class="card-body">
@@ -467,7 +542,7 @@
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                    <div class="col-md-4 mb-4">
+                                                                                    <div class="col-md-3 mb-4">
                                                                                         <div
                                                                                             class="card text-center stat-card">
                                                                                             <div class="card-body">
@@ -484,14 +559,144 @@
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
+                                                                                    <div class="col-md-3 mb-4">
+                                                                                        <div
+                                                                                            class="card text-center stat-card">
+                                                                                            <div class="card-body">
+                                                                                                <h1 class="display-4">
+                                                                                                    <strong>
+                                                                                                        <%= pendingClassWorks
+                                                                                                            || 0 %>
+                                                                                                    </strong>
+                                                                                                </h1>
+                                                                                                <p class="card-text">
+                                                                                                    <strong>Pending
+                                                                                                        Class
+                                                                                                        Works</strong>
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <!-- New Features Section -->
+                                                                                <div class="row mb-4">
+                                                                                    <div class="col-12">
+                                                                                        <h3 class="mb-3">New Learning
+                                                                                            Features</h3>
+                                                                                        <div class="row">
+                                                                                            <div class="col-md-6 mb-3">
+                                                                                                <div
+                                                                                                    class="card feature-card h-100">
+                                                                                                    <div
+                                                                                                        class="card-body">
+                                                                                                        <div
+                                                                                                            class="d-flex align-items-center mb-2">
+                                                                                                            <i
+                                                                                                                class="fas fa-tasks fa-2x text-primary me-3"></i>
+                                                                                                            <h5
+                                                                                                                class="card-title mb-0">
+                                                                                                                Class
+                                                                                                                Works
+                                                                                                            </h5>
+                                                                                                            <span
+                                                                                                                class="badge new-feature-badge ms-2">New</span>
+                                                                                                        </div>
+                                                                                                        <p
+                                                                                                            class="card-text">
+                                                                                                            Complete
+                                                                                                            interactive
+                                                                                                            quizzes,
+                                                                                                            assignments,
+                                                                                                            and
+                                                                                                            discussions
+                                                                                                            assigned by
+                                                                                                            your
+                                                                                                            teachers.
+                                                                                                            Track your
+                                                                                                            progress and
+                                                                                                            get instant
+                                                                                                            feedback.
+                                                                                                        </p>
+                                                                                                        <a href="/student/classes"
+                                                                                                            class="btn btn-primary">
+                                                                                                            <i
+                                                                                                                class="fas fa-arrow-right me-1"></i>
+                                                                                                            View Class
+                                                                                                            Works
+                                                                                                        </a>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div class="col-md-6 mb-3">
+                                                                                                <div
+                                                                                                    class="card feature-card h-100">
+                                                                                                    <div
+                                                                                                        class="card-body">
+                                                                                                        <div
+                                                                                                            class="d-flex align-items-center mb-2">
+                                                                                                            <i
+                                                                                                                class="fas fa-video fa-2x text-info me-3"></i>
+                                                                                                            <h5
+                                                                                                                class="card-title mb-0">
+                                                                                                                Live
+                                                                                                                Sessions
+                                                                                                            </h5>
+                                                                                                            <span
+                                                                                                                class="badge new-feature-badge ms-2">New</span>
+                                                                                                        </div>
+                                                                                                        <p
+                                                                                                            class="card-text">
+                                                                                                            Join
+                                                                                                            real-time
+                                                                                                            virtual
+                                                                                                            classes with
+                                                                                                            your
+                                                                                                            teachers and
+                                                                                                            classmates.
+                                                                                                            Interactive
+                                                                                                            learning
+                                                                                                            with chat,
+                                                                                                            screen
+                                                                                                            sharing, and
+                                                                                                            collaborative
+                                                                                                            tools.
+                                                                                                        </p>
+                                                                                                        <a href="/student/live-sessions"
+                                                                                                            class="btn btn-info text-white">
+                                                                                                            <i
+                                                                                                                class="fas fa-arrow-right me-1"></i>
+                                                                                                            Join Live
+                                                                                                            Sessions
+                                                                                                        </a>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
 
                                                                                 <div class="row">
                                                                                     <div class="col-md-8">
                                                                                         <div
                                                                                             class="card mb-4 dashboard-card">
-                                                                                            <div class="card-header">
+                                                                                            <div
+                                                                                                class="card-header d-flex justify-content-between align-items-center">
                                                                                                 <h4>My Classes</h4>
+                                                                                                <div>
+                                                                                                    <a href="/student/classes"
+                                                                                                        class="btn btn-sm btn-primary me-2">
+                                                                                                        <i
+                                                                                                            class="fas fa-tasks me-1"></i>
+                                                                                                        Class Works
+                                                                                                    </a>
+                                                                                                    <a href="/student/live-sessions"
+                                                                                                        class="btn btn-sm btn-info text-white">
+                                                                                                        <i
+                                                                                                            class="fas fa-video me-1"></i>
+                                                                                                        Live Sessions
+                                                                                                    </a>
+                                                                                                </div>
                                                                                             </div>
                                                                                             <div class="card-body">
                                                                                                 <% if (enrollments &&
@@ -527,12 +732,15 @@
                                                                                                                                         <%= enrollment.class.teacher.user.lastName
                                                                                                                                             %>
                                                                                                                         </p>
-                                                                                                                        <a href="/student/class/<%= enrollment.class.id %>/materials"
-                                                                                                                            class="btn btn-sm btn-outline-primary">Materials</a>
-                                                                                                                        <a href="/student/class/<%= enrollment.class.id %>/assignments"
-                                                                                                                            class="btn btn-sm btn-outline-primary">Assignments</a>
-                                                                                                                        <a href="/student/class/<%= enrollment.class.id %>/exams"
-                                                                                                                            class="btn btn-sm btn-outline-primary">Exams</a>
+                                                                                                                        <div
+                                                                                                                            class="btn-group">
+                                                                                                                            <a href="/student/class/<%= enrollment.class.id %>/materials"
+                                                                                                                                class="btn btn-sm btn-outline-primary">Materials</a>
+                                                                                                                            <a href="/student/class/<%= enrollment.class.id %>/assignments"
+                                                                                                                                class="btn btn-sm btn-outline-primary">Assignments</a>
+                                                                                                                            <a href="/student/class/<%= enrollment.class.id %>/exams"
+                                                                                                                                class="btn btn-sm btn-outline-primary">Exams</a>
+                                                                                                                        </div>
                                                                                                                     </div>
                                                                                                                 </div>
                                                                                                             </div>
@@ -550,7 +758,7 @@
 
                                                                                     <div class="col-md-4">
                                                                                         <div
-                                                                                            class="card dashboard-card">
+                                                                                            class="card dashboard-card mb-4">
                                                                                             <div class="card-header">
                                                                                                 <h4>Upcoming Assignments
                                                                                                 </h4>
@@ -592,6 +800,65 @@
                                                                                                                 <% } %>
                                                                                             </div>
                                                                                         </div>
+
+                                                                                        <!-- Upcoming Class Works -->
+                                                                                        <div
+                                                                                            class="card dashboard-card">
+                                                                                            <div class="card-header">
+                                                                                                <h4>Recent Class Works
+                                                                                                </h4>
+                                                                                            </div>
+                                                                                            <div class="card-body">
+                                                                                                <% if (recentClassWorks
+                                                                                                    &&
+                                                                                                    recentClassWorks.length>
+                                                                                                    0) { %>
+                                                                                                    <%
+                                                                                                        recentClassWorks.forEach(classWork=>
+                                                                                                        { %>
+                                                                                                        <div
+                                                                                                            class="mb-3 p-2 border rounded">
+                                                                                                            <h6>
+                                                                                                                <%= classWork.title
+                                                                                                                    %>
+                                                                                                            </h6>
+                                                                                                            <small
+                                                                                                                class="text-muted">
+                                                                                                                Type:
+                                                                                                                <span
+                                                                                                                    class="badge bg-<%= 
+                                                                                                                    classWork.type === 'quiz' ? 'primary' : 
+                                                                                                                    classWork.type === 'assignment' ? 'success' : 'warning' 
+                                                                                                                %>">
+                                                                                                                    <%= classWork.type
+                                                                                                                        %>
+                                                                                                                </span>
+                                                                                                                <br>
+                                                                                                                Due:
+                                                                                                                <%= classWork.dueDate
+                                                                                                                    ?
+                                                                                                                    new
+                                                                                                                    Date(classWork.dueDate).toLocaleDateString()
+                                                                                                                    : 'No due date'
+                                                                                                                    %>
+                                                                                                            </small>
+                                                                                                            <div
+                                                                                                                class="mt-2">
+                                                                                                                <a href="/student/class-works/<%= classWork.id %>/take"
+                                                                                                                    class="btn btn-sm btn-primary">Start</a>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <% }); %>
+                                                                                                            <% } else {
+                                                                                                                %>
+                                                                                                                <p>No
+                                                                                                                    recent
+                                                                                                                    class
+                                                                                                                    works.
+                                                                                                                </p>
+                                                                                                                <% } %>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
                                                     </div>
@@ -599,8 +866,258 @@
                                                 <% } %>
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Student Notification System -->
         <script>
+            // Simple notification system for student module
+            class StudentNotificationManager {
+                constructor() {
+                    this.notificationBell = document.getElementById('notificationDropdown');
+                    this.notificationMenu = document.getElementById('notificationDropdownMenu');
+                    this.notificationList = document.getElementById('notificationList');
+                    this.notificationBadge = document.getElementById('notificationBadge');
+                    this.markAllAsReadBtn = document.getElementById('markAllAsReadBtn');
+
+                    this.init();
+                }
+
+                init() {
+                    if (!this.notificationBell || !this.notificationMenu) {
+                        console.warn('Student notification elements not found');
+                        return;
+                    }
+
+                    this.setupEventListeners();
+                    this.updateBadgeCount();
+                }
+
+                setupEventListeners() {
+                    // Toggle dropdown
+                    this.notificationBell.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!this.notificationMenu.classList.contains('show')) {
+                            this.loadNotifications();
+                        }
+
+                        this.notificationMenu.classList.toggle('show');
+                    });
+
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', (e) => {
+                        if (this.notificationBell && this.notificationMenu &&
+                            !this.notificationBell.contains(e.target) &&
+                            !this.notificationMenu.contains(e.target)) {
+                            this.notificationMenu.classList.remove('show');
+                        }
+                    });
+
+                    // Prevent dropdown from closing when clicking inside
+                    this.notificationMenu.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+
+                    // Mark all as read
+                    if (this.markAllAsReadBtn) {
+                        this.markAllAsReadBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            this.markAllAsRead();
+                        });
+                    }
+                }
+
+                async loadNotifications() {
+                    try {
+                        this.showLoading();
+
+                        const response = await fetch('/api/notifications?limit=10&unreadOnly=true');
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.renderNotifications(result.notifications || []);
+                            this.updateBadge(result.pagination?.unreadCount || 0);
+                        } else {
+                            this.showError('Failed to load notifications');
+                        }
+                    } catch (error) {
+                        console.error('Student notification load error:', error);
+                        this.showError('Could not load notifications');
+                    }
+                }
+
+                async markAsRead(notificationId) {
+                    try {
+                        const response = await fetch('/api/notifications/mark-as-read', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ notificationId })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                return true;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Mark as read error:', error);
+                    }
+                    return false;
+                }
+
+                async markAllAsRead() {
+                    if (!confirm('Mark all notifications as read?')) return;
+
+                    try {
+                        const response = await fetch('/api/notifications/mark-all-read', {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                this.renderNotifications([]);
+                                this.updateBadge(0);
+
+                                // Close dropdown
+                                this.notificationMenu.classList.remove('show');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Mark all as read error:', error);
+                        alert('Failed to mark all as read');
+                    }
+                }
+
+                async updateBadgeCount() {
+                    try {
+                        const response = await fetch('/api/notifications/unread-count');
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success && this.notificationBadge) {
+                                const count = result.count || 0;
+                                this.updateBadge(count);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Update badge error:', error);
+                    }
+                }
+
+                renderNotifications(notifications) {
+                    if (!this.notificationList) return;
+
+                    if (notifications.length === 0) {
+                        this.notificationList.innerHTML = `
+                <div class="text-center p-3">
+                  <p class="text-muted mb-0">No new notifications</p>
+                </div>
+              `;
+                        return;
+                    }
+
+                    this.notificationList.innerHTML = notifications.map(notification => `
+              <a href="#" class="dropdown-item notification-item ${notification.read ? '' : 'unread'}" 
+                 onclick="window.studentNotificationManager.handleClick(event, '${notification.id}', this)">
+                <div class="d-flex align-items-start">
+                  <div class="flex-shrink-0 me-2">
+                    <i class="fas ${notification.icon || 'fa-bell'}"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">${this.escapeHtml(notification.title)}</h6>
+                    <p class="mb-1 small text-muted">${this.escapeHtml(notification.message)}</p>
+                    <small class="text-muted">${this.formatTime(notification.createdAt)}</small>
+                  </div>
+                  ${!notification.read ? '<span class="badge bg-danger ms-2">New</span>' : ''}
+                </div>
+              </a>
+            `).join('');
+                }
+
+                handleClick(event, notificationId, element) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    this.markAsRead(notificationId).then(success => {
+                        if (success) {
+                            element.remove();
+                            this.updateBadgeCount();
+                        }
+                    });
+                }
+
+                showLoading() {
+                    if (!this.notificationList) return;
+
+                    this.notificationList.innerHTML = `
+              <div class="text-center p-3">
+                <div class="spinner-border spinner-border-sm" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            `;
+                }
+
+                showError(message) {
+                    if (!this.notificationList) return;
+
+                    this.notificationList.innerHTML = `
+              <div class="text-center p-3">
+                <p class="text-danger mb-0">${message}</p>
+              </div>
+            `;
+                }
+
+                updateBadge(count) {
+                    if (!this.notificationBadge) return;
+
+                    this.notificationBadge.textContent = count;
+                    this.notificationBadge.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+
+                escapeHtml(text) {
+                    if (!text) return '';
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                formatTime(dateString) {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffMins < 1) return 'Just now';
+                    if (diffMins < 60) return `${diffMins}m ago`;
+                    if (diffHours < 24) return `${diffHours}h ago`;
+                    if (diffDays < 7) return `${diffDays}d ago`;
+
+                    return date.toLocaleDateString();
+                }
+            }
+
+            // Initialize when DOM is loaded
+            let studentNotificationManager;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('🎓 Student module loaded');
+                studentNotificationManager = new StudentNotificationManager();
+
+                // Make available globally
+                window.studentNotificationManager = studentNotificationManager;
+            });
+
         // Countdown timer for partial payment expiry
         <% if (student.tuitionStatus === 'partial' && student.tempPasswordExpiry) { %>
                 function updateCountdown() {
@@ -641,13 +1158,13 @@
                 function contactAdmin() {
                     alert('Please contact the School Administration office:\n\n' +
                         '📞 Phone: +1234567890\n' +
-                        '📧 Email: admin@edutech.school\n' +
+                        '📧 Email: admin@edtech.school\n' +
                         '🏢 Office: Room 101, Administration Building\n' +
                         '⏰ Hours: Monday-Friday, 8:00 AM - 4:00 PM\n\n' +
                         'Please have your student ID and payment details ready.');
 
                     // Optional: Open email client
-                    // window.location.href = 'mailto:admin@edutech.com?subject=Tuition Payment Inquiry&body=Dear Administration, I would like to inquire about my tuition payment. My student ID is: <%= user.idNumber %>';
+                     //window.location.href = 'mailto:admin@edtech.com?subject=Tuition Payment Inquiry&body=Dear Administration, I would like to inquire about my tuition payment. My student ID is: <%= user.idNumber %>';
                 }
 
             // Auto-logout check for expired access
