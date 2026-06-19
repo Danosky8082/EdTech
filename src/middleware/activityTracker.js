@@ -4,29 +4,18 @@ const activityTracker = (options = {}) => {
   return async (req, res, next) => {
     // Store the original send function
     const originalSend = res.send;
-    
+
     // Override the send function
     res.send = function(data) {
-      try {
-        // Only track successful POST/PUT/DELETE requests
-        if (req.method !== 'GET' && res.statusCode >= 200 && res.statusCode < 300) {
-          // Parse the response data if it's JSON
-          let responseData;
-          try {
-            responseData = typeof data === 'string' ? JSON.parse(data) : data;
-          } catch (e) {
-            responseData = data;
-          }
-
-          // Track different activity types based on route
-          trackActivity(req, responseData);
-        }
-      } catch (error) {
-        console.error('Activity tracking error:', error);
-        // Don't break the response if tracking fails
+      // Only track if status is successful and method is not GET
+      if (req.method !== 'GET' && res.statusCode >= 200 && res.statusCode < 300) {
+        // Run tracking asynchronously – do NOT await to avoid blocking response
+        trackActivity(req, data).catch(err => 
+          console.error('Activity tracking error:', err)
+        );
       }
       
-      // Call the original send function
+      // Call the original send function – this sends the actual response
       return originalSend.call(this, data);
     };
 
@@ -42,10 +31,21 @@ async function trackActivity(req, responseData) {
     const baseUrl = req.baseUrl || req.originalUrl;
     const method = req.method;
 
+    // Parse response data if it's a string (JSON)
+    let parsedData = responseData;
+    if (typeof responseData === 'string') {
+      try {
+        parsedData = JSON.parse(responseData);
+      } catch (_) {
+        // Not JSON – keep as is
+      }
+    }
+
+    // ---- Track different activities ----
     // ASSIGNMENT CREATION
     if (baseUrl.includes('/assignments') && method === 'POST') {
       const assignmentData = {
-        assignmentId: responseData?.id || responseData?.assignmentId,
+        assignmentId: parsedData?.id || parsedData?.assignmentId,
         classId: req.body.classId,
         title: req.body.title,
         description: req.body.description,
@@ -55,14 +55,13 @@ async function trackActivity(req, responseData) {
         teacherId: user.id,
         teacherName: `${user.firstName} ${user.lastName}`
       };
-
       await activityNotificationService.notifyNewAssignment(assignmentData);
     }
 
     // MATERIAL UPLOAD
     else if (baseUrl.includes('/materials') && method === 'POST') {
       const materialData = {
-        materialId: responseData?.id || responseData?.materialId,
+        materialId: parsedData?.id || parsedData?.materialId,
         classId: req.body.classId,
         title: req.body.title,
         description: req.body.description,
@@ -71,7 +70,6 @@ async function trackActivity(req, responseData) {
         teacherId: user.id,
         teacherName: `${user.firstName} ${user.lastName}`
       };
-
       await activityNotificationService.notifyNewMaterial(materialData);
     }
 
@@ -89,14 +87,13 @@ async function trackActivity(req, responseData) {
         teacherName: `${user.firstName} ${user.lastName}`,
         feedback: req.body.feedback
       };
-
       await activityNotificationService.notifyGradeSubmission(gradeData);
     }
 
     // EXAM CREATION
     else if (baseUrl.includes('/exams') && method === 'POST') {
       const examData = {
-        examId: responseData?.id || responseData?.examId,
+        examId: parsedData?.id || parsedData?.examId,
         classId: req.body.classId,
         title: req.body.title,
         description: req.body.description,
@@ -105,14 +102,13 @@ async function trackActivity(req, responseData) {
         teacherId: user.id,
         teacherName: `${user.firstName} ${user.lastName}`
       };
-
       await activityNotificationService.notifyNewExam(examData);
     }
 
     // ANNOUNCEMENT CREATION
     else if (baseUrl.includes('/announcements') && method === 'POST') {
       const announcementData = {
-        announcementId: responseData?.id || responseData?.announcementId,
+        announcementId: parsedData?.id || parsedData?.announcementId,
         title: req.body.title,
         content: req.body.content,
         targetAudience: req.body.targetAudience || 'all',
@@ -121,42 +117,29 @@ async function trackActivity(req, responseData) {
         createdBy: `${user.firstName} ${user.lastName}`,
         createdById: user.id
       };
-
       await activityNotificationService.notifyAnnouncement(announcementData);
     }
 
     // ATTENDANCE UPDATE
     else if (baseUrl.includes('/attendance') && method === 'POST') {
-      // Handle bulk attendance update
-      if (Array.isArray(req.body)) {
-        for (const attendance of req.body) {
-          const attendanceData = {
-            studentId: attendance.studentId,
-            studentName: attendance.studentName,
-            date: attendance.date || new Date().toISOString().split('T')[0],
-            status: attendance.status,
-            remarks: attendance.remarks,
-            classId: attendance.classId,
-            className: attendance.className,
-            teacherName: `${user.firstName} ${user.lastName}`
-          };
-
-          await activityNotificationService.notifyAttendanceUpdate(attendanceData);
-        }
-      } else {
-        // Single attendance update
+      const processAttendance = (attendance) => {
         const attendanceData = {
-          studentId: req.body.studentId,
-          studentName: req.body.studentName,
-          date: req.body.date || new Date().toISOString().split('T')[0],
-          status: req.body.status,
-          remarks: req.body.remarks,
-          classId: req.body.classId,
-          className: req.body.className,
+          studentId: attendance.studentId,
+          studentName: attendance.studentName,
+          date: attendance.date || new Date().toISOString().split('T')[0],
+          status: attendance.status,
+          remarks: attendance.remarks,
+          classId: attendance.classId,
+          className: attendance.className,
           teacherName: `${user.firstName} ${user.lastName}`
         };
+        return activityNotificationService.notifyAttendanceUpdate(attendanceData);
+      };
 
-        await activityNotificationService.notifyAttendanceUpdate(attendanceData);
+      if (Array.isArray(req.body)) {
+        await Promise.all(req.body.map(processAttendance));
+      } else {
+        await processAttendance(req.body);
       }
     }
 
@@ -167,17 +150,17 @@ async function trackActivity(req, responseData) {
         studentName: req.body.studentName,
         amount: req.body.amount,
         paymentMethod: req.body.paymentMethod,
-        receiptNumber: responseData?.receiptNumber || req.body.receiptNumber,
+        receiptNumber: parsedData?.receiptNumber || req.body.receiptNumber,
         collectedBy: user.id,
         paymentFor: req.body.paymentFor || 'School Fees',
         schoolId: user.schoolId
       };
-
       await activityNotificationService.notifyPayment(paymentData);
     }
 
   } catch (error) {
     console.error('Error in trackActivity:', error);
+    // Do not throw – we don't want to break the response
   }
 }
 
