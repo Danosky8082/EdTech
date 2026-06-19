@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "build": "prisma generate",
-    "vercel-build": "prisma generate"
-  },
+  "start": "node src/server.js",
+  "build": "prisma generate",
+  "vercel-build": "prisma generate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
