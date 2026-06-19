@@ -3,19 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-  "test": "echo \"Error: no test specified\" && exit 1",
-  "dev": "nodemon src/server.js",
-  "start": "node src/server.js",
-  "build": "npm run db:generate",
-  "postinstall": "prisma generate",
-  "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:seed": "node prisma/seed.js",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force",
-    "db:refresh": "npm run db:reset && npm run db:seed",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio"
+    "start": "node src/server.js",
+    "build": "prisma generate",
+    "vercel-build": "prisma generate"
   },
   "keywords": [],
   "author": "",
