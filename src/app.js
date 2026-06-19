@@ -296,6 +296,25 @@ app.get('/health/student-session', (req, res) => {
     });
 });
 
+app.get('/debug', async (req, res) => {
+  try {
+    const userCount = await prisma.user.count();
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      userCount,
+      session: req.session ? 'exists' : 'none',
+      sessionID: req.sessionID || 'none'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // =============================================
 // Error handling middleware
 // =============================================
