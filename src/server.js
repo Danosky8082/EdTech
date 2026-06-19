@@ -1,46 +1,55 @@
-// server.js
-const app = require('./app');
+// src/server.js
+const app = require('./app');               // Your Express app
 const http = require('http');
-const teacherRouter = require('./routes/teacher'); // Changed to match new variable name
+
+// Attach any additional routers (if not already in app.js)
+const teacherRouter = require('./routes/teacher');
 app.use('/teacher', teacherRouter);
 
-const PORT = process.env.PORT || 3000;
+// ------------------------------------------------------------
+// Export the Express app for Vercel serverless environment.
+// Vercel will call this exported handler for each request.
+// ------------------------------------------------------------
+module.exports = app;
 
-const server = app.listen(PORT, () => {
-  console.log('Server is running on port', PORT);
-  
-  // Make a request to the debug endpoint to get routes
-  const options = {
-    hostname: 'localhost',
-    port: PORT,
-    path: '/debug-routes',
-    method: 'GET'
-  };
-  
-  const req = http.request(options, (res) => {
-    let data = '';
-    res.on('data', (chunk) => {
-      data += chunk;
-    });
-    res.on('end', () => {
-      try {
-        const routes = JSON.parse(data);
-        console.log('\nRegistered routes:');
-        console.log('===================');
-        routes.forEach(route => {
-          console.log(`${route.methods.join(', ')} ${route.path}`);
+// ------------------------------------------------------------
+// Start the server only when NOT running on Vercel.
+// (Vercel provides its own listening environment.)
+// ------------------------------------------------------------
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running locally on port ${PORT}`);
+
+    // Optional: debug route introspection (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      const options = {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/debug-routes',
+        method: 'GET',
+      };
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const routes = JSON.parse(data);
+            console.log('\n📋 Registered routes:');
+            console.log('=====================');
+            routes.forEach(route => {
+              console.log(`${route.methods.join(', ')} ${route.path}`);
+            });
+          } catch (_) {
+            console.log('Could not parse route debug information');
+          }
         });
-      } catch (error) {
-        console.log('Could not parse route debug information');
-      }
-    });
+      });
+      req.on('error', () => console.log('Could not fetch route debug info.'));
+      req.end();
+    }
   });
-  
-  req.on('error', (error) => {
-    console.log('Could not fetch route debug information:', error.message);
-  });
-  
-  req.end();
-});
 
-module.exports = server;
+  // Optional: export the server instance if needed elsewhere
+  module.exports.server = server;
+}
