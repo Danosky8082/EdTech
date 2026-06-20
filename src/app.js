@@ -17,6 +17,14 @@ const noCache = require('./middleware/noCache');
 // Load environment variables
 dotenv.config();
 
+// Catch-all for unhandled errors (place at the top)
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('💥 Unhandled Rejection:', err);
+});
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/student');
