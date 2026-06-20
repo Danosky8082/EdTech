@@ -112,12 +112,14 @@ const login = async (req, res) => {
         case 'accountant': redirectPath = '/accountant/dashboard'; break;
         default:          redirectPath = '/';
       }
-      res.redirect(redirectPath);
+      // ✅ IMPORTANT: return to prevent any further code execution
+      return res.redirect(redirectPath);
     });
 
   } catch (error) {
     console.error('💥 Login error:', error);
-    res.render('auth/login', { 
+    // ✅ Added return here
+    return res.render('auth/login', { 
       title: 'Login',
       hideNavbar: true,
       error: 'An error occurred during login. Please try again.',
@@ -180,14 +182,14 @@ const changePassword = async (req, res) => {
       }
     });
 
-    res.render('auth/change-password', {
+    return res.render('auth/change-password', {
       title: 'Change Password',
       error: null,
       success: 'Password changed successfully'
     });
   } catch (error) {
     console.error('Password change error:', error);
-    res.render('auth/change-password', {
+    return res.render('auth/change-password', {
       title: 'Change Password',
       error: 'An error occurred while changing password',
       success: null
