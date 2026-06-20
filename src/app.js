@@ -322,19 +322,11 @@ app.get('/debug', async (req, res) => {
 // =============================================
 app.get('/check-session-table', async (req, res) => {
   try {
-    const result = await prisma.$queryRaw`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'session'
-      ) AS exists
-    `;
-    res.json({ tableExists: result[0].exists });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    // Test the simplest possible operation
+    const result = await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'db works', result });
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 });
 
