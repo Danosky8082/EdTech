@@ -4064,9 +4064,13 @@ module.exports = {
   extendAccess,
   manageSchools,
   checkIdNumber,
-  getClassStudents,
-  getSavingsGoal,
-  getAllSavingsGoals,
+  
+  // ADD THESE NEW FUNCTIONS:
+  getClassStudents,        // Add this
+  getSavingsGoal,          // Add this
+  getAllSavingsGoals,      // Add this
+  
+  // New Parent Management Modules
   getStudentParent,
   getAvailableParents,
   linkExistingParent,
@@ -4075,16 +4079,30 @@ module.exports = {
   getParentAccount,
   addWalletFunds,
   unlinkStudent,
+  
+  // Helper functions
   generateParentId,
   calculateAge,
   getAccessStatus,
   getStudentParentInfo,
+  
+  // New function for student filtering
   getAvailableStudents,
+  
+  // Financial transaction functions
   getFinancialTransactions,
   createFinancialTransaction,
   getFinancialDashboard,
   deleteFinancialTransaction,
-  getTuitionAnalytics,
+
+  analytics,              // Updated function
+  getAnalyticsData,       // Updated function
+  getTuitionAnalytics,    // New function
+  getGradesData,          // Already exists
+  getActivitiesData,
+
+
+  // NEW SYSTEM RESET FUNCTIONS
   systemResetPage,
   resetAllPayments,
   deleteSelectedUsers,
