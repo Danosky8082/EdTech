@@ -331,18 +331,26 @@ app.get('/check-session-table', async (req, res) => {
 });
 
 // =============================================
-// Error handling middleware
+// ERROR HANDLING – for debugging (returns JSON)
 // =============================================
+
+// 404 handler – keep as is
 app.use((req, res) => {
-    const user = req.session?.user || null;
-    res.status(404).render('error/404', {
-        title: 'Page Not Found',
-        message: 'The page you are looking for could not be found.',
-        user: user,
-        isSuperAdmin: req.isSuperAdmin || false,
-        userSchool: req.userSchool || null,
-        adminInfo: user?.admin || null
-    });
+  res.status(404).send('404: Page not found');
+});
+
+// 500 handler – show detailed error
+app.use((err, req, res, next) => {
+  console.error('💥 Global error:', err);
+  res.status(500).json({
+    error: err.message,
+    stack: err.stack,
+    // include request info to help debug
+    path: req.path,
+    method: req.method,
+    query: req.query,
+    body: req.body,
+  });
 });
 
 app.use((err, req, res, next) => {
