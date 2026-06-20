@@ -1,6 +1,6 @@
 const express = require('express');
 const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session); // <-- NEW
+const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -51,15 +51,15 @@ app.use(session({
     conObject: {
       connectionString: process.env.DATABASE_URL,
     },
-    tableName: 'session',   // you need to create this table (see docs)
+    tableName: 'session',
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // true on Vercel (HTTPS)
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax', 
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days (optional)
+    maxAge: 30 * 24 * 60 * 60 * 1000
   }
 }));
 
@@ -92,7 +92,7 @@ app.use((req, res, next) => {
 });
 
 // =============================================
-// Notification middleware (unchanged)
+// Notification middleware
 // =============================================
 app.use(async (req, res, next) => {
   if (!res.locals.user && req.session.user) {
@@ -310,6 +310,27 @@ app.get('/debug', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      status: 'error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// =============================================
+// Check if session table exists (for debugging)
+// =============================================
+app.get('/check-session-table', async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'session'
+      ) AS exists
+    `;
+    res.json({ tableExists: result[0].exists });
+  } catch (error) {
+    res.status(500).json({ 
       status: 'error',
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
