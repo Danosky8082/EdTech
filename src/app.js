@@ -30,6 +30,10 @@ const cashierRoutes = require('./routes/cashier');
 const app = express();
 app.set('trust proxy', 1);
 
+app.get('/test-error', (req, res) => {
+  throw new Error('Test error – check if this shows');
+});
+
 // Set view engine
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
