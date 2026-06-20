@@ -3,6 +3,7 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const path = require('path');
+const fs = require('fs');                       // <-- added for file checks
 const dotenv = require('dotenv');
 const methodOverride = require('method-override');
 const notificationRoutes = require('./routes/notifications');
@@ -34,9 +35,41 @@ app.set('trust proxy', 1);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Static files
+// Static files (public folder and general uploads)
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static('uploads'));   // fallback for other uploads
+
+// ============================================================
+// Custom routes to serve uploaded images from /tmp (Vercel)
+// with fallback to local uploads folder
+// ============================================================
+app.get('/uploads/profiles/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const tmpPath = path.join('/tmp/uploads/profiles', filename);
+  const localPath = path.join(__dirname, '../public/uploads/profiles', filename);
+
+  if (fs.existsSync(tmpPath)) {
+    return res.sendFile(tmpPath);
+  }
+  if (fs.existsSync(localPath)) {
+    return res.sendFile(localPath);
+  }
+  res.status(404).send('Image not found');
+});
+
+app.get('/uploads/materials/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const tmpPath = path.join('/tmp/uploads/materials', filename);
+  const localPath = path.join(__dirname, '../public/uploads/materials', filename);
+
+  if (fs.existsSync(tmpPath)) {
+    return res.sendFile(tmpPath);
+  }
+  if (fs.existsSync(localPath)) {
+    return res.sendFile(localPath);
+  }
+  res.status(404).send('File not found');
+});
 
 // Body parsing and method override
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -169,10 +202,6 @@ app.use('/parent', parentRoutes);
 app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
 
-// Additional static directories
-app.use('/uploads/materials', express.static('uploads/materials'));
-app.use('/uploads/profiles', express.static('uploads/profiles'));
-
 // School context middleware
 app.use('/teacher', setSchoolContext);
 app.use('/student', setSchoolContext);
@@ -262,7 +291,6 @@ app.use((err, req, res, next) => {
   else if (statusCode === 403) message = 'You do not have permission to access this resource.';
   else if (statusCode === 404) message = 'The requested resource could not be found.';
 
-  // In development, show the actual error message
   if (process.env.NODE_ENV === 'development' && err.message) {
     message = err.message;
   }

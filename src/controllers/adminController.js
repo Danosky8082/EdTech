@@ -24,7 +24,6 @@ const calculateAge = (dateOfBirth) => {
   const birthDate = new Date(dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
@@ -35,21 +34,20 @@ const calculateAge = (dateOfBirth) => {
 function formatTimeAgo(date) {
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return 'Just now';
-  } else if (diffInSeconds < 3600) {
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
     return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 86400) {
+  }
+  if (diffInSeconds < 86400) {
     const hours = Math.floor(diffInSeconds / 3600);
     return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 2592000) {
+  }
+  if (diffInSeconds < 2592000) {
     const days = Math.floor(diffInSeconds / 86400);
     return `${days} day${days !== 1 ? 's' : ''} ago`;
-  } else {
-    return date.toLocaleDateString();
   }
+  return date.toLocaleDateString();
 }
 
 // Generate unique parent ID
@@ -66,40 +64,35 @@ const generateParentId = async () => {
       nextNumber = parseInt(matches[0]) + 1;
     }
   }
-
   return `PAR${nextNumber.toString().padStart(4, '0')}`;
 };
 
-// Add this helper function to calculate access status
+// Helper function to determine access status
 function getAccessStatus(user) {
-  if (user.role !== 'student' || !user.student) {
-      return 'active';
-  }
-  
+  if (user.role !== 'student' || !user.student) return 'active';
   const now = new Date();
   const hasAccess = user.student.tuitionStatus === 'paid' ||
-      (user.student.tuitionStatus === 'partial' &&
-       user.student.tempPasswordExpiry && 
-       new Date(user.student.tempPasswordExpiry) > now);
-  
+    (user.student.tuitionStatus === 'partial' &&
+     user.student.tempPasswordExpiry && 
+     new Date(user.student.tempPasswordExpiry) > now);
   return hasAccess ? 'active' : 'no-access';
 }
 
-// Admin dashboard - FIXED: Added adminInfo parameter
+// ============================================================
+// DASHBOARD
+// ============================================================
 const dashboard = async (req, res) => {
   try {
     const userId = req.session.user.id;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // Build where clauses for school filtering
     let studentWhere = {};
     let teacherWhere = {};
     let classWhere = {};
     let assignmentWhere = {};
     let activityWhere = {};
     
-    // Apply school filtering for non-super admins
     if (userSchool && !isSuperAdmin) {
       studentWhere = { user: { school: userSchool } };
       teacherWhere = { user: { school: userSchool } };
@@ -112,7 +105,6 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    // Get recent activities with school filtering
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -133,7 +125,6 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
-    // Get notifications
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -143,9 +134,7 @@ const dashboard = async (req, res) => {
           { expiresAt: null }
         ]
       },
-      orderBy: {
-        createdAt: 'desc'
-      },
+      orderBy: { createdAt: 'desc' },
       take: 10
     });
 
@@ -160,7 +149,6 @@ const dashboard = async (req, res) => {
       }
     });
 
-    // Format notifications for display
     const formattedNotifications = notifications.map(notif => ({
       id: notif.id,
       title: notif.title,
@@ -170,7 +158,6 @@ const dashboard = async (req, res) => {
       read: notif.read
     }));
 
-    // FIXED: Get admin info for the current user to pass to the view
     const currentAdmin = await prisma.admin.findUnique({
       where: { userId: userId }
     });
@@ -188,18 +175,20 @@ const dashboard = async (req, res) => {
       notificationCount: notificationCount,
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
-      adminInfo: currentAdmin // FIXED: Added adminInfo
+      adminInfo: currentAdmin
     });
-   } catch (error) {
+  } catch (error) {
     console.error('Admin dashboard error:', error);
     res.status(500).render('error/500', { 
       title: 'Server Error',
-      adminInfo: req.user?.admin || null // FIXED: Added adminInfo to error page
+      adminInfo: req.user?.admin || null
     });
   }
 };
 
-// Update createUser to handle parent creation for students
+// ============================================================
+// CREATE USER (with fixed avatar path)
+// ============================================================
 const createUser = async (req, res) => {
   try {
     const { 
@@ -210,27 +199,19 @@ const createUser = async (req, res) => {
     
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    
-    console.log('👤 Creating new user with ID:', idNumber);
-    console.log('🎭 Role:', role);
 
-    // Validate required fields
     if (!idNumber || !firstName || !lastName || !role) {
-      console.log('❌ Missing required fields');
       return res.redirect('/admin/users?error=All required fields must be filled');
     }
 
-    // Check if ID number already exists
     const existingUser = await prisma.user.findUnique({
       where: { idNumber: idNumber.trim() }
     });
 
     if (existingUser) {
-      console.log('❌ ID Number already exists:', idNumber);
       return res.redirect('/admin/users?error=ID Number already exists');
     }
 
-    // Determine school for new user
     let assignedSchool;
     if (isSuperAdmin) {
       assignedSchool = school || null;
@@ -238,17 +219,13 @@ const createUser = async (req, res) => {
       assignedSchool = userSchool;
     }
 
-    // USE "12345" AS DEFAULT TEMPORARY PASSWORD
     const tempPassword = "12345";
-    console.log('🔐 Using default temporary password:', tempPassword);
-    
     const hashedPassword = await hashPassword(tempPassword);
-    console.log('🔑 Hashed password created successfully');
-    
-    // Parse date of birth
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-    
-    // Create user with school assignment - FIXED: Removed phone field
+
+    // 🔥 FIX: Store avatar as RELATIVE path
+    const avatarPath = req.file ? `uploads/profiles/${req.file.filename}` : null;
+
     const user = await prisma.user.create({
       data: {
         idNumber: idNumber.trim(),
@@ -256,26 +233,21 @@ const createUser = async (req, res) => {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email ? email.trim() : null,
-        phone: phone ? phone.trim() : null, // This will work after schema update
+        phone: phone ? phone.trim() : null,
         role,
         dateOfBirth: parsedDateOfBirth,
-        avatar: req.file ? req.file.path : null,
+        avatar: avatarPath,  // ✅ now relative
         isTemporaryPassword: true,
         school: assignedSchool,
         isActive: true
       }
     });
 
-    console.log('✅ User created successfully with ID:', user.id);
-    
     let parentUser = null;
-    
-    // Create parent if parent information provided for student
+
     if (role === 'student' && parentFirstName && parentLastName) {
       try {
         const parentIdNumber = await generateParentId();
-        
-        // Create parent user
         parentUser = await prisma.user.create({
           data: {
             idNumber: parentIdNumber,
@@ -290,14 +262,10 @@ const createUser = async (req, res) => {
           }
         });
 
-        // Create parent record
         const parent = await prisma.parent.create({
-          data: {
-            userId: parentUser.id
-          }
+          data: { userId: parentUser.id }
         });
 
-        // Create wallet for parent
         await prisma.wallet.create({
           data: {
             parentId: parent.id,
@@ -308,15 +276,11 @@ const createUser = async (req, res) => {
         console.log('👨‍👦 Parent account created:', parentIdNumber);
       } catch (parentError) {
         console.error('Error creating parent account:', parentError);
-        // Continue with student creation even if parent creation fails
       }
     }
-    
-    // Create role-specific record
+
     if (role === 'student') {
       if (!grade || !section) {
-        console.log('❌ Missing grade or section for student');
-        // Clean up the user if student data is invalid
         await prisma.user.delete({ where: { id: user.id } });
         if (parentUser) {
           await prisma.user.delete({ where: { id: parentUser.id } });
@@ -324,7 +288,6 @@ const createUser = async (req, res) => {
         return res.redirect('/admin/users?error=Grade and section are required for students');
       }
 
-      // Set tuition status and password change ability
       const canChangePassword = tuitionStatus === 'paid';
       const tempPasswordExpiry = tuitionStatus === 'partial' ? calculatePasswordExpiry(30) : null;
 
@@ -339,15 +302,11 @@ const createUser = async (req, res) => {
         }
       });
 
-      console.log('🎓 Student record created');
-
-      // Link parent to student if parent was created
       if (parentUser) {
         try {
           const parentRecord = await prisma.parent.findUnique({ 
             where: { userId: parentUser.id } 
           });
-          
           if (parentRecord) {
             await prisma.studentParent.create({
               data: {
@@ -356,14 +315,12 @@ const createUser = async (req, res) => {
                 relationship: parentRelationship || 'parent'
               }
             });
-            console.log('🔗 Parent linked to student');
           }
         } catch (linkError) {
           console.error('Error linking parent to student:', linkError);
         }
       }
 
-      // Create tuition payment record if receipt number provided
       if (receiptNumber && tuitionStatus === 'paid') {
         try {
           await prisma.tuitionPayment.create({
@@ -373,32 +330,25 @@ const createUser = async (req, res) => {
               status: 'verified',
               verifiedBy: req.session.user.id,
               verifiedAt: new Date(),
-              studentId: student.id, // FIXED: Use student.id instead of user.id
+              studentId: student.id,
               semester: `${new Date().getFullYear()}-1`
             }
           });
-          console.log('💰 Tuition payment recorded');
         } catch (paymentError) {
           console.error('Error creating tuition payment:', paymentError);
         }
       }
-
     } else if (role === 'teacher') {
       if (!subject) {
-        console.log('❌ Missing subject for teacher');
-        // Clean up the user if teacher data is invalid
         await prisma.user.delete({ where: { id: user.id } });
         return res.redirect('/admin/users?error=Subject is required for teachers');
       }
-      
       await prisma.teacher.create({
         data: {
           userId: user.id,
           subject: subject.trim()
         }
       });
-      console.log('👨‍🏫 Teacher record created');
-      
     } else if (role === 'admin') {
       await prisma.admin.create({
         data: {
@@ -406,59 +356,41 @@ const createUser = async (req, res) => {
           roleLevel: roleLevel || 'administrator'
         }
       });
-      console.log('👨‍💼 Admin record created');
     } else if (role === 'parent') {
       await prisma.parent.create({
-        data: {
-          userId: user.id
-        }
+        data: { userId: user.id }
       });
-      
-      // Create wallet for parent
       await prisma.wallet.create({
         data: {
           parentId: (await prisma.parent.findUnique({ where: { userId: user.id } })).id,
           balance: 0
         }
       });
-      console.log('👨‍👧‍👦 Parent record created');
     } else if (role === 'cashier') {
-    // Create cashier record
-    await prisma.cashier.create({
+      await prisma.cashier.create({
         data: {
-            userId: user.id,
-            employeeId: idNumber.trim()
+          userId: user.id,
+          employeeId: idNumber.trim()
         }
-    });
-    console.log('💰 Cashier record created');
-    
-} else if (role === 'accountant') {
-    // Create accountant record
-    await prisma.accountant.create({
+      });
+    } else if (role === 'accountant') {
+      await prisma.accountant.create({
         data: {
-            userId: user.id,
-            employeeId: idNumber.trim()
+          userId: user.id,
+          employeeId: idNumber.trim()
         }
-    });
-    console.log('📊 Accountant record created');
-}
-    
+      });
+    }
 
     let successMessage = 'User created successfully. Temporary password: 12345';
     if (parentUser) {
       successMessage += `. Parent account created with ID: ${parentUser.idNumber} (Password: 12345)`;
     }
 
-    console.log('🎉 User creation completed successfully');
     return res.redirect(`/admin/users?success=${encodeURIComponent(successMessage)}`);
-    
     
   } catch (error) {
     console.error('💥 Create user error:', error);
-    console.error('💥 Error details:', error.message);
-    console.error('💥 Error code:', error.code);
-    
-    // More specific error handling
     if (error.code === 'P2002') {
       return res.redirect('/admin/users?error=User with this ID number or email already exists');
     } else if (error.code === 'P2003') {
@@ -471,729 +403,132 @@ const createUser = async (req, res) => {
   }
 };
 
-// NEW: Manage tuition payments
-// NEW: Manage tuition payments - SIMPLIFIED VERSION
-const manageTuition = async (req, res) => {
+// ============================================================
+// UPDATE USER (with fixed avatar path)
+// ============================================================
+const updateUser = async (req, res) => {
   try {
-    const userSchool = req.userSchool;
-    const isSuperAdmin = req.isSuperAdmin;
+    const { userId } = req.params;
+    const { firstName, lastName, email, phone, grade, section, subject, roleLevel, dateOfBirth, tuitionStatus, receiptNumber, school } = req.body;
     
-    console.log('=== TUITION MANAGEMENT DEBUG ===');
-    console.log('User School:', userSchool);
-    console.log('Is Super Admin:', isSuperAdmin);
-    
-    // Build where clause for school filtering
-    let whereClause = {};
-    
-    if (userSchool && !isSuperAdmin) {
-      whereClause = {
-        user: {
-          school: userSchool
-        }
-      };
-      console.log('Filtering by school:', userSchool);
-    } else if (isSuperAdmin) {
-      console.log('Super admin - showing all students');
-    } else {
-      console.log('No school assigned');
-    }
-
-    console.log('Final whereClause:', JSON.stringify(whereClause));
-    
-    // SIMPLIFY THE QUERY FIRST
-    const students = await prisma.student.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            idNumber: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            school: true,
-            isActive: true
-          }
-        },
-        tuitionPayments: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      },
-      orderBy: {
-        user: {
-          firstName: 'asc'
-        }
-      }
-    });
-
-    console.log(`Number of students found in query: ${students.length}`);
-    
-    if (students.length > 0) {
-      console.log('First student in result:', {
-        name: `${students[0].user.firstName} ${students[0].user.lastName}`,
-        school: students[0].user.school,
-        idNumber: students[0].user.idNumber
-      });
-    }
-
-    // Create simple students data for template
-    const simpleStudents = students.map(student => ({
-      id: student.id,
-      firstName: student.user.firstName,
-      lastName: student.user.lastName,
-      idNumber: student.user.idNumber,
-      email: student.user.email,
-      school: student.user.school,
-      isActive: student.user.isActive,
-      grade: student.grade,
-      section: student.section,
-      tuitionStatus: student.tuitionStatus,
-      canChangePassword: student.canChangePassword,
-      tempPasswordExpiry: student.tempPasswordExpiry,
-      lastPayment: student.tuitionPayments.length > 0 ? student.tuitionPayments[0] : null,
-      // Calculate access status
-      accessStatus: student.tuitionStatus === 'paid' ? 'active' : 
-                   (student.tuitionStatus === 'partial' && 
-                    student.tempPasswordExpiry && 
-                    new Date(student.tempPasswordExpiry) > new Date()) ? 'active' : 'no-access'
-    }));
-
-    console.log(`📊 Found ${simpleStudents.length} students`);
-
-    res.render('admin/tuition-management', {
-      title: 'Tuition Management',
-      students: simpleStudents,  // Use simplified data
-      currentUserSchool: userSchool,
-      isSuperAdmin: isSuperAdmin,
-      adminInfo: req.user?.admin || null,
-      user: req.user  // Pass the full user object
-    });
-  } catch (error) {
-    console.error('💥 Manage tuition error:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).render('error/500', { 
-      title: 'Server Error',
-      adminInfo: req.user?.admin || null
-    });
-  }
-};
-
-// NEW: Record tuition payment
-const recordPayment = async (req, res) => {
-  try {
-    const { studentId, receiptNumber, amount, semester, paymentDate } = req.body;
-    const adminId = req.session.user.id;
-
-    // Validate required fields
-    if (!studentId || !receiptNumber) {
-      return res.status(400).json({ success: false, message: 'Student ID and receipt number are required' });
-    }
-
-    // Check if receipt number already exists
-    const existingPayment = await prisma.tuitionPayment.findUnique({
-      where: { receiptNumber }
-    });
-
-    if (existingPayment) {
-      return res.status(400).json({ success: false, message: 'Receipt number already exists' });
-    }
-
-    // Create payment record
-    const payment = await prisma.tuitionPayment.create({
-      data: {
-        receiptNumber,
-        amount: parseFloat(amount) || 0,
-        status: 'verified',
-        verifiedBy: adminId,
-        verifiedAt: new Date(),
-        studentId: studentId,
-        semester: semester || `${new Date().getFullYear()}-1`,
-        paymentDate: paymentDate ? new Date(paymentDate) : new Date()
-      }
-    });
-
-    // Update student's tuition status and password permissions
-    await prisma.student.update({
-      where: { id: studentId },
-      data: {
-        tuitionStatus: 'paid',
-        canChangePassword: true,
-        tempPasswordExpiry: null
-      }
-    });
-
-    // Update user's temporary password status
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      include: { user: true }
-    });
-
-    if (student && student.user.isTemporaryPassword) {
-      await prisma.user.update({
-        where: { id: student.userId },
-        data: {
-          isTemporaryPassword: false
-        }
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Payment recorded successfully and student can now change password',
-      payment
-    });
-
-  } catch (error) {
-    console.error('Record payment error:', error);
-    res.status(500).json({ success: false, message: 'Failed to record payment' });
-  }
-};
-
-// NEW: Reset student password with tuition check
-const resetStudentPassword = async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const { passwordType } = req.body; // 'full' or 'temporary'
-
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      include: { user: true }
-    });
-
-    if (!student) {
-      return res.status(404).json({ success: false, message: 'Student not found' });
-    }
-
-    let newPassword;
-    let isTemporary = false;
-    let tempPasswordExpiry = null;
-
-    if (passwordType === 'temporary') {
-      // Generate temporary password that expires
-      newPassword = generateTemporaryPassword();
-      isTemporary = true;
-      tempPasswordExpiry = calculatePasswordExpiry(30); // 30 days expiry
-
-      // Update student record
-      await prisma.student.update({
-        where: { id: studentId },
-        data: {
-          canChangePassword: false,
-          tempPasswordExpiry: tempPasswordExpiry
-        }
-      });
-    } else {
-      // Generate permanent password (only for paid students)
-      if (student.tuitionStatus !== 'paid') {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Cannot set permanent password for unpaid students' 
-        });
-      }
-      newPassword = generateTemporaryPassword(); // Still temporary but can be changed
-      isTemporary = false;
-    }
-
-    const hashedPassword = await hashPassword(newPassword);
-
-    // Update user password
-    await prisma.user.update({
-      where: { id: student.userId },
-      data: {
-        password: hashedPassword,
-        isTemporaryPassword: isTemporary,
-        passwordChangedAt: isTemporary ? null : new Date()
-      }
-    });
-
-    res.json({
-      success: true,
-      message: `Password reset successfully`,
-      newPassword: newPassword, // Send back to show admin
-      isTemporary: isTemporary,
-      expiryDate: tempPasswordExpiry
-    });
-
-  } catch (error) {
-    console.error('Reset student password error:', error);
-    res.status(500).json({ success: false, message: 'Failed to reset password' });
-  }
-};
-
-// NEW: Check password expiry
-const checkPasswordExpiry = async (req, res) => {
-  try {
-    const now = new Date();
-    const expiredStudents = await prisma.student.findMany({
-      where: {
-        tempPasswordExpiry: {
-          lt: now
-        },
-        tuitionStatus: {
-          not: 'paid'
-        }
-      },
-      include: {
-        user: {
-          select: {
-            idNumber: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
-    });
-
-    res.json({
-      success: true,
-      expiredStudents,
-      count: expiredStudents.length
-    });
-  } catch (error) {
-    console.error('Check password expiry error:', error);
-    res.status(500).json({ success: false, message: 'Failed to check password expiry' });
-  }
-};
-
-// Update the existing manageUsers function
-const manageUsers = async (req, res) => {
-  try {
-    const userSchool = req.userSchool;
-    const isSuperAdmin = req.isSuperAdmin;
-    const canSeeAllSchoolUsers = req.canSeeAllSchoolUsers;
-    
-    // Build where clause for school filtering
-    let whereClause = {};
-    
-    if (isSuperAdmin) {
-      // For super admin - no school filter, show all users
-      console.log('🔓 Super Admin - showing all users from all schools');
-    } else if (userSchool) {
-      // For principals, headteachers, school admins - only show users from their school
-      whereClause = {
-        school: userSchool
-      };
-      console.log(`🔒 School filtering applied: ${userSchool}`);
-    } else {
-      // No school assigned and not super admin - show no users
-      console.log('❌ No school assigned and not super admin - showing no users');
-      whereClause = {
-        school: 'NON_EXISTENT_SCHOOL'
-      };
-    }
-
-    const users = await prisma.user.findMany({
-      where: whereClause,
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
       include: {
         student: {
-          include: {
-            tuitionPayments: {
-              orderBy: {
-                createdAt: 'desc'
-              },
-              take: 1
-            },
-            // FIXED: This should work after schema update
-            parents: {
-              include: {
-                parent: {
-                  include: {
-                    user: true,
-                    wallet: true
-                  }
-                }
-              }
-            }
-          }
+          include: { tuitionPayments: true }
         },
         teacher: true,
         admin: true,
-        parent: {
-          include: {
-            wallet: {
-              include: {
-                transactions: {
-                  orderBy: {
-                    createdAt: 'desc'
-                  },
-                  take: 5
-                }
-              }
-            },
-            students: {
-              include: {
-                student: {
-                  include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
+        cashier: true,
+        accountant: true
       }
-    });
-    
-    // Calculate age for each user dynamically
-    const usersWithAge = users.map(user => ({
-      ...user,
-      age: calculateAge(user.dateOfBirth)
-    }));
-
-    // Calculate tuition statistics
-    const now = new Date();
-    
-    const paidStudents = users.filter(user => 
-      user.role === 'student' && 
-      user.student && 
-      user.student.tuitionStatus === 'paid'
-    ).length;
-
-    const partialStudents = users.filter(user => 
-      user.role === 'student' && 
-      user.student && 
-      user.student.tuitionStatus === 'partial'
-    ).length;
-
-    const unpaidStudents = users.filter(user => 
-      user.role === 'student' && 
-      user.student && 
-      user.student.tuitionStatus === 'unpaid'
-    ).length;
-
-    const expiredStudents = users.filter(user => {
-      if (user.role === 'student' && user.student && user.student.tuitionStatus === 'partial') {
-        return user.student.tempPasswordExpiry && new Date(user.student.tempPasswordExpiry) < now;
-      }
-      return false;
-    }).length;
-
-    // Calculate parent statistics
-    const parentCount = users.filter(user => user.role === 'parent').length;
-    
-    const walletBalance = users.reduce((total, user) => {
-      if (user.role === 'parent' && user.parent && user.parent.wallet) {
-        return total + user.parent.wallet.balance;
-      }
-      return total;
-    }, 0);
-    
-    // Get query parameters for success/error messages
-    const success = req.query.success;
-    const error = req.query.error;
-    
-    res.render('admin/users', { 
-      title: 'User Management',
-      users: usersWithAge,
-      paidStudents,
-      partialStudents,
-      unpaidStudents,
-      expiredStudents,
-      parentCount,
-      walletBalance,
-      userSchool,
-      isSuperAdmin,
-      canSeeAllSchoolUsers,
-      userRole: req.user.role,
-      adminInfo: req.user?.admin || null, // FIXED: Added null check
-      success,
-      error,
-      getAccessStatus
-    });
-  } catch (error) {
-    console.error('Manage users error:', error);
-    res.status(500).render('error/500', { 
-      title: 'Server Error',
-      adminInfo: req.user?.admin || null // FIXED: Added adminInfo to error page
-    });
-  }
-};
-
-// Toggle user active status - FIXED: Remove parseInt for string ID
-const toggleUserStatus = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
     });
     
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
+    const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    
+    // 🔥 FIX: Store avatar as RELATIVE path
+    const avatarPath = req.file ? `uploads/profiles/${req.file.filename}` : user.avatar;
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { isActive: !user.isActive }
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth: parsedDateOfBirth,
+        avatar: avatarPath,  // ✅ now relative
+        school: school
+      }
     });
     
-    res.json({ 
-      success: true, 
-      isActive: updatedUser.isActive,
-      message: `User ${updatedUser.isActive ? 'activated' : 'deactivated'} successfully`
-    });
-  } catch (error) {
-    console.error('Toggle user status error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
-
-// Get available students (not linked to any parent)
-const getAvailableStudents = async (req, res) => {
-    try {
-        const userSchool = req.userSchool;
-        const { grade, section } = req.query;
-        
-        console.log('🔍 Fetching available students for school:', userSchool);
-        
-        let whereClause = {
-            user: {
-                role: 'student'
-            },
-            parents: {
-                none: {} // Students with no parents linked
-            }
-        };
-        
-        // Apply school filtering for non-super admins
-        if (userSchool) {
-            whereClause.user.school = userSchool;
+    if (user.role === 'student' && user.student) {
+      const canChangePassword = tuitionStatus === 'paid';
+      const tempPasswordExpiry = tuitionStatus === 'partial' ? calculatePasswordExpiry(30) : null;
+      
+      await prisma.student.update({
+        where: { id: user.student.id },
+        data: {
+          grade,
+          section,
+          tuitionStatus,
+          canChangePassword,
+          tempPasswordExpiry
         }
+      });
+      
+      if (tuitionStatus === 'paid' && receiptNumber) {
+        const existingPayment = user.student.tuitionPayments && user.student.tuitionPayments.length > 0 
+          ? user.student.tuitionPayments[0] 
+          : null;
         
-        // Apply grade and section filtering if provided
-        if (grade) {
-            whereClause.grade = grade;
-        }
-        if (section) {
-            whereClause.section = section;
-        }
-        
-        const students = await prisma.student.findMany({
-            where: whereClause,
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        idNumber: true,
-                        firstName: true,
-                        lastName: true,
-                        email: true
-                    }
-                }
-            },
-            orderBy: {
-                user: {
-                    firstName: 'asc'
-                }
-            }
-        });
-        
-        console.log(`✅ Found ${students.length} available students`);
-        
-        res.json({
-            success: true,
-            students: students,
-            total: students.length
-        });
-    } catch (error) {
-        console.error('Get available students error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-// Get user for editing - FIXED: Remove parseInt
-const getUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                student: true,
-                teacher: true,
-                admin: true,
-                cashier: true,
-                accountant: true
-            }
-        });
-        
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-        
-        // Format date for input field (YYYY-MM-DD)
-        const formattedUser = {
-            ...user,
-            dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().split('T')[0] : null
-        };
-        
-        res.json({ success: true, user: formattedUser });
-    } catch (error) {
-        console.error('Get user error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-// Update user with receipt number handling - IMPLEMENTED FROM FIRST CODE BLOCK
-const updateUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { firstName, lastName, email, phone, grade, section, subject, roleLevel, dateOfBirth, tuitionStatus, receiptNumber, school } = req.body;
-        
-        // Find user first
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                student: {
-                    include: {
-                        tuitionPayments: true
-                    }
-                },
-                teacher: true,
-                admin: true,
-                cashier: true,
-                accountant: true
-            }
-        });
-        
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-        
-        // Parse date of birth
-        const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-        
-        // Update user basic info including school
-        const updatedUser = await prisma.user.update({
-            where: { id: userId },
+        if (existingPayment) {
+          await prisma.tuitionPayment.update({
+            where: { id: existingPayment.id },
             data: {
-                firstName,
-                lastName,
-                email,
-                phone,
-                dateOfBirth: parsedDateOfBirth,
-                avatar: req.file ? req.file.path : user.avatar,
-                school: school
+              receiptNumber: receiptNumber.trim(),
+              amount: existingPayment.amount || 0,
+              status: 'verified',
+              verifiedBy: req.session.user.id,
+              verifiedAt: new Date(),
+              studentId: user.student.id
             }
+          });
+        } else {
+          await prisma.tuitionPayment.create({
+            data: {
+              receiptNumber: receiptNumber.trim(),
+              amount: 0,
+              status: 'verified',
+              verifiedBy: req.session.user.id,
+              verifiedAt: new Date(),
+              studentId: user.student.id,
+              semester: `${new Date().getFullYear()}-1`
+            }
+          });
+        }
+        await prisma.user.update({
+          where: { id: userId },
+          data: { isTemporaryPassword: false }
         });
-        
-        // Handle student-specific updates
-        if (user.role === 'student' && user.student) {
-            // Set password permissions based on tuition status
-            const canChangePassword = tuitionStatus === 'paid';
-            const tempPasswordExpiry = tuitionStatus === 'partial' ? calculatePasswordExpiry(30) : null;
-            
-            // Update student record
-            await prisma.student.update({
-                where: { id: user.student.id },
-                data: {
-                    grade,
-                    section,
-                    tuitionStatus,
-                    canChangePassword,
-                    tempPasswordExpiry
-                }
-            });
-            
-            // Handle receipt number for paid status
-            if (tuitionStatus === 'paid' && receiptNumber) {
-                // Check if a tuition payment already exists for this student
-                const existingPayment = user.student.tuitionPayments && user.student.tuitionPayments.length > 0 
-                    ? user.student.tuitionPayments[0] 
-                    : null;
-                
-                if (existingPayment) {
-                    // Update existing payment
-                    await prisma.tuitionPayment.update({
-                        where: { id: existingPayment.id },
-                        data: {
-                            receiptNumber: receiptNumber.trim(),
-                            amount: existingPayment.amount || 0,
-                            status: 'verified',
-                            verifiedBy: req.session.user.id,
-                            verifiedAt: new Date(),
-                            studentId: user.student.id
-                        }
-                    });
-                } else {
-                    // Create new payment record
-                    await prisma.tuitionPayment.create({
-                        data: {
-                            receiptNumber: receiptNumber.trim(),
-                            amount: 0,
-                            status: 'verified',
-                            verifiedBy: req.session.user.id,
-                            verifiedAt: new Date(),
-                            studentId: user.student.id,
-                            semester: `${new Date().getFullYear()}-1`
-                        }
-                    });
-                }
-                
-                // Update user's temporary password status
-                await prisma.user.update({
-                    where: { id: userId },
-                    data: {
-                        isTemporaryPassword: false
-                    }
-                });
-            } else if (tuitionStatus !== 'paid' && user.student.tuitionPayments && user.student.tuitionPayments.length > 0) {
-                // If status changed from paid to non-paid, mark payment as invalid
-                await prisma.tuitionPayment.update({
-                    where: { id: user.student.tuitionPayments[0].id },
-                    data: {
-                        status: 'invalid'
-                    }
-                });
-            }
-        } 
-        // Handle teacher update
-        else if (user.role === 'teacher' && user.teacher) {
-            await prisma.teacher.update({
-                where: { id: user.teacher.id },
-                data: { subject }
-            });
-        } 
-        // Handle admin update
-        else if (user.role === 'admin' && user.admin) {
-            await prisma.admin.update({
-                where: { id: user.admin.id },
-                data: { roleLevel }
-            });
-        }
-        // Handle cashier update
-        else if (user.role === 'cashier' && user.cashier) {
-            // Update cashier if needed
-        }
-        // Handle accountant update
-        else if (user.role === 'accountant' && user.accountant) {
-            // Update accountant if needed
-        }
-    
-        res.json({ success: true, message: 'User updated successfully' });
-    } catch (error) {
-        console.error('Update user error:', error);
-        
-        // More specific error handling
-        if (error.code === 'P2003') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Database constraint error: Invalid student reference' 
-            });
-        } else if (error.code === 'P2002') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Receipt number already exists for another student' 
-            });
-        }
-        
-        res.status(500).json({ success: false, message: 'Server error occurred while updating user' });
+      } else if (tuitionStatus !== 'paid' && user.student.tuitionPayments && user.student.tuitionPayments.length > 0) {
+        await prisma.tuitionPayment.update({
+          where: { id: user.student.tuitionPayments[0].id },
+          data: { status: 'invalid' }
+        });
+      }
+    } else if (user.role === 'teacher' && user.teacher) {
+      await prisma.teacher.update({
+        where: { id: user.teacher.id },
+        data: { subject }
+      });
+    } else if (user.role === 'admin' && user.admin) {
+      await prisma.admin.update({
+        where: { id: user.admin.id },
+        data: { roleLevel }
+      });
     }
+    
+    res.json({ success: true, message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Update user error:', error);
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Database constraint error: Invalid student reference' 
+      });
+    } else if (error.code === 'P2002') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Receipt number already exists for another student' 
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error occurred while updating user' });
+  }
 };
 
 // // Manage classes
@@ -4729,13 +4064,9 @@ module.exports = {
   extendAccess,
   manageSchools,
   checkIdNumber,
-  
-  // ADD THESE NEW FUNCTIONS:
-  getClassStudents,        // Add this
-  getSavingsGoal,          // Add this
-  getAllSavingsGoals,      // Add this
-  
-  // New Parent Management Modules
+  getClassStudents,
+  getSavingsGoal,
+  getAllSavingsGoals,
   getStudentParent,
   getAvailableParents,
   linkExistingParent,
@@ -4744,30 +4075,16 @@ module.exports = {
   getParentAccount,
   addWalletFunds,
   unlinkStudent,
-  
-  // Helper functions
   generateParentId,
   calculateAge,
   getAccessStatus,
   getStudentParentInfo,
-  
-  // New function for student filtering
   getAvailableStudents,
-  
-  // Financial transaction functions
   getFinancialTransactions,
   createFinancialTransaction,
   getFinancialDashboard,
   deleteFinancialTransaction,
-
-  analytics,              // Updated function
-  getAnalyticsData,       // Updated function
-  getTuitionAnalytics,    // New function
-  getGradesData,          // Already exists
-  getActivitiesData,
-
-
-  // NEW SYSTEM RESET FUNCTIONS
+  getTuitionAnalytics,
   systemResetPage,
   resetAllPayments,
   deleteSelectedUsers,
