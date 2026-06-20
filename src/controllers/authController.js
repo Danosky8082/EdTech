@@ -11,12 +11,9 @@ const showLogin = (req, res) => {
   });
 };
 
-// Enhanced login with better debugging and role-based redirects
+// Enhanced login with explicit session save and role‑based redirects
 const login = async (req, res) => {
   const { idNumber, password } = req.body;
-
-  console.log('🔐 Login attempt for ID:', idNumber);
-  console.log('📝 Password provided:', password ? 'Yes (length: ' + password.length + ')' : 'No');
 
   try {
     // Find user by ID number
@@ -27,18 +24,12 @@ const login = async (req, res) => {
         teacher: true,
         admin: true,
         parent: true,
-        cashier: true, // Added cashier inclusion
-        accountant: true // Added accountant inclusion
+        cashier: true,
+        accountant: true
       }
     });
 
-    console.log('👤 User lookup result:', user ? `Found user ${user.id}` : 'No user found');
-    console.log('🎭 User role:', user?.role);
-    console.log('🏫 User school:', user?.school);
-    console.log('🔐 User stored hash:', user?.password ? 'Exists' : 'Missing');
-
     if (!user) {
-      console.log('❌ No user found with ID:', idNumber);
       return res.render('auth/login', { 
         title: 'Login',
         hideNavbar: true,
@@ -49,7 +40,6 @@ const login = async (req, res) => {
 
     // Check if account is active
     if (!user.isActive) {
-      console.log('❌ User account inactive:', user.id);
       return res.render('auth/login', { 
         title: 'Login',
         hideNavbar: true,
@@ -58,16 +48,9 @@ const login = async (req, res) => {
       });
     }
 
-    // Debug password comparison
-    console.log('🔍 Starting password comparison...');
-    console.log('📥 Input password:', `"${password}"`);
-    console.log('📤 Stored hash length:', user.password.length);
-    
+    // Verify password
     const isMatch = await comparePassword(password, user.password);
-    console.log('✅ Password match result:', isMatch);
-
     if (!isMatch) {
-      console.log('❌ Password comparison failed for user:', user.id);
       return res.render('auth/login', { 
         title: 'Login',
         hideNavbar: true,
@@ -76,10 +59,8 @@ const login = async (req, res) => {
       });
     }
 
-    console.log('🎉 Login successful for user:', user.id);
-
-    // Set session
-    req.session.user = {
+    // --- Build session user object ---
+    const sessionUser = {
       id: user.id,
       idNumber: user.idNumber,
       firstName: user.firstName,
@@ -89,72 +70,53 @@ const login = async (req, res) => {
       school: user.school
     };
 
-    // Add role-specific ID if exists
+    // Add role‑specific IDs
     if (user.role === 'student' && user.student) {
-      req.session.user.studentId = user.student.id;
-      console.log('🎓 Student ID added to session:', user.student.id);
+      sessionUser.studentId = user.student.id;
     } else if (user.role === 'teacher' && user.teacher) {
-      req.session.user.teacherId = user.teacher.id;
-      console.log('👨‍🏫 Teacher ID added to session:', user.teacher.id);
+      sessionUser.teacherId = user.teacher.id;
     } else if (user.role === 'admin' && user.admin) {
-      req.session.user.adminId = user.admin.id;
-      console.log('👨‍💼 Admin ID added to session:', user.admin.id);
+      sessionUser.adminId = user.admin.id;
     } else if (user.role === 'parent' && user.parent) {
-      req.session.user.parentId = user.parent.id;
-      console.log('👨‍👧‍👦 Parent ID added to session:', user.parent.id);
+      sessionUser.parentId = user.parent.id;
     } else if (user.role === 'cashier' && user.cashier) {
-      req.session.user.cashierId = user.cashier.id;
-      console.log('💰 Cashier ID added to session:', user.cashier.id);
+      sessionUser.cashierId = user.cashier.id;
     } else if (user.role === 'accountant' && user.accountant) {
-      req.session.user.accountantId = user.accountant.id;
-      console.log('📊 Accountant ID added to session:', user.accountant.id);
+      sessionUser.accountantId = user.accountant.id;
     }
 
-    console.log('💾 Session created successfully');
-    console.log('📋 Session data:', JSON.stringify(req.session.user, null, 2));
+    // Set session user
+    req.session.user = sessionUser;
 
-    // ✅ UPDATED: Enhanced role-based redirect logic with cashier and accountant
-    console.log('🔄 Starting role-based redirect...');
-    
-    switch (user.role) {
-      case 'parent':
-        console.log('➡️ Redirecting to parent dashboard');
-        return res.redirect('/parent/dashboard');
-        
-      case 'student':
-        console.log('➡️ Redirecting to student dashboard');
-        return res.redirect('/student/dashboard');
-        
-      case 'teacher':
-        console.log('➡️ Redirecting to teacher dashboard');
-        return res.redirect('/teacher/dashboard');
-        
-      case 'admin':
-        console.log('➡️ Redirecting to admin dashboard');
-        // Check if super admin (you might need to adjust this based on your admin model)
-        if (user.admin && user.admin.roleLevel === 'superadmin') {
-          console.log('➡️ Super admin detected, redirecting to admin dashboard');
-          return res.redirect('/admin/dashboard');
-        } else {
-          console.log('➡️ School admin detected, redirecting to admin dashboard');
-          return res.redirect('/admin/dashboard');
-        }
-        
-      case 'cashier':
-        console.log('➡️ Redirecting to cashier dashboard');
-        return res.redirect('/cashier/dashboard');
-        
-      case 'accountant':
-        console.log('➡️ Redirecting to accountant dashboard');
-        return res.redirect('/accountant/dashboard');
-        
-      default:
-        console.log('➡️ Unknown role, redirecting to home');
-        return res.redirect('/');
-    }
+    // --- Explicitly save session before redirecting ---
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.render('auth/login', {
+          title: 'Login',
+          hideNavbar: true,
+          error: 'Session error. Please try again.',
+          success: null
+        });
+      }
+
+      // Role‑based redirect
+      const role = user.role;
+      let redirectPath = '/';
+      switch (role) {
+        case 'parent':    redirectPath = '/parent/dashboard'; break;
+        case 'student':   redirectPath = '/student/dashboard'; break;
+        case 'teacher':   redirectPath = '/teacher/dashboard'; break;
+        case 'admin':     redirectPath = '/admin/dashboard'; break;
+        case 'cashier':   redirectPath = '/cashier/dashboard'; break;
+        case 'accountant': redirectPath = '/accountant/dashboard'; break;
+        default:          redirectPath = '/';
+      }
+      res.redirect(redirectPath);
+    });
 
   } catch (error) {
-    console.error('💥 Login error details:', error);
+    console.error('💥 Login error:', error);
     res.render('auth/login', { 
       title: 'Login',
       hideNavbar: true,
@@ -179,7 +141,6 @@ const changePassword = async (req, res) => {
   const userId = req.session.user.id;
 
   try {
-    // Validate new password confirmation
     if (newPassword !== confirmPassword) {
       return res.render('auth/change-password', {
         title: 'Change Password',
@@ -188,7 +149,6 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
@@ -201,9 +161,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Verify current password
     const isMatch = await comparePassword(currentPassword, user.password);
-
     if (!isMatch) {
       return res.render('auth/change-password', {
         title: 'Change Password',
@@ -212,10 +170,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-
-    // Update password in database
     await prisma.user.update({
       where: { id: userId },
       data: { 
@@ -242,11 +197,8 @@ const changePassword = async (req, res) => {
 
 // Logout
 const logout = (req, res) => {
-  console.log('👋 User logging out:', req.session.user?.idNumber);
   req.session.destroy((err) => {
-    if (err) {
-      console.error('Logout error:', err);
-    }
+    if (err) console.error('Logout error:', err);
     res.redirect('/auth/login');
   });
 };

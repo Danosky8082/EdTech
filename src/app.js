@@ -28,6 +28,7 @@ const cashierRoutes = require('./routes/cashier');
 
 // Initialize express app
 const app = express();
+app.set('trust proxy', 1);
 
 // Set view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -57,6 +58,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production', // true on Vercel (HTTPS)
+    sameSite: 'lax', 
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days (optional)
   }
 }));
