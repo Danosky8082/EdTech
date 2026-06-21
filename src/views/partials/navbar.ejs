@@ -385,165 +385,163 @@
         }
     </style>
 
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
-        <div class="container">
-            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap"></i>EdTech Platform</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <% if (userRole.length> 0) { %>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/<%= (userRole === 'admin' ? 'admin' : userRole) %>/dashboard">
-                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                            </a>
-                        </li>
-                        <% if (userRole==='student' ) { %>
-                            <li class="nav-item"><a class="nav-link" href="/student/progress"><i
-                                        class="fas fa-chart-line me-1"></i>My Progress</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/student/classes"><i
-                                        class="fas fa-book me-1"></i>My Classes</a></li>
-                            <% } else if (userRole==='parent' ) { %>
-                                <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                            class="fas fa-child me-1"></i>My Children</a></li>
-                                <% } else if (userRole==='teacher' ) { %>
-                                    <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
-                                                class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
-                                    <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
-                                                class="fas fa-user-graduate me-1"></i>My Students</a></li>
-                                    <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
-                                                class="fas fa-tasks me-1"></i>Assignments</a></li>
-                                    <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
-                                                class="fas fa-book me-1"></i>Materials</a></li>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap"></i>EdTech Platform</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <% if (userRole) { %>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <% if (userRole==='student' ) { %>
+                        <li class="nav-item"><a class="nav-link" href="/student/progress"><i
+                                    class="fas fa-chart-line me-1"></i>My Progress</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/student/classes"><i
+                                    class="fas fa-book me-1"></i>My Classes</a></li>
+                        <% } else if (userRole==='parent' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                        class="fas fa-child me-1"></i>My Children</a></li>
+                            <% } else if (userRole==='teacher' ) { %>
+                                <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
+                                            class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
+                                            class="fas fa-user-graduate me-1"></i>My Students</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
+                                            class="fas fa-tasks me-1"></i>Assignments</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
+                                            class="fas fa-book me-1"></i>Materials</a></li>
+                                <% } %>
                                     <% } %>
-                                        <% } %>
-                </ul>
+            </ul>
 
-                <!-- Notification Bell -->
-                <div class="notification-wrapper">
-                    <div class="dropdown">
-                        <a class="notification-bell" href="#" role="button" id="notificationDropdown">
-                            <i class="fas fa-bell"></i>
-                            <% if (unreadCount> 0) { %>
-                                <span class="notification-badge blink" id="notificationBadge">
-                                    <%= unreadCount> 9 ? '9+' : unreadCount %>
+            <!-- Notification Bell -->
+            <div class="notification-wrapper">
+                <div class="dropdown">
+                    <a class="notification-bell" href="#" role="button" id="notificationDropdown">
+                        <i class="fas fa-bell"></i>
+                        <% if (notificationCount> 0) { %>
+                            <span class="notification-badge blink" id="notificationBadge">
+                                <%= notificationCount> 9 ? '9+' : notificationCount %>
+                            </span>
+                            <% } %>
+                    </a>
+                    <ul class="notification-dropdown" id="notificationDropdownMenu">
+                        <li class="notification-header">
+                            <span>Notifications</span>
+                            <% if (notificationCount> 0) { %>
+                                <span class="badge bg-primary rounded-pill">
+                                    <%= notificationCount %>
                                 </span>
                                 <% } %>
-                        </a>
-                        <ul class="notification-dropdown" id="notificationDropdownMenu">
-                            <li class="notification-header">
-                                <span>Notifications</span>
-                                <% if (unreadCount> 0) { %>
-                                    <span class="badge bg-primary rounded-pill">
-                                        <%= unreadCount %>
-                                    </span>
-                                    <% } %>
-                            </li>
-                            <% if (notifications.length> 0) { %>
-                                <% var displayCount=notifications.length; if (displayCount> 5) { displayCount = 5; }
-                                    for (var j = 0; j < displayCount; j++) { var notif=notifications[j]; var
-                                        isRead=notif.read ? true : false; var notifId=notif.id || notif._id || '' ; var
-                                        iconClass=notif.icon || 'fa-info-circle' ; var titleText=notif.title
-                                        || 'Notification' ; var msgText=notif.message || notif.description || '' ; var
-                                        timeStr=notif.createdAt ? new Date(notif.createdAt).toLocaleString() : '' ; %>
-                                        <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
-                                            data-notification-id="<%= notifId %>">
-                                            <div class="notification-icon"><i class="fas <%= iconClass %>"></i></div>
-                                            <div class="notification-content">
-                                                <div class="notification-title">
-                                                    <%= titleText %>
-                                                        <% if (!isRead) { %><span
-                                                                class="badge bg-danger ms-1">New</span>
-                                                            <% } %>
-                                                </div>
-                                                <div class="notification-message">
-                                                    <%= msgText %>
-                                                </div>
-                                                <div class="notification-time">
-                                                    <%= timeStr %>
-                                                </div>
-                                                <% if (!isRead) { %>
-                                                    <div class="notification-actions">
-                                                        <button class="notification-action-btn mark-as-read-btn"
-                                                            onclick="event.stopPropagation(); markNotificationAsRead('<%= notifId %>')">Mark
-                                                            as read</button>
-                                                    </div>
+                        </li>
+                        <% if (notifications && notifications.length> 0) { %>
+                            <% var display=notifications.slice(0, 5); for (var i=0; i < display.length; i++) { var
+                                n=display[i]; var isRead=n.read || false; var nid=n.id || n._id || '' ; var icon=n.icon
+                                || 'fa-info-circle' ; var title=n.title || 'Notification' ; var msg=n.message ||
+                                n.description || '' ; var time=n.createdAt ? new Date(n.createdAt).toLocaleString() : ''
+                                ; %>
+                                <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
+                                    data-notification-id="<%= nid %>">
+                                    <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
+                                    <div class="notification-content">
+                                        <div class="notification-title">
+                                            <%= title %>
+                                                <% if (!isRead) { %><span class="badge bg-danger ms-1">New</span>
                                                     <% } %>
+                                        </div>
+                                        <div class="notification-message">
+                                            <%= msg %>
+                                        </div>
+                                        <div class="notification-time">
+                                            <%= time %>
+                                        </div>
+                                        <% if (!isRead) { %>
+                                            <div class="notification-actions">
+                                                <button class="notification-action-btn mark-as-read-btn"
+                                                    onclick="event.stopPropagation(); markNotificationAsRead('<%= nid %>')">Mark
+                                                    as read</button>
                                             </div>
-                                        </li>
-                                        <% } %>
-                                            <li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i
-                                                    class="fas fa-check-double me-1"></i> Mark all as read</li>
-                                            <% } else { %>
-                                                <li class="notification-empty"><i class="fas fa-bell-slash"></i>
-                                                    <p>No notifications</p>
-                                                </li>
-                                                <% } %>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- User dropdown -->
-                <div class="welcome-section">
-                    <ul class="navbar-nav">
-                        <% if (userRole.length> 0) { %>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
-                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <% if (avatarUrl.length> 0) { %>
-                                        <img src="<%= avatarUrl %>" alt="Profile" class="profile-img-nav"
-                                            onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
-                                        <% } else { %>
-                                            <img src="<%= fallbackAvatar %>" alt="Profile" class="profile-img-nav">
                                             <% } %>
-                                                <span class="navbar-text">
-                                                    <%= userFirstName %>
-                                                        <%= userLastName %>
-                                                </span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" href="/profile"><i
-                                                class="fas fa-user-edit me-2"></i>Profile</a></li>
-                                    <li><a class="dropdown-item" href="/settings"><i
-                                                class="fas fa-cog me-2"></i>Settings</a></li>
-                                    <% if (userSchoolName.length> 0) { %>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li class="dropdown-item-text"><small class="text-muted"><i
-                                                    class="fas fa-school me-1"></i>
-                                                <%= userSchoolName %>
-                                            </small></li>
-                                        <% } %>
-                                            <% if (userRole==='admin' && adminInfo && adminInfo.roleLevel==='superadmin'
-                                                ) { %>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li class="dropdown-item-text"><span class="badge bg-danger"><i
-                                                            class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
-                                                <% } %>
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li><a class="dropdown-item text-danger" href="/auth/logout"><i
-                                                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                                </ul>
-                            </li>
-                            <% } else { %>
-                                <li class="nav-item"><a class="nav-link" href="/login"><i
-                                            class="fas fa-sign-in-alt me-1"></i>Login</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/register"><i
-                                            class="fas fa-user-plus me-1"></i>Register</a></li>
+                                    </div>
+                                </li>
                                 <% } %>
+                                    <li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i
+                                            class="fas fa-check-double me-1"></i> Mark all as read</li>
+                                    <% } else { %>
+                                        <li class="notification-empty"><i class="fas fa-bell-slash"></i>
+                                            <p>No notifications</p>
+                                        </li>
+                                        <% } %>
                     </ul>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <!-- User dropdown -->
+            <div class="welcome-section">
+                <ul class="navbar-nav">
+                    <% if (userRole) { %>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
+                                role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <% if (avatarUrl) { %>
+                                    <img src="<%= avatarUrl %>" alt="Profile" class="profile-img-nav"
+                                        onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
+                                    <% } else { %>
+                                        <img src="<%= fallbackAvatar %>" alt="Profile" class="profile-img-nav">
+                                        <% } %>
+                                            <span class="navbar-text">
+                                                <%= userFirstName %>
+                                                    <%= userLastName %>
+                                            </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/profile"><i
+                                            class="fas fa-user-edit me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="/settings"><i
+                                            class="fas fa-cog me-2"></i>Settings</a></li>
+                                <% if (userSchool) { %>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li class="dropdown-item-text"><small class="text-muted"><i
+                                                class="fas fa-school me-1"></i>
+                                            <%= userSchool %>
+                                        </small></li>
+                                    <% } %>
+                                        <% if (userRole==='admin' && adminInfo && adminInfo.roleLevel==='superadmin' ) {
+                                            %>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li class="dropdown-item-text"><span class="badge bg-danger"><i
+                                                        class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
+                                            <% } %>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item text-danger" href="/auth/logout"><i
+                                                            class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </li>
+                        <% } else { %>
+                            <li class="nav-item"><a class="nav-link" href="/login"><i
+                                        class="fas fa-sign-in-alt me-1"></i>Login</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/register"><i
+                                        class="fas fa-user-plus me-1"></i>Register</a></li>
+                            <% } %>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Notification toggles (unchanged)
         document.addEventListener('DOMContentLoaded', function () {

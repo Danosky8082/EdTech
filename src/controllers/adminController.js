@@ -86,6 +86,7 @@ const dashboard = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
+    // --- Filters for school-based filtering ---
     let studentWhere = {};
     let teacherWhere = {};
     let classWhere = {};
@@ -100,11 +101,13 @@ const dashboard = async (req, res) => {
       activityWhere = { school: userSchool };
     }
 
+    // --- Fetch statistics ---
     const totalStudents = await prisma.student.count({ where: studentWhere });
     const totalTeachers = await prisma.teacher.count({ where: teacherWhere });
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
+    // --- Recent activities ---
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -125,10 +128,10 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
+    // --- Notifications (raw data for navbar) ---
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
-        read: false,
         OR: [
           { expiresAt: { gt: new Date() } },
           { expiresAt: null }
@@ -137,6 +140,7 @@ const dashboard = async (req, res) => {
       orderBy: { createdAt: 'desc' },
       take: 10
     });
+
 
     const notificationCount = await prisma.notification.count({
       where: {
@@ -149,6 +153,9 @@ const dashboard = async (req, res) => {
       }
     });
 
+    // --- Compute unread count and format for display ---
+    const unreadCount = notifications.filter(n => !n.read).length;
+
     const formattedNotifications = notifications.map(notif => ({
       id: notif.id,
       title: notif.title,
@@ -158,16 +165,20 @@ const dashboard = async (req, res) => {
       read: notif.read
     }));
 
+    // --- User data for navbar ---
     const user = req.session.user;
-    let avatarUrl = null;
-    if (user && user.avatar) {
-      const av = user.avatar;
-      if (av.startsWith('uploads/') || av.startsWith('/uploads/')) {
-        avatarUrl = av.startsWith('/') ? av : '/' + av;
-      } else if (!av.includes('/')) {
-        avatarUrl = '/uploads/profiles/' + av;
-      } else {
-        avatarUrl = '/uploads/profiles/' + av;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
       }
     }
 
