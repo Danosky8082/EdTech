@@ -1,22 +1,21 @@
-<% // --- User data --- var safeUser={}; if (typeof user !=='undefined' && user) { safeUser=user; } var userRole='' ; if
-    (safeUser.role) { userRole=safeUser.role; } var safeUserSchool='' ; if (typeof userSchool !=='undefined' ) {
-    safeUserSchool=userSchool; } var safeIsSuperAdmin=false; if (typeof isSuperAdmin !=='undefined' ) {
-    safeIsSuperAdmin=isSuperAdmin; } var safeAdminInfo=null; if (typeof adminInfo !=='undefined' ) {
-    safeAdminInfo=adminInfo; } var safeUserAvatar='' ; if (safeUser.avatar) { safeUserAvatar=safeUser.avatar; } var
-    safeUserFirstName='' ; if (safeUser.firstName) { safeUserFirstName=safeUser.firstName; } var safeUserLastName='' ;
-    if (safeUser.lastName) { safeUserLastName=safeUser.lastName; } var safeUserSchoolProp='' ; if (safeUser.school) {
-    safeUserSchoolProp=safeUser.school; } // --- Notifications --- var safeNotifications=[]; if (typeof
+<% // --- Safely extract user data (no complex operators) --- var safeUser={}; if (typeof user !=='undefined' && user) {
+    safeUser=user; } var userRole='' ; if (safeUser.role) { userRole=safeUser.role; } var safeUserFirstName='' ; if
+    (safeUser.firstName) { safeUserFirstName=safeUser.firstName; } var safeUserLastName='' ; if (safeUser.lastName) {
+    safeUserLastName=safeUser.lastName; } var safeUserAvatar='' ; if (safeUser.avatar) { safeUserAvatar=safeUser.avatar;
+    } var safeUserSchool='' ; if (safeUser.school) { safeUserSchool=safeUser.school; } var safeAdminInfo=null; if
+    (typeof adminInfo !=='undefined' ) { safeAdminInfo=adminInfo; } var safeIsSuperAdmin=false; if (typeof isSuperAdmin
+    !=='undefined' ) { safeIsSuperAdmin=isSuperAdmin; } // --- Notifications --- var safeNotifications=[]; if (typeof
     notificationsData !=='undefined' && Array.isArray(notificationsData)) { safeNotifications=notificationsData; } var
     unreadCount=0; for (var i=0; i < safeNotifications.length; i++) { var notif=safeNotifications[i]; if (notif &&
-    notif.read===false) { unreadCount++; } } // --- Avatar URL --- var avatarUrl='' ; if (safeUserAvatar) { var
-    startsHttp=false; if (safeUserAvatar.indexOf('http://')===0) { startsHttp=true; } else if
+    notif.read===false) { unreadCount=unreadCount + 1; } } // --- Avatar URL (clean and safe) --- var avatarUrl='' ; if
+    (safeUserAvatar) { var startsHttp=false; if (safeUserAvatar.indexOf('http://')===0) { startsHttp=true; } else if
     (safeUserAvatar.indexOf('https://')===0) { startsHttp=true; } if (startsHttp) { avatarUrl=safeUserAvatar; } else {
     avatarUrl='/' + safeUserAvatar; } } var fallbackAvatar='https://ui-avatars.com/api/?name=' ;
     fallbackAvatar=fallbackAvatar + encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName);
     fallbackAvatar=fallbackAvatar + '&background=6a11cb&color=fff&size=36' ; %>
 
     <style>
-        /* (all styles – unchanged) */
+        /* Your existing CSS – I’ve kept it condensed but you can paste your full styles here */
         :root {
             --primary-gradient: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
             --hover-bg: rgba(255, 255, 255, 0.15);
@@ -408,22 +407,20 @@
                                         class="fas fa-chart-line me-1"></i>My Progress</a></li>
                             <li class="nav-item"><a class="nav-link" href="/student/classes"><i
                                         class="fas fa-book me-1"></i>My Classes</a></li>
-                            <% } %>
-                                <% if (userRole==='parent' ) { %>
-                                    <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                                class="fas fa-child me-1"></i>My Children</a></li>
+                            <% } else if (userRole==='parent' ) { %>
+                                <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                            class="fas fa-child me-1"></i>My Children</a></li>
+                                <% } else if (userRole==='teacher' ) { %>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
+                                                class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
+                                                class="fas fa-user-graduate me-1"></i>My Students</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
+                                                class="fas fa-tasks me-1"></i>Assignments</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
+                                                class="fas fa-book me-1"></i>Materials</a></li>
                                     <% } %>
-                                        <% if (userRole==='teacher' ) { %>
-                                            <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
-                                                        class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
-                                            <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
-                                                        class="fas fa-user-graduate me-1"></i>My Students</a></li>
-                                            <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
-                                                        class="fas fa-tasks me-1"></i>Assignments</a></li>
-                                            <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
-                                                        class="fas fa-book me-1"></i>Materials</a></li>
-                                            <% } %>
-                                                <% } %>
+                                        <% } %>
                 </ul>
 
                 <!-- Notification Bell -->
@@ -450,7 +447,7 @@
                                 <% var displayCount=safeNotifications.length; if (displayCount> 5) {
                                     displayCount = 5;
                                     }
-                                    for (var j = 0; j < displayCount; j++) { var notif=safeNotifications[j]; var
+                                    for (var j = 0; j < displayCount; j=j + 1) { var notif=safeNotifications[j]; var
                                         isRead=false; if (notif.read===true) { isRead=true; } var notifId='' ; if
                                         (notif.id) { notifId=notif.id; } else if (notif._id) { notifId=notif._id; } var
                                         iconClass='fa-info-circle' ; if (notif.icon) { iconClass=notif.icon; } var
@@ -519,13 +516,13 @@
                                                 class="fas fa-user-edit me-2"></i>Profile</a></li>
                                     <li><a class="dropdown-item" href="/settings"><i
                                                 class="fas fa-cog me-2"></i>Settings</a></li>
-                                    <% if (safeUserSchoolProp.length> 0) { %>
+                                    <% if (safeUserSchool.length> 0) { %>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li class="dropdown-item-text"><small class="text-muted"><i
                                                     class="fas fa-school me-1"></i>
-                                                <%= safeUserSchoolProp %>
+                                                <%= safeUserSchool %>
                                             </small></li>
                                         <% } %>
                                             <% if (userRole==='admin' && safeAdminInfo &&
