@@ -603,6 +603,9 @@ const updateUser = async (req, res) => {
 // ============================================================
 // USER MANAGEMENT
 // ============================================================
+// ============================================================
+// USER MANAGEMENT
+// ============================================================
 const manageUsers = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -710,6 +713,61 @@ const manageUsers = async (req, res) => {
       }
     });
 
+    // --- Fetch notifications for navbar dropdown ---
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: userId,
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { expiresAt: null }
+        ]
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    // --- Build notification dropdown HTML ---
+    let notificationsDropdownHtml = '';
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    if (notifications && notifications.length > 0) {
+      let itemsHtml = '';
+      const displayNotifications = notifications.slice(0, 5);
+      displayNotifications.forEach(n => {
+        const isRead = n.read ? 'read' : 'unread';
+        const icon = n.icon || 'fa-info-circle';
+        const title = n.title || 'Notification';
+        const msg = n.message || '';
+        const time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+        const notifId = n.id || '';
+        const newBadge = !n.read ? `<span class="badge bg-danger ms-1">New</span>` : '';
+        const actions = !n.read
+          ? `<div class="notification-actions">
+               <button class="notification-action-btn mark-as-read-btn" onclick="event.stopPropagation(); markNotificationAsRead('${notifId}')">Mark as read</button>
+             </div>`
+          : '';
+        itemsHtml += `
+          <li class="notification-item ${isRead}" data-notification-id="${notifId}">
+            <div class="notification-icon"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+              <div class="notification-title">${title} ${newBadge}</div>
+              <div class="notification-message">${msg}</div>
+              <div class="notification-time">${time}</div>
+              ${actions}
+            </div>
+          </li>
+        `;
+      });
+      const markAllReadBtn = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
+      const header = `<li class="notification-header">
+                        <span>Notifications</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                      </li>`;
+      notificationsDropdownHtml = header + itemsHtml + markAllReadBtn;
+    } else {
+      notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
+    }
+
     // --- Compute avatar data for navbar ---
     const user = req.session.user;
     let avatarUrl = '';
@@ -744,12 +802,15 @@ const manageUsers = async (req, res) => {
       success,
       error,
       getAccessStatus,
+      // Navbar variables
       notificationCount: notificationCount,
+      notificationsDropdownHtml: notificationsDropdownHtml,
       userFirstName: user ? user.firstName || '' : '',
       userLastName: user ? user.lastName || '' : '',
       avatarUrl: avatarUrl,
       fallbackAvatar: fallbackAvatar,
-      notifications: [] // If you want to show notifications in the dropdown, fetch them here
+      // You may also pass the full notifications array if needed elsewhere
+      notifications: notifications
     });
   } catch (error) {
     console.error('Manage users error:', error);
