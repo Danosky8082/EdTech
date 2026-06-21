@@ -78,7 +78,7 @@ function getAccessStatus(user) {
 }
 
 // ============================================================
-// DASHBOARD
+// DASHBOARD (updated – builds notification HTML in controller)
 // ============================================================
 const dashboard = async (req, res) => {
   try {
@@ -141,29 +141,49 @@ const dashboard = async (req, res) => {
       take: 10
     });
 
-
-    const notificationCount = await prisma.notification.count({
-      where: {
-        userId: userId,
-        read: false,
-        OR: [
-          { expiresAt: { gt: new Date() } },
-          { expiresAt: null }
-        ]
-      }
-    });
-
-    // --- Compute unread count and format for display ---
+    // --- Build notification dropdown HTML (to avoid loops in EJS) ---
+    let notificationsDropdownHtml = '';
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    const formattedNotifications = notifications.map(notif => ({
-      id: notif.id,
-      title: notif.title,
-      message: notif.message,
-      icon: notif.icon,
-      time: formatTimeAgo(notif.createdAt),
-      read: notif.read
-    }));
+    if (notifications && notifications.length > 0) {
+      let itemsHtml = '';
+      // Limit to 5 most recent
+      const displayNotifications = notifications.slice(0, 5);
+      displayNotifications.forEach(n => {
+        const isRead = n.read ? 'read' : 'unread';
+        const icon = n.icon || 'fa-info-circle';
+        const title = n.title || 'Notification';
+        const msg = n.message || '';
+        const time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+        const notifId = n.id || '';
+        const newBadge = !n.read ? `<span class="badge bg-danger ms-1">New</span>` : '';
+        const actions = !n.read
+          ? `<div class="notification-actions">
+               <button class="notification-action-btn mark-as-read-btn" onclick="event.stopPropagation(); markNotificationAsRead('${notifId}')">Mark as read</button>
+             </div>`
+          : '';
+        itemsHtml += `
+          <li class="notification-item ${isRead}" data-notification-id="${notifId}">
+            <div class="notification-icon"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+              <div class="notification-title">${title} ${newBadge}</div>
+              <div class="notification-message">${msg}</div>
+              <div class="notification-time">${time}</div>
+              ${actions}
+            </div>
+          </li>
+        `;
+      });
+      // Mark all read button
+      const markAllReadBtn = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
+      const header = `<li class="notification-header">
+                        <span>Notifications</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                      </li>`;
+      notificationsDropdownHtml = header + itemsHtml + markAllReadBtn;
+    } else {
+      notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
+    }
 
     // --- User data for navbar ---
     const user = req.session.user;
@@ -186,6 +206,7 @@ const dashboard = async (req, res) => {
       where: { userId: userId }
     });
 
+    // --- Render the dashboard with all variables ---
     res.render('admin/dashboard', {
       title: 'Admin Dashboard',
       overview: {
@@ -195,12 +216,17 @@ const dashboard = async (req, res) => {
         totalAssignments
       },
       recentActivities: formattedActivities,
-      notifications: formattedNotifications,
-      notificationCount: notificationCount,
+      // Pass the pre‑built HTML string and other navbar data
+      notificationsDropdownHtml: notificationsDropdownHtml,
+      notificationCount: unreadCount,
+      userRole: user.role || '',
+      userFirstName: user.firstName || '',
+      userLastName: user.lastName || '',
+      avatarUrl: avatarUrl,
+      fallbackAvatar: fallbackAvatar,
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
       adminInfo: currentAdmin || null,
-      avatarUrl: avatarUrl,
       user: user
     });
   } catch (error) {
@@ -249,18 +275,19 @@ const createUser = async (req, res) => {
     const hashedPassword = await hashPassword(tempPassword);
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
+    // Avatar upload – use Blob URL or fallback
     let avatarUrl = null;
-if (req.file) {
-  try {
-    avatarUrl = await uploadToBlob(req.file, 'profiles');
-  } catch (blobError) {
-    console.error('Blob upload error:', blobError);
-    avatarUrl = `uploads/profiles/${req.file.filename}`;
-  }
-}
+    if (req.file) {
+      try {
+        avatarUrl = await uploadToBlob(req.file, 'profiles');
+      } catch (blobError) {
+        console.error('Blob upload error:', blobError);
+        avatarUrl = `uploads/profiles/${req.file.filename}`;
+      }
+    }
 
     const user = await prisma.user.create({
-  data: {
+      data: {
         idNumber: idNumber.trim(),
         password: hashedPassword,
         firstName: firstName.trim(),
@@ -269,7 +296,7 @@ if (req.file) {
         phone: phone ? phone.trim() : null,
         role,
         dateOfBirth: parsedDateOfBirth,
-        avatar: avatarPath,
+        avatar: avatarUrl,   // now correctly defined
         isTemporaryPassword: true,
         school: assignedSchool,
         isActive: true
@@ -1771,7 +1798,6 @@ const analytics = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
-    // (full implementation – the same as before – included for completeness)
     let studentWhere = {};
     let teacherWhere = {};
     let adminWhere = {};
