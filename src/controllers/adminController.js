@@ -4034,6 +4034,45 @@ const verifyWalletBalance = async (req, res) => {
   }
 };
 
+// ============================================================
+// MISSING FUNCTIONS – PLACEHOLDERS
+// ============================================================
+
+const manageTuition = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Tuition management not implemented yet' });
+};
+
+const recordPayment = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Payment recording not implemented yet' });
+};
+
+const resetStudentPassword = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Student password reset not implemented yet' });
+};
+
+const checkPasswordExpiry = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Password expiry check not implemented yet' });
+};
+
+const manageUsers = async (req, res) => {
+  res.status(501).json({ success: false, message: 'User management not implemented yet' });
+};
+
+const toggleUserStatus = async (req, res) => {
+  res.status(501).json({ success: false, message: 'User status toggle not implemented yet' });
+};
+
+const getUser = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Get user not implemented yet' });
+};
+
+const getAvailableStudents = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Available students not implemented yet' });
+};
+
+// ============================================================
+// MODULE EXPORTS (keep as is)
+// ============================================================
 module.exports = {
   dashboard,
   createUser,
@@ -4064,13 +4103,9 @@ module.exports = {
   extendAccess,
   manageSchools,
   checkIdNumber,
-  
-  // ADD THESE NEW FUNCTIONS:
-  getClassStudents,        // Add this
-  getSavingsGoal,          // Add this
-  getAllSavingsGoals,      // Add this
-  
-  // New Parent Management Modules
+  getClassStudents,
+  getSavingsGoal,
+  getAllSavingsGoals,
   getStudentParent,
   getAvailableParents,
   linkExistingParent,
@@ -4079,30 +4114,16 @@ module.exports = {
   getParentAccount,
   addWalletFunds,
   unlinkStudent,
-  
-  // Helper functions
   generateParentId,
   calculateAge,
   getAccessStatus,
   getStudentParentInfo,
-  
-  // New function for student filtering
   getAvailableStudents,
-  
-  // Financial transaction functions
   getFinancialTransactions,
   createFinancialTransaction,
   getFinancialDashboard,
   deleteFinancialTransaction,
-
-  analytics,              // Updated function
-  getAnalyticsData,       // Updated function
-  getTuitionAnalytics,    // New function
-  getGradesData,          // Already exists
-  getActivitiesData,
-
-
-  // NEW SYSTEM RESET FUNCTIONS
+  getTuitionAnalytics,
   systemResetPage,
   resetAllPayments,
   deleteSelectedUsers,
