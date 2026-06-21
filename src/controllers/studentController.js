@@ -50,9 +50,7 @@ const dashboard = async (req, res) => {
     
     // Get student with classes and enrollments
     const student = await prisma.student.findUnique({
-      where: { 
-        id: studentId
-      },
+      where: { id: studentId },
       include: {
         user: true,
         enrollments: {
@@ -60,9 +58,7 @@ const dashboard = async (req, res) => {
             class: {
               include: {
                 teacher: {
-                  include: {
-                    user: true
-                  }
+                  include: { user: true }
                 }
               }
             }
@@ -83,183 +79,136 @@ const dashboard = async (req, res) => {
     if (classIds.length > 0) {
       upcomingAssignments = await prisma.assignment.findMany({
         where: {
-          classId: {
-            in: classIds
-          },
-          dueDate: {
-            gt: new Date()
-          }
+          classId: { in: classIds },
+          dueDate: { gt: new Date() }
         },
         include: {
           class: true,
-          teacher: {
-            include: {
-              user: true
-            }
-          }
+          teacher: { include: { user: true } }
         },
-        orderBy: {
-          dueDate: 'asc'
-        },
+        orderBy: { dueDate: 'asc' },
         take: 5
       });
     }
 
-    // Calculate completed assignments count
+    // Completed assignments count
     let completedAssignments = 0;
     if (classIds.length > 0) {
       const submissions = await prisma.submission.count({
-        where: {
-          studentId: studentId
-        }
+        where: { studentId: studentId }
       });
       completedAssignments = submissions;
     }
 
-    // Get pending class works count
+    // Pending class works & recent class works
     let pendingClassWorks = 0;
     let recentClassWorks = [];
     if (classIds.length > 0) {
-      // Count class works that are active and the student hasn't submitted
       pendingClassWorks = await prisma.classWork.count({
         where: {
-          classId: {
-            in: classIds
-          },
+          classId: { in: classIds },
           isActive: true,
-          submissions: {
-            none: {
-              studentId: studentId
-            }
-          }
+          submissions: { none: { studentId: studentId } }
         }
       });
 
-      // Get recent class works (last 5)
       recentClassWorks = await prisma.classWork.findMany({
         where: {
-          classId: {
-            in: classIds
-          },
+          classId: { in: classIds },
           isActive: true
         },
         include: {
-          class: {
-            select: {
-              name: true
-            }
-          },
-          teacher: {
-            include: {
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true
-                }
-              }
-            }
-          },
+          class: { select: { name: true } },
+          teacher: { include: { user: { select: { firstName: true, lastName: true } } } },
           submissions: {
-            where: {
-              studentId: studentId
-            },
-            select: {
-              id: true,
-              status: true,
-              score: true
-            }
+            where: { studentId: studentId },
+            select: { id: true, status: true, score: true }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        },
+        orderBy: { createdAt: 'desc' },
         take: 5
       });
     }
 
-    // NEW: Use the notification service instead of direct Prisma queries
-    const { notificationService } = require('../services/notificationService');
-    
-    // Get notifications using the service
+    // --- Get notifications using the service (or fallback) ---
     let notifications = [];
     let notificationCount = 0;
-    
     try {
+      const { notificationService } = require('../services/notificationService');
       const result = await notificationService.getUserNotifications(userId, {
         limit: 10,
         unreadOnly: true
       });
-      
       if (result.success) {
         notifications = result.notifications;
         notificationCount = result.pagination?.unreadCount || 0;
-        console.log(`📨 Loaded ${notificationCount} notifications for student ${userId}`);
       }
     } catch (error) {
-      console.error('Error loading notifications in student dashboard:', error);
-      // Fallback to empty notifications
+      console.error('Error loading notifications:', error);
     }
 
-    // REMOVE the old notification code that was here:
-    /*
-    // Get only unread notifications
-    const notifications = await prisma.notification.findMany({
-      where: {
-        userId: userId,
-        read: false,
-        OR: [
-          { expiresAt: { gt: new Date() } },
-          { expiresAt: null }
-        ]
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 10
-    });
 
-    // Count only unread notifications
-    const notificationCount = await prisma.notification.count({
-      where: {
-        userId: userId,
-        read: false,
-        OR: [
-          { expiresAt: { gt: new Date() } },
-          { expiresAt: null }
-        ]
-      }
-    });
-
-    // Format notifications for display
-    const formattedNotifications = notifications.map(notif => ({
-      id: notif.id,
-      title: notif.title,
-      message: notif.message,
-      icon: notif.icon,
-      time: formatTimeAgo(notif.createdAt),
-      read: notif.read
-    }));
-    */
-
+    
     // Use the notifications directly from the service (already formatted)
     const formattedNotifications = notifications;
 
-    // --- Compute avatar data for navbar ---
-const user = req.session.user;
-let avatarUrl = '';
-let fallbackAvatar = '';
-if (user) {
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
-    fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
-    if (user.avatar) {
+     // --- Compute avatar data for navbar ---
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+      if (user.avatar) {
         if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
-            avatarUrl = user.avatar;
+          avatarUrl = user.avatar;
         } else {
-            avatarUrl = '/' + user.avatar;
+          avatarUrl = '/' + user.avatar;
         }
+      }
     }
-}
+
+    // --- Build notifications dropdown HTML (if not already provided by middleware) ---
+    let notificationsDropdownHtml = '';
+    const unreadCount = notifications.filter(n => !n.read).length;
+    if (notifications && notifications.length > 0) {
+      let itemsHtml = '';
+      const display = notifications.slice(0, 5);
+      display.forEach(n => {
+        const isRead = n.read ? 'read' : 'unread';
+        const icon = n.icon || 'fa-info-circle';
+        const title = n.title || 'Notification';
+        const msg = n.message || '';
+        const time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+        const notifId = n.id || '';
+        const newBadge = !n.read ? `<span class="badge bg-danger ms-1">New</span>` : '';
+        const actions = !n.read
+          ? `<div class="notification-actions">
+               <button class="notification-action-btn mark-as-read-btn" onclick="event.stopPropagation(); markNotificationAsRead('${notifId}')">Mark as read</button>
+             </div>`
+          : '';
+        itemsHtml += `
+          <li class="notification-item ${isRead}" data-notification-id="${notifId}">
+            <div class="notification-icon"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+              <div class="notification-title">${title} ${newBadge}</div>
+              <div class="notification-message">${msg}</div>
+              <div class="notification-time">${time}</div>
+              ${actions}
+            </div>
+          </li>
+        `;
+      });
+      const header = `<li class="notification-header">
+                        <span>Notifications</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                      </li>`;
+      const markAll = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
+      notificationsDropdownHtml = header + itemsHtml + markAll;
+    } else {
+      notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
+    }
 
     res.render('student/dashboard', {
     title: 'Student Dashboard',

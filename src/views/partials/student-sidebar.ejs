@@ -1,12 +1,16 @@
 <div class="profile-section text-center">
-    <% if (user && user.avatar) { %>
-        <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>" alt="Student Profile"
-            class="profile-img mb-3 avatar-img" onerror="this.onerror=null; this.src='/images/default-profile.png'">
-        <% } else { %>
-            <img src="/images/default-profile.png" alt="Student Profile" class="profile-img mb-3">
-            <% } %>
+    <% function cleanAvatarUrl(url) { if (!url) return null; if (url.startsWith('/https:/')) return
+        url.replace('/https:/', 'https://' ); if (url.startsWith('/http:/')) return url.replace('/http:/', 'http://' );
+        if (url.startsWith('http://') || url.startsWith('https://')) return url; return '/' + url; } const
+        displayAvatar=cleanAvatarUrl(user.avatar); const fallbackAvatar='https://ui-avatars.com/api/?name=' +
+        encodeURIComponent(user.firstName + ' ' + user.lastName) + '&background=6a11cb&color=fff&size=100' ; %>
+        <% if (displayAvatar) { %>
+            <img src="<%= displayAvatar %>" alt="Student Profile" class="profile-img mb-3 avatar-img"
+                onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
+            <% } else { %>
+                <img src="<%= fallbackAvatar %>" alt="Student Profile" class="profile-img mb-3">
+                <% } %>
 
-                <% if (user) { %>
                     <h4>
                         <%= user.firstName %>
                             <%= user.lastName %>
@@ -18,7 +22,6 @@
                             <%= userSchool || 'School' %>
                         </small>
                     </div>
-                    <% } %>
 </div>
 
 <div class="card dashboard-card mb-4">
@@ -29,30 +32,18 @@
         <a href="/student/dashboard" class="btn btn-outline-primary w-100 mb-2 action-btn">
             <i class="fas fa-home"></i> Dashboard
         </a>
-
-        <% if (classId) { %>
-            <a href="/student/class/<%= classId %>/class-works" class="btn btn-outline-primary w-100 mb-2 action-btn">
-                <i class="fas fa-tasks"></i> Class Works
-            </a>
-            <a href="/student/class/<%= classId %>/live-sessions" class="btn btn-outline-info w-100 mb-2 action-btn">
-                <i class="fas fa-video"></i> Live Sessions
-            </a>
-            <% } else { %>
-                <a href="/student/classes" class="btn btn-outline-primary w-100 mb-2 action-btn">
-                    <i class="fas fa-tasks"></i> Class Works
-                </a>
-                <a href="/student/classes" class="btn btn-outline-info w-100 mb-2 action-btn">
-                    <i class="fas fa-video"></i> Live Sessions
-                </a>
-                <% } %>
-
-                    <a href="/student/classes" class="btn btn-outline-secondary w-100 action-btn">
-                        <i class="fas fa-chalkboard"></i> View All Classes
-                    </a>
+        <a href="/student/classes" class="btn btn-outline-primary w-100 mb-2 action-btn">
+            <i class="fas fa-tasks"></i> Class Works
+        </a>
+        <a href="/student/classes" class="btn btn-outline-info w-100 mb-2 action-btn">
+            <i class="fas fa-video"></i> Live Sessions
+        </a>
+        <a href="/student/classes" class="btn btn-outline-secondary w-100 action-btn">
+            <i class="fas fa-chalkboard"></i> View All Classes
+        </a>
     </div>
 </div>
 
-<!-- Account Status Card -->
 <div class="card dashboard-card mb-4">
     <div class="card-header">
         <h5>Account Status</h5>
