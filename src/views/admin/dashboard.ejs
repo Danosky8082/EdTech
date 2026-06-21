@@ -251,39 +251,48 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (avatarUrl) { %>
-                                <img src="<%= avatarUrl %>" alt="Profile" class="profile-img mb-3"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Profile" class="profile-img mb-3">
-                                    <% } %>
+                            <% // Helper: clean avatar URL – remove leading slash and fix malformed protocol function
+                                cleanAvatarUrl(url) { if (!url) return null; // If URL starts with '/https:/'
+                                or '/http:/' , fix it if (url.startsWith('/https:/')) { return
+                                url.replace('/https:/', 'https://' ); } if (url.startsWith('/http:/')) { return
+                                url.replace('/http:/', 'http://' ); } // If it already starts with http, return as-is if
+                                (url.startsWith('http://') || url.startsWith('https://')) { return url; } // Otherwise,
+                                treat as relative path with a leading slash return '/' + url; } const
+                                displayAvatar=cleanAvatarUrl(avatarUrl); %>
+                                <% if (displayAvatar) { %>
+                                    <img src="<%= displayAvatar %>" alt="Profile" class="profile-img mb-3"
+                                        onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<%= user.firstName %>+<%= user.lastName %>&background=6a11cb&color=fff&size=100'">
+                                    <% } else { %>
+                                        <img src="https://ui-avatars.com/api/?name=<%= user.firstName %>+<%= user.lastName %>&background=6a11cb&color=fff&size=100"
+                                            alt="Profile" class="profile-img mb-3">
+                                        <% } %>
 
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">Welcome to your dashboard</p>
-                                        <span class="user-role">
-                                            <%= user.role %>
-                                                <% if (isSuperAdmin) { %>
-                                                    <span class="badge bg-danger ms-1">Super Admin</span>
-                                                    <% } %>
-                                        </span>
-                                        <% if (userSchool) { %>
-                                            <div class="mt-2">
-                                                <span class="badge bg-info">
-                                                    <i class="fas fa-school me-1"></i>
-                                                    <%= userSchool %>
-                                                </span>
-                                            </div>
-                                            <% } else if (isSuperAdmin) { %>
+                                            <h4>
+                                                <%= user.firstName %>
+                                                    <%= user.lastName %>
+                                            </h4>
+                                            <p class="welcome-text">Welcome to your dashboard</p>
+                                            <span class="user-role">
+                                                <%= user.role %>
+                                                    <% if (isSuperAdmin) { %>
+                                                        <span class="badge bg-danger ms-1">Super Admin</span>
+                                                        <% } %>
+                                            </span>
+                                            <% if (userSchool) { %>
                                                 <div class="mt-2">
-                                                    <span class="badge bg-warning">
-                                                        <i class="fas fa-star me-1"></i>
-                                                        All Schools Access
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-school me-1"></i>
+                                                        <%= userSchool %>
                                                     </span>
                                                 </div>
-                                                <% } %>
+                                                <% } else if (isSuperAdmin) { %>
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-star me-1"></i>
+                                                            All Schools Access
+                                                        </span>
+                                                    </div>
+                                                    <% } %>
                         </div>
 
                         <!-- Quick Actions -->
@@ -390,7 +399,7 @@
                                                         </p>
                                                         <% if (activity.email) { %>
                                                             <small class="text-muted">Email: <%= activity.email %>
-                                                                    </small>
+                                                            </small>
                                                             <% } %>
                                                     </div>
                                                     <% }) %>
