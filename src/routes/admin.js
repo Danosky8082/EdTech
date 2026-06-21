@@ -1,50 +1,55 @@
-const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { uploadProfile } = require('../utils/fileUpload');
+const prisma = require('../config/database');
+const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 
+// ============================================================
+// 2. AUTH MIDDLEWARE
+// ============================================================
 const { 
   isAuthenticated, 
   isAdmin, 
   restrictToSchool, 
   setSchoolContext
 } = require('../middleware/auth');
+
+// ============================================================
+// 1. SINGLE IMPORT – all needed upload middleware from fileUpload
+// ============================================================
 const { uploadProfile, uploadSingle, uploadProfileSingle } = require('../utils/fileUpload');
 const prisma = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 
-// Format time ago utility function (missing in original code)
+// ============================================================
+// 3. HELPER – format time ago (used in notifications)
+// ============================================================
 const formatTimeAgo = (date) => {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
   let interval = seconds / 31536000;
-  
-  if (interval > 1) {
-    return Math.floor(interval) + ' years ago';
-  }
+  if (interval > 1) return Math.floor(interval) + ' years ago';
   interval = seconds / 2592000;
-  if (interval > 1) {
-    return Math.floor(interval) + ' months ago';
-  }
+  if (interval > 1) return Math.floor(interval) + ' months ago';
   interval = seconds / 86400;
-  if (interval > 1) {
-    return Math.floor(interval) + ' days ago';
-  }
+  if (interval > 1) return Math.floor(interval) + ' days ago';
   interval = seconds / 3600;
-  if (interval > 1) {
-    return Math.floor(interval) + ' hours ago';
-  }
+  if (interval > 1) return Math.floor(interval) + ' hours ago';
   interval = seconds / 60;
-  if (interval > 1) {
-    return Math.floor(interval) + ' minutes ago';
-  }
+  if (interval > 1) return Math.floor(interval) + ' minutes ago';
   return Math.floor(seconds) + ' seconds ago';
 };
 
+// ============================================================
+// 4. MIDDLEWARE (global for all admin routes)
+// ============================================================
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json());
 
 // Apply school-based access control to ALL admin routes
 router.use(isAuthenticated, isAdmin, setSchoolContext, restrictToSchool);
+
+// ============================================================
+// 5. ROUTES
+// ============================================================
 
 // =============================================
 // DASHBOARD & ANALYTICS ROUTES
