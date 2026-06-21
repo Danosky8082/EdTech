@@ -1,14 +1,21 @@
-<% // Safely get user data var safeUser=(typeof user !=='undefined' && user) ? user : {}; var userRole=safeUser.role
-    || '' ; var safeUserSchool=(typeof userSchool !=='undefined' ) ? userSchool : '' ; var safeIsSuperAdmin=(typeof
+<% // --- User data --- var safeUser=(typeof user !=='undefined' && user) ? user : {}; var userRole=safeUser.role || ''
+    ; var safeUserSchool=(typeof userSchool !=='undefined' ) ? userSchool : '' ; var safeIsSuperAdmin=(typeof
     isSuperAdmin !=='undefined' ) ? isSuperAdmin : false; var safeAdminInfo=(typeof adminInfo !=='undefined' ) ?
     adminInfo : null; var safeUserAvatar=safeUser.avatar || '' ; var safeUserFirstName=safeUser.firstName || '' ; var
-    safeUserLastName=safeUser.lastName || '' ; var safeUserSchoolProp=safeUser.school || '' ; // Notifications var
-    safeNotifications=(typeof notificationsData !=='undefined' && Array.isArray(notificationsData)) ? notificationsData
-    : []; var unreadCount=0; for (var i=0; i < safeNotifications.length; i++) { if (safeNotifications[i] &&
-    !safeNotifications[i].read) { unreadCount++; } } // Avatar URL var avatarUrl='' ; var
-    fallbackAvatar='https://ui-avatars.com/api/?name=' + encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName)
-    + '&background=6a11cb&color=fff&size=36' ; if (safeUserAvatar) { if (safeUserAvatar.startsWith('http://') ||
-    safeUserAvatar.startsWith('https://')) { avatarUrl=safeUserAvatar; } else { avatarUrl='/' + safeUserAvatar; } } %>
+    safeUserLastName=safeUser.lastName || '' ; var safeUserSchoolProp=safeUser.school || '' ; // --- Notifications ---
+    var safeNotifications=(typeof notificationsData !=='undefined' && Array.isArray(notificationsData)) ?
+    notificationsData : []; var unreadCount=0; for (var i=0; i < safeNotifications.length; i++) { if
+    (safeNotifications[i] && safeNotifications[i].read===false) { unreadCount++; } } // --- Avatar URL --- var
+    avatarUrl='' ; var fallbackAvatar='https://ui-avatars.com/api/?name=' + encodeURIComponent(safeUserFirstName + ' ' +
+    safeUserLastName) + '&background=6a11cb&color=fff&size=36' ; if (safeUserAvatar.length> 0) {
+    var startsHttp = safeUserAvatar.indexOf('http://') === 0 || safeUserAvatar.indexOf('https://') === 0;
+    if (startsHttp) {
+    avatarUrl = safeUserAvatar;
+    } else {
+    avatarUrl = '/' + safeUserAvatar;
+    }
+    }
+    %>
 
     <style>
         :root {
@@ -391,7 +398,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <% if (userRole) { %>
+                    <% if (userRole.length> 0) { %>
                         <li class="nav-item">
                             <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
                                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
@@ -441,44 +448,50 @@
                                     <% } %>
                             </li>
                             <% if (safeNotifications.length> 0) { %>
-                                <% var displayCount=Math.min(safeNotifications.length, 5); for (var j=0; j <
-                                    displayCount; j++) { var notif=safeNotifications[j]; var isRead=notif.read || false;
-                                    var notifId=notif.id || notif._id || '' ; var icon=notif.icon || 'fa-info-circle' ;
-                                    var title=notif.title || 'Notification' ; var msg=notif.message || notif.description
-                                    || '' ; var time=notif.createdAt ? new Date(notif.createdAt).toLocaleString() : '' ;
-                                    %>
-                                    <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
-                                        data-notification-id="<%= notifId %>">
-                                        <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
-                                        <div class="notification-content">
-                                            <div class="notification-title">
-                                                <%= title %>
-                                                    <% if (!isRead) { %><span class="badge bg-danger ms-1">New</span>
-                                                        <% } %>
-                                            </div>
-                                            <div class="notification-message">
-                                                <%= msg %>
-                                            </div>
-                                            <div class="notification-time">
-                                                <%= time %>
-                                            </div>
-                                            <% if (!isRead) { %>
-                                                <div class="notification-actions">
-                                                    <button class="notification-action-btn mark-as-read-btn"
-                                                        onclick="event.stopPropagation(); markNotificationAsRead('<%= notifId %>')">Mark
-                                                        as read</button>
+                                <% var displayCount=safeNotifications.length; if (displayCount> 5) {
+                                    displayCount = 5;
+                                    }
+                                    for (var j = 0; j < displayCount; j++) { var notif=safeNotifications[j]; var
+                                        isRead=notif.read ? true : false; var notifId=notif.id; if (!notifId) {
+                                        notifId=notif._id; } if (!notifId) { notifId='' ; } var icon=notif.icon; if
+                                        (!icon) { icon='fa-info-circle' ; } var title=notif.title; if (!title) {
+                                        title='Notification' ; } var msg=notif.message; if (!msg) {
+                                        msg=notif.description; } if (!msg) { msg='' ; } var timeStr='' ; if
+                                        (notif.createdAt) { var d=new Date(notif.createdAt); timeStr=d.toLocaleString();
+                                        } %>
+                                        <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
+                                            data-notification-id="<%= notifId %>">
+                                            <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
+                                            <div class="notification-content">
+                                                <div class="notification-title">
+                                                    <%= title %>
+                                                        <% if (!isRead) { %><span
+                                                                class="badge bg-danger ms-1">New</span>
+                                                            <% } %>
                                                 </div>
+                                                <div class="notification-message">
+                                                    <%= msg %>
+                                                </div>
+                                                <div class="notification-time">
+                                                    <%= timeStr %>
+                                                </div>
+                                                <% if (!isRead) { %>
+                                                    <div class="notification-actions">
+                                                        <button class="notification-action-btn mark-as-read-btn"
+                                                            onclick="event.stopPropagation(); markNotificationAsRead('<%= notifId %>')">Mark
+                                                            as read</button>
+                                                    </div>
+                                                    <% } %>
+                                            </div>
+                                        </li>
+                                        <% } %>
+                                            <li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i
+                                                    class="fas fa-check-double me-1"></i> Mark all as read</li>
+                                            <% } else { %>
+                                                <li class="notification-empty"><i class="fas fa-bell-slash"></i>
+                                                    <p>No notifications</p>
+                                                </li>
                                                 <% } %>
-                                        </div>
-                                    </li>
-                                    <% } %>
-                                        <li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i
-                                                class="fas fa-check-double me-1"></i> Mark all as read</li>
-                                        <% } else { %>
-                                            <li class="notification-empty"><i class="fas fa-bell-slash"></i>
-                                                <p>No notifications</p>
-                                            </li>
-                                            <% } %>
                         </ul>
                     </div>
                 </div>
@@ -486,11 +499,11 @@
                 <!-- User dropdown -->
                 <div class="welcome-section">
                     <ul class="navbar-nav">
-                        <% if (userRole) { %>
+                        <% if (userRole.length> 0) { %>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
                                     role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <% if (avatarUrl) { %>
+                                    <% if (avatarUrl.length> 0) { %>
                                         <img src="<%= avatarUrl %>" alt="Profile" class="profile-img-nav"
                                             onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
                                         <% } else { %>
@@ -506,7 +519,7 @@
                                                 class="fas fa-user-edit me-2"></i>Profile</a></li>
                                     <li><a class="dropdown-item" href="/settings"><i
                                                 class="fas fa-cog me-2"></i>Settings</a></li>
-                                    <% if (safeUserSchoolProp) { %>
+                                    <% if (safeUserSchoolProp.length> 0) { %>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
@@ -565,12 +578,10 @@
         });
 
         function markNotificationAsRead(id) {
-            // simple placeholder
             alert('Mark notification ' + id + ' as read (implement API call here)');
         }
 
         function markAllNotificationsAsRead() {
-            // placeholder
             alert('Mark all as read (implement API call here)');
         }
     </script>
