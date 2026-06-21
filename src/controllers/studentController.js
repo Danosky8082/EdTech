@@ -38,7 +38,7 @@ const createNotification = async (userId, title, message, icon = 'fa-info-circle
   }
 };
 
-// Student dashboard
+// ========== DASHBOARD ==========
 const dashboard = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -130,7 +130,7 @@ const dashboard = async (req, res) => {
       });
     }
 
-    // --- Get notifications using the service (or fallback) ---
+    // Get notifications
     let notifications = [];
     let notificationCount = 0;
     try {
@@ -147,10 +147,9 @@ const dashboard = async (req, res) => {
       console.error('Error loading notifications:', error);
     }
 
-    // Use the notifications directly from the service (already formatted)
     const formattedNotifications = notifications;
 
-    // --- Compute avatar data for navbar ---
+    // Compute avatar data
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -167,7 +166,7 @@ const dashboard = async (req, res) => {
       }
     }
 
-    // --- Build notifications dropdown HTML (if not already provided by middleware) ---
+    // Build notifications dropdown HTML
     let notificationsDropdownHtml = '';
     const unreadCount = notifications.filter(n => !n.read).length;
     if (notifications && notifications.length > 0) {
@@ -208,7 +207,7 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
-    // --- Render the dashboard ---
+    // Render
     res.render('student/dashboard', {
       title: 'Student Dashboard',
       user: student.user,
@@ -222,7 +221,6 @@ const dashboard = async (req, res) => {
       notificationCount,
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
-      // Navbar variables (already provided by middleware, but pass them explicitly for safety)
       userRole: student.user.role || 'student',
       userFirstName: student.user.firstName || '',
       userLastName: student.user.lastName || '',
@@ -3495,65 +3493,45 @@ const viewAllLiveSessions = async (req, res) => {
     }
 };
 
-// Export all functions
+// ========== MODULE EXPORTS ==========
 module.exports = {
-    // Dashboard
-    dashboard,
-    viewClasses,
-    
-    // Materials
-    viewMaterials,
-    
-    // Assignments
-    getClassAssignments,
-    viewAssignments,
-    viewAllAssignments,
-    getSubmitAssignment,
-    submitAssignment,
-    getSubmissionPage,
-    getEnhancedSubmissionPage,
-    submitAssignmentFile,
-    submitEnhancedAssignment,
-    getEnhancedSubmitAssignment,
-    submitTextAssignment,
-    submitDrawingAssignment,
-    
-    // Grades
-    viewAllGrades,
-    
-    // Exams
-    viewExams,
-    takeExam,
-    viewExamResults,
-    getExamQuestions,
-    submitExam,
-    
-    // Notes
-    getNotes,
-    saveNote,
-    updateNote,
-    deleteNote,
-
-    // Materials
-    downloadMaterial,
-    
-    // Class Works
-    viewClassWorks,
-    takeClassWork,
-    submitClassWork,
-    viewClassWorkResults,
-    
-    // Live Sessions
-    viewLiveSessions,
-    joinLiveSession,
-    leaveLiveSession,
-    viewAllLiveSessions ,
-    viewProgress,
-    viewAnalytics,
-    
-    // Add this line for notifications:
-    getRecentNotifications,
-    getRecentNotifications,
-    markNotificationAsRead,
-    markAllNotificationsAsRead
+  dashboard,
+  viewClasses,
+  viewMaterials,
+  getClassAssignments,
+  viewAssignments,
+  viewAllAssignments,
+  getSubmitAssignment,
+  submitAssignment,
+  getSubmissionPage,
+  getEnhancedSubmissionPage,
+  submitAssignmentFile,
+  submitEnhancedAssignment,
+  getEnhancedSubmitAssignment,
+  submitTextAssignment,
+  submitDrawingAssignment,
+  viewAllGrades,
+  viewExams,
+  takeExam,
+  viewExamResults,
+  getExamQuestions,
+  submitExam,
+  getNotes,
+  saveNote,
+  updateNote,
+  deleteNote,
+  downloadMaterial,
+  viewClassWorks,
+  takeClassWork,
+  submitClassWork,
+  viewClassWorkResults,
+  viewLiveSessions,
+  joinLiveSession,
+  leaveLiveSession,
+  viewAllLiveSessions,
+  viewProgress,
+  viewAnalytics,
+  getRecentNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead
 };
