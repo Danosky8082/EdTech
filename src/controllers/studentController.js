@@ -147,12 +147,10 @@ const dashboard = async (req, res) => {
       console.error('Error loading notifications:', error);
     }
 
-
-    
     // Use the notifications directly from the service (already formatted)
     const formattedNotifications = notifications;
 
-     // --- Compute avatar data for navbar ---
+    // --- Compute avatar data for navbar ---
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -210,84 +208,30 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
+    // --- Render the dashboard ---
     res.render('student/dashboard', {
-    title: 'Student Dashboard',
-    user: student.user,
-    student,
-    enrollments: student.enrollments,
-    upcomingAssignments,
-    completedAssignments,
-    pendingClassWorks,
-    recentClassWorks,
-    notifications: formattedNotifications,
-    notificationCount,
-    userSchool: userSchool,
-    isSuperAdmin: isSuperAdmin,
-    // Navbar variables (already provided by middleware, but pass them explicitly for safety)
-    userRole: student.user.role || 'student',
-    userFirstName: student.user.firstName || '',
-    userLastName: student.user.lastName || '',
-    avatarUrl: avatarUrl || '',
-    fallbackAvatar: fallbackAvatar || '',
-    notificationsDropdownHtml: notificationsDropdownHtml || ''
-});
-
-// Get class assignments for student
-const getClassAssignments = async (req, res) => {
-  try {
-    const studentId = req.session.user.studentId;
-    const classId = parseInt(req.params.id);
-    const userSchool = req.userSchool;
-    const isSuperAdmin = req.isSuperAdmin;
-    
-    // Verify student is enrolled in this class
-    const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        studentId: studentId,
-        classId: classId
-      },
-      include: {
-        class: {
-          include: {
-            teacher: {
-              include: { user: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!enrollment) {
-      return res.status(403).render('error/403', { title: 'Access Denied' });
-    }
-
-    // Get assignments for this class with student's submissions
-    const assignments = await prisma.assignment.findMany({
-      where: {
-        classId: classId
-      },
-      include: {
-        class: true,
-        submissions: {
-          where: {
-            studentId: studentId
-          }
-        }
-      },
-      orderBy: {
-        dueDate: 'asc'
-      }
-    });
-
-    res.render('student/class-assignments', {
-      title: 'Class Assignments',
-      classData: enrollment.class,
-      assignments: assignments,
+      title: 'Student Dashboard',
+      user: student.user,
+      student,
+      enrollments: student.enrollments,
+      upcomingAssignments,
+      completedAssignments,
+      pendingClassWorks,
+      recentClassWorks,
+      notifications: formattedNotifications,
+      notificationCount,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
+      isSuperAdmin: isSuperAdmin,
+      // Navbar variables (already provided by middleware, but pass them explicitly for safety)
+      userRole: student.user.role || 'student',
+      userFirstName: student.user.firstName || '',
+      userLastName: student.user.lastName || '',
+      avatarUrl: avatarUrl || '',
+      fallbackAvatar: fallbackAvatar || '',
+      notificationsDropdownHtml: notificationsDropdownHtml || ''
     });
   } catch (error) {
-    console.error('Get class assignments error:', error);
+    console.error('Student dashboard error:', error);
     res.status(500).render('error/500', { title: 'Server Error' });
   }
 };
