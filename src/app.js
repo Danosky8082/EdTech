@@ -1,4 +1,16 @@
 const express = require('express');
+
+app.get('/debug-files', (req, res) => {
+  const dir = '/tmp/uploads/profiles';
+  if (fs.existsSync(dir)) {
+    const files = fs.readdirSync(dir);
+    res.json({ directory: dir, files });
+  } else {
+    res.json({ error: 'Directory does not exist', dir });
+  }
+});
+
+
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
 });
@@ -9,7 +21,7 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const path = require('path');
-const fs = require('fs');                       // <-- added for file checks
+const fs = require('fs');                       //for file checks
 const dotenv = require('dotenv');
 const methodOverride = require('method-override');
 const notificationRoutes = require('./routes/notifications');
