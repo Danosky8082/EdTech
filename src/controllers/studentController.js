@@ -244,25 +244,44 @@ const dashboard = async (req, res) => {
     // Use the notifications directly from the service (already formatted)
     const formattedNotifications = notifications;
 
+    // --- Compute avatar data for navbar ---
+const user = req.session.user;
+let avatarUrl = '';
+let fallbackAvatar = '';
+if (user) {
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+    if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+            avatarUrl = user.avatar;
+        } else {
+            avatarUrl = '/' + user.avatar;
+        }
+    }
+}
+
     res.render('student/dashboard', {
-      title: 'Student Dashboard',
-      user: student.user,
-      student,
-      enrollments: student.enrollments,
-      upcomingAssignments,
-      completedAssignments,
-      pendingClassWorks,
-      recentClassWorks,
-      notifications: formattedNotifications,
-      notificationCount,
-      userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
-    });
-  } catch (error) {
-    console.error('Student dashboard error:', error);
-    res.status(500).render('error/500', { title: 'Server Error' });
-  }
-};
+    title: 'Student Dashboard',
+    user: student.user,
+    student,
+    enrollments: student.enrollments,
+    upcomingAssignments,
+    completedAssignments,
+    pendingClassWorks,
+    recentClassWorks,
+    notifications: formattedNotifications,
+    notificationCount,
+    userSchool: userSchool,
+    isSuperAdmin: isSuperAdmin,
+    // Navbar variables (already provided by middleware, but pass them explicitly for safety)
+    userRole: student.user.role || 'student',
+    userFirstName: student.user.firstName || '',
+    userLastName: student.user.lastName || '',
+    avatarUrl: avatarUrl || '',
+    fallbackAvatar: fallbackAvatar || '',
+    notificationsDropdownHtml: notificationsDropdownHtml || ''
+});
 
 // Get class assignments for student
 const getClassAssignments = async (req, res) => {
