@@ -1,23 +1,22 @@
-<% // --- User data --- var safeUser=(typeof user !=='undefined' && user) ? user : {}; var userRole=safeUser.role || ''
-    ; var safeUserSchool=(typeof userSchool !=='undefined' ) ? userSchool : '' ; var safeIsSuperAdmin=(typeof
-    isSuperAdmin !=='undefined' ) ? isSuperAdmin : false; var safeAdminInfo=(typeof adminInfo !=='undefined' ) ?
-    adminInfo : null; var safeUserAvatar=safeUser.avatar || '' ; var safeUserFirstName=safeUser.firstName || '' ; var
-    safeUserLastName=safeUser.lastName || '' ; var safeUserSchoolProp=safeUser.school || '' ; // --- Notifications ---
-    var safeNotifications=(typeof notificationsData !=='undefined' && Array.isArray(notificationsData)) ?
-    notificationsData : []; var unreadCount=0; for (var i=0; i < safeNotifications.length; i++) { if
-    (safeNotifications[i] && safeNotifications[i].read===false) { unreadCount++; } } // --- Avatar URL --- var
-    avatarUrl='' ; var fallbackAvatar='https://ui-avatars.com/api/?name=' + encodeURIComponent(safeUserFirstName + ' ' +
-    safeUserLastName) + '&background=6a11cb&color=fff&size=36' ; if (safeUserAvatar.length> 0) {
-    var startsHttp = safeUserAvatar.indexOf('http://') === 0 || safeUserAvatar.indexOf('https://') === 0;
-    if (startsHttp) {
-    avatarUrl = safeUserAvatar;
-    } else {
-    avatarUrl = '/' + safeUserAvatar;
-    }
-    }
-    %>
+<% // --- User data --- var safeUser={}; if (typeof user !=='undefined' && user) { safeUser=user; } var userRole='' ; if
+    (safeUser.role) { userRole=safeUser.role; } var safeUserSchool='' ; if (typeof userSchool !=='undefined' ) {
+    safeUserSchool=userSchool; } var safeIsSuperAdmin=false; if (typeof isSuperAdmin !=='undefined' ) {
+    safeIsSuperAdmin=isSuperAdmin; } var safeAdminInfo=null; if (typeof adminInfo !=='undefined' ) {
+    safeAdminInfo=adminInfo; } var safeUserAvatar='' ; if (safeUser.avatar) { safeUserAvatar=safeUser.avatar; } var
+    safeUserFirstName='' ; if (safeUser.firstName) { safeUserFirstName=safeUser.firstName; } var safeUserLastName='' ;
+    if (safeUser.lastName) { safeUserLastName=safeUser.lastName; } var safeUserSchoolProp='' ; if (safeUser.school) {
+    safeUserSchoolProp=safeUser.school; } // --- Notifications --- var safeNotifications=[]; if (typeof
+    notificationsData !=='undefined' && Array.isArray(notificationsData)) { safeNotifications=notificationsData; } var
+    unreadCount=0; for (var i=0; i < safeNotifications.length; i++) { var notif=safeNotifications[i]; if (notif &&
+    notif.read===false) { unreadCount++; } } // --- Avatar URL --- var avatarUrl='' ; if (safeUserAvatar) { var
+    startsHttp=false; if (safeUserAvatar.indexOf('http://')===0) { startsHttp=true; } else if
+    (safeUserAvatar.indexOf('https://')===0) { startsHttp=true; } if (startsHttp) { avatarUrl=safeUserAvatar; } else {
+    avatarUrl='/' + safeUserAvatar; } } var fallbackAvatar='https://ui-avatars.com/api/?name=' ;
+    fallbackAvatar=fallbackAvatar + encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName);
+    fallbackAvatar=fallbackAvatar + '&background=6a11cb&color=fff&size=36' ; %>
 
     <style>
+        /* (all styles – unchanged) */
         :root {
             --primary-gradient: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
             --hover-bg: rgba(255, 255, 255, 0.15);
@@ -400,7 +399,7 @@
                 <ul class="navbar-nav me-auto">
                     <% if (userRole.length> 0) { %>
                         <li class="nav-item">
-                            <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
+                            <a class="nav-link" href="/<%= (userRole === 'admin' ? 'admin' : userRole) %>/dashboard">
                                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                             </a>
                         </li>
@@ -452,25 +451,26 @@
                                     displayCount = 5;
                                     }
                                     for (var j = 0; j < displayCount; j++) { var notif=safeNotifications[j]; var
-                                        isRead=notif.read ? true : false; var notifId=notif.id; if (!notifId) {
-                                        notifId=notif._id; } if (!notifId) { notifId='' ; } var icon=notif.icon; if
-                                        (!icon) { icon='fa-info-circle' ; } var title=notif.title; if (!title) {
-                                        title='Notification' ; } var msg=notif.message; if (!msg) {
-                                        msg=notif.description; } if (!msg) { msg='' ; } var timeStr='' ; if
+                                        isRead=false; if (notif.read===true) { isRead=true; } var notifId='' ; if
+                                        (notif.id) { notifId=notif.id; } else if (notif._id) { notifId=notif._id; } var
+                                        iconClass='fa-info-circle' ; if (notif.icon) { iconClass=notif.icon; } var
+                                        titleText='Notification' ; if (notif.title) { titleText=notif.title; } var
+                                        msgText='' ; if (notif.message) { msgText=notif.message; } else if
+                                        (notif.description) { msgText=notif.description; } var timeStr='' ; if
                                         (notif.createdAt) { var d=new Date(notif.createdAt); timeStr=d.toLocaleString();
                                         } %>
                                         <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
                                             data-notification-id="<%= notifId %>">
-                                            <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
+                                            <div class="notification-icon"><i class="fas <%= iconClass %>"></i></div>
                                             <div class="notification-content">
                                                 <div class="notification-title">
-                                                    <%= title %>
+                                                    <%= titleText %>
                                                         <% if (!isRead) { %><span
                                                                 class="badge bg-danger ms-1">New</span>
                                                             <% } %>
                                                 </div>
                                                 <div class="notification-message">
-                                                    <%= msg %>
+                                                    <%= msgText %>
                                                 </div>
                                                 <div class="notification-time">
                                                     <%= timeStr %>
