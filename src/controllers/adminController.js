@@ -696,6 +696,36 @@ const manageUsers = async (req, res) => {
     
     const success = req.query.success;
     const error = req.query.error;
+
+    // --- Get notification count for navbar ---
+    const userId = req.session.user.id;
+    const notificationCount = await prisma.notification.count({
+      where: {
+        userId: userId,
+        read: false,
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { expiresAt: null }
+        ]
+      }
+    });
+
+    // --- Compute avatar data for navbar ---
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
     
     res.render('admin/users', { 
       title: 'User Management',
@@ -713,7 +743,13 @@ const manageUsers = async (req, res) => {
       adminInfo: req.user?.admin || null,
       success,
       error,
-      getAccessStatus
+      getAccessStatus,
+      notificationCount: notificationCount,
+      userFirstName: user ? user.firstName || '' : '',
+      userLastName: user ? user.lastName || '' : '',
+      avatarUrl: avatarUrl,
+      fallbackAvatar: fallbackAvatar,
+      notifications: [] // If you want to show notifications in the dropdown, fetch them here
     });
   } catch (error) {
     console.error('Manage users error:', error);
