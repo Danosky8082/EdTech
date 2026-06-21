@@ -242,15 +242,14 @@ const createUser = async (req, res) => {
 if (req.file) {
   try {
     avatarUrl = await uploadToBlob(req.file, 'profiles');
-  } catch (error) {
-    console.error('Blob upload failed:', error);
-    // fallback: if Blob fails, you can still save a local path
-    avatarUrl = req.file ? `uploads/profiles/${req.file.filename}` : null;
+  } catch (blobError) {
+    console.error('Blob upload error:', blobError);
+    avatarUrl = `uploads/profiles/${req.file.filename}`;
   }
 }
 
     const user = await prisma.user.create({
-      data: {
+  data: {
         idNumber: idNumber.trim(),
         password: hashedPassword,
         firstName: firstName.trim(),
@@ -452,15 +451,18 @@ const updateUser = async (req, res) => {
     }
     
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-   let avatarUrl = user.avatar; // keep existing if no new file
-if (req.file) {
-  try {
-    avatarUrl = await uploadToBlob(req.file, 'profiles');
-  } catch (error) {
-    console.error('Blob upload failed:', error);
-    avatarUrl = req.file ? `uploads/profiles/${req.file.filename}` : user.avatar;
-  }
-}
+    
+    // --- Avatar handling ---
+    let avatarUrl = user.avatar; // keep existing if no new file
+    if (req.file) {
+      try {
+        avatarUrl = await uploadToBlob(req.file, 'profiles');
+      } catch (blobError) {
+        console.error('Blob upload error:', blobError);
+        // fallback: store as relative path (not recommended for Vercel)
+        avatarUrl = `uploads/profiles/${req.file.filename}`;
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -470,7 +472,7 @@ if (req.file) {
         email,
         phone,
         dateOfBirth: parsedDateOfBirth,
-        avatar: avatarPath,
+        avatar: avatarUrl,   // now always defined
         school: school
       }
     });
