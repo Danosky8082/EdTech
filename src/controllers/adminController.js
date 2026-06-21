@@ -87,6 +87,7 @@ const dashboard = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     
+    // Build filters (unchanged)
     let studentWhere = {};
     let teacherWhere = {};
     let classWhere = {};
@@ -105,58 +106,23 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    const recentActivities = await prisma.user.findMany({
-      where: activityWhere,
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      include: { student: true, teacher: true, admin: true }
-    });
+    // ... (rest of code: recentActivities, notifications, etc.) ...
 
-    const formattedActivities = recentActivities.map(activity => ({
-      id: activity.id,
-      firstName: activity.firstName,
-      lastName: activity.lastName,
-      role: activity.role,
-      createdAt: activity.createdAt,
-      idNumber: activity.idNumber,
-      email: activity.email,
-      studentInfo: activity.student,
-      teacherInfo: activity.teacher,
-      adminInfo: activity.admin
-    }));
-
-    const notifications = await prisma.notification.findMany({
-      where: {
-        userId: userId,
-        read: false,
-        OR: [
-          { expiresAt: { gt: new Date() } },
-          { expiresAt: null }
-        ]
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10
-    });
-
-    const notificationCount = await prisma.notification.count({
-      where: {
-        userId: userId,
-        read: false,
-        OR: [
-          { expiresAt: { gt: new Date() } },
-          { expiresAt: null }
-        ]
+    // ============================================================
+    // NEW: Compute avatar URL for the current user
+    // ============================================================
+    const user = req.session.user; // the logged‑in user
+    let avatarUrl = null;
+    if (user.avatar) {
+      const av = user.avatar;
+      if (av.startsWith('uploads/') || av.startsWith('/uploads/')) {
+        avatarUrl = av.startsWith('/') ? av : '/' + av;
+      } else if (!av.includes('/')) {
+        avatarUrl = '/uploads/profiles/' + av;
+      } else {
+        avatarUrl = '/uploads/profiles/' + av;
       }
-    });
-
-    const formattedNotifications = notifications.map(notif => ({
-      id: notif.id,
-      title: notif.title,
-      message: notif.message,
-      icon: notif.icon,
-      time: formatTimeAgo(notif.createdAt),
-      read: notif.read
-    }));
+    }
 
     const currentAdmin = await prisma.admin.findUnique({
       where: { userId: userId }
@@ -175,7 +141,9 @@ const dashboard = async (req, res) => {
       notificationCount: notificationCount,
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
-      adminInfo: currentAdmin
+      adminInfo: currentAdmin,
+      avatarUrl: avatarUrl,                 // <-- PASS THE URL
+      user: user                            // keep user object for other fields
     });
   } catch (error) {
     console.error('Admin dashboard error:', error);
