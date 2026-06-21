@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
 const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHelpers');
+const { uploadToBlob } = require('../utils/fileUpload');
 
 // ============================================================
 // HELPERS
@@ -237,7 +238,16 @@ const createUser = async (req, res) => {
     const hashedPassword = await hashPassword(tempPassword);
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
-    const avatarPath = req.file ? `uploads/profiles/${req.file.filename}` : null;
+    let avatarUrl = null;
+if (req.file) {
+  try {
+    avatarUrl = await uploadToBlob(req.file, 'profiles');
+  } catch (error) {
+    console.error('Blob upload failed:', error);
+    // fallback: if Blob fails, you can still save a local path
+    avatarUrl = req.file ? `uploads/profiles/${req.file.filename}` : null;
+  }
+}
 
     const user = await prisma.user.create({
       data: {
@@ -442,7 +452,15 @@ const updateUser = async (req, res) => {
     }
     
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-    const avatarPath = req.file ? `uploads/profiles/${req.file.filename}` : user.avatar;
+   let avatarUrl = user.avatar; // keep existing if no new file
+if (req.file) {
+  try {
+    avatarUrl = await uploadToBlob(req.file, 'profiles');
+  } catch (error) {
+    console.error('Blob upload failed:', error);
+    avatarUrl = req.file ? `uploads/profiles/${req.file.filename}` : user.avatar;
+  }
+}
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },

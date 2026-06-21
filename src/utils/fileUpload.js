@@ -1,59 +1,15 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { put } = require('@vercel/blob');   // <-- Correct CommonJS import
 
 // ============================================================
-// 1. Determine the base upload directory (Vercel-aware)
+// 1. Use memory storage so we can get the file buffer
 // ============================================================
-const isVercel = !!process.env.VERCEL;
-const baseUploadDir = isVercel
-  ? '/tmp/uploads'
-  : path.join(__dirname, '../../public/uploads');
+const storage = multer.memoryStorage();
 
 // ============================================================
-// 2. Ensure base directory exists
-// ============================================================
-if (!fs.existsSync(baseUploadDir)) {
-  fs.mkdirSync(baseUploadDir, { recursive: true });
-  console.log(`✅ Created base upload directory: ${baseUploadDir}`);
-}
-
-// ============================================================
-// 3. Dynamic storage – destination based on field name
-// ============================================================
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Determine subfolder based on field name
-    let subfolder = '';
-    if (file.fieldname === 'profile' || file.fieldname === 'avatar') {
-      subfolder = 'profiles';
-    } else if (file.fieldname === 'material' || file.fieldname === 'file') {
-      subfolder = 'materials';
-    } else if (file.fieldname === 'examQuestions' || file.fieldname === 'exam') {
-      subfolder = 'exams';
-    } else {
-      subfolder = 'general';
-    }
-
-    const dest = path.join(baseUploadDir, subfolder);
-    // Ensure subfolder exists (should already, but double-check)
-    if (!fs.existsSync(dest)) {
-      fs.mkdirSync(dest, { recursive: true });
-      console.log(`✅ Created subfolder: ${dest}`);
-    }
-    cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    // Sanitize filename
-    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
-    cb(null, baseName + '-' + uniqueSuffix + ext);
-  }
-});
-
-// ============================================================
-// 4. File filters (unchanged)
+// 2. File filters (unchanged)
 // ============================================================
 const fileFilter = (req, file, cb) => {
   try {
@@ -110,7 +66,7 @@ const profileFileFilter = (req, file, cb) => {
 };
 
 // ============================================================
-// 5. Multer instances (all use the same dynamic storage)
+// 3. Multer instances (all use memory storage)
 // ============================================================
 const upload = multer({
   storage: storage,
@@ -137,7 +93,25 @@ const uploadExamQuestions = multer({
 });
 
 // ============================================================
-// 6. Error handling wrappers (unchanged)
+// 4. Helper: Upload to Vercel Blob and return public URL
+// ============================================================
+const uploadToBlob = async (file, folder = 'general') => {
+  if (!file) throw new Error('No file provided');
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const ext = path.extname(file.originalname).toLowerCase();
+  const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `${baseName}-${uniqueSuffix}${ext}`;
+  const blobPath = `${folder}/${filename}`;
+
+  const blob = await put(blobPath, file.buffer, {
+    access: 'public',
+  });
+
+  return blob.url; // permanent, publicly accessible URL
+};
+
+// ============================================================
+// 5. Error handling wrappers (unchanged)
 // ============================================================
 const handleUploadError = (uploadMiddleware) => {
   return (req, res, next) => {
@@ -204,13 +178,14 @@ const handleExamQuestionsUploadError = (uploadMiddleware) => {
 };
 
 // ============================================================
-// 7. Exports
+// 6. Exports
 // ============================================================
 module.exports = {
   upload,
   uploadMaterial,
   uploadProfile,
   uploadExamQuestions,
+  uploadToBlob,              // <-- NEW: upload to Vercel Blob
   handleUploadError,
   handleExamQuestionsUploadError,
   uploadSingle: (fieldName) => handleUploadError(upload.single(fieldName)),
