@@ -3,53 +3,57 @@ const path = require('path');
 const fs = require('fs');
 
 // ============================================================
-// 1. Determine the base upload directory
+// 1. Determine the base upload directory (Vercel-aware)
 // ============================================================
 const isVercel = !!process.env.VERCEL;
 const baseUploadDir = isVercel
   ? '/tmp/uploads'
-  : path.join(__dirname, '../public/uploads');
-
-// Subdirectories for different file types
-const uploadDirs = {
-  general: path.join(baseUploadDir, 'general'),
-  materials: path.join(baseUploadDir, 'materials'),
-  profiles: path.join(baseUploadDir, 'profiles'),
-  exams: path.join(baseUploadDir, 'exams'),
-};
+  : path.join(__dirname, '../../public/uploads');
 
 // ============================================================
-// 2. Ensure directories exist (create if missing)
+// 2. Ensure base directory exists
 // ============================================================
-const ensureDir = (dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`✅ Created upload directory: ${dir}`);
-  }
-};
-
-Object.values(uploadDirs).forEach(ensureDir);
+if (!fs.existsSync(baseUploadDir)) {
+  fs.mkdirSync(baseUploadDir, { recursive: true });
+  console.log(`✅ Created base upload directory: ${baseUploadDir}`);
+}
 
 // ============================================================
-// 3. Storage configuration – dynamic destination based on type
+// 3. Dynamic storage – destination based on field name
 // ============================================================
-const storage = (dir) => multer.diskStorage({
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Ensure directory exists (should already, but double-check)
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    // Determine subfolder based on field name
+    let subfolder = '';
+    if (file.fieldname === 'profile' || file.fieldname === 'avatar') {
+      subfolder = 'profiles';
+    } else if (file.fieldname === 'material' || file.fieldname === 'file') {
+      subfolder = 'materials';
+    } else if (file.fieldname === 'examQuestions' || file.fieldname === 'exam') {
+      subfolder = 'exams';
+    } else {
+      subfolder = 'general';
     }
-    cb(null, dir);
+
+    const dest = path.join(baseUploadDir, subfolder);
+    // Ensure subfolder exists (should already, but double-check)
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+      console.log(`✅ Created subfolder: ${dest}`);
+    }
+    cb(null, dest);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    // Sanitize filename
+    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+    cb(null, baseName + '-' + uniqueSuffix + ext);
   }
 });
 
 // ============================================================
-// 4. File filters
+// 4. File filters (unchanged)
 // ============================================================
 const fileFilter = (req, file, cb) => {
   try {
@@ -106,34 +110,34 @@ const profileFileFilter = (req, file, cb) => {
 };
 
 // ============================================================
-// 5. Multer instances with different destinations and filters
+// 5. Multer instances (all use the same dynamic storage)
 // ============================================================
 const upload = multer({
-  storage: storage(uploadDirs.general),
-  fileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 }
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
 const uploadMaterial = multer({
-  storage: storage(uploadDirs.materials),
-  fileFilter,
+  storage: storage,
+  fileFilter: fileFilter,
   limits: { fileSize: 100 * 1024 * 1024 }
 });
 
 const uploadProfile = multer({
-  storage: storage(uploadDirs.profiles),
+  storage: storage,
   fileFilter: profileFileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
 const uploadExamQuestions = multer({
-  storage: storage(uploadDirs.exams),
+  storage: storage,
   fileFilter: examQuestionsFileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 // ============================================================
-// 6. Error handling middleware wrappers
+// 6. Error handling wrappers (unchanged)
 // ============================================================
 const handleUploadError = (uploadMiddleware) => {
   return (req, res, next) => {
@@ -157,7 +161,6 @@ const handleUploadError = (uploadMiddleware) => {
             message: 'File upload error: ' + err.message
           });
         }
-        // For other errors
         return res.status(500).json({
           success: false,
           message: 'File upload failed: ' + err.message

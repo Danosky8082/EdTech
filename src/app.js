@@ -1,20 +1,31 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const dotenv = require('dotenv');
+dotenv.config();  // load .env as early as possible
 
-app.get('/ping', (req, res) => res.send('pong'));
+// ============================================================
+// Initialize app early so all routes can use it
+// ============================================================
+const app = express();
+app.set('trust proxy', 1);
 
-
+// ============================================================
+// Process error handlers (can be placed anywhere)
+// ============================================================
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
 });
 process.on('unhandledRejection', (err) => {
   console.error('💥 Unhandled Rejection:', err);
 });
+
+// ============================================================
+// Other requires
+// ============================================================
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
-const path = require('path');
-const fs = require('fs');                       //for file checks
-const dotenv = require('dotenv');
 const methodOverride = require('method-override');
 const notificationRoutes = require('./routes/notifications');
 const fetch = require('node-fetch');
@@ -23,9 +34,6 @@ const studentController = require('./controllers/studentController');
 const prisma = require('./config/database');
 const activityTracker = require('./middleware/activityTracker');
 const noCache = require('./middleware/noCache');
-
-// Load environment variables
-dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -37,21 +45,15 @@ const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
 
-// Initialize express app
-const app = express();
-app.set('trust proxy', 1);
-
+// ============================================================
 // View engine
+// ============================================================
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Static files (public folder and general uploads)
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));   // fallback for other uploads
-
 // ============================================================
 // Custom routes to serve uploaded images from /tmp (Vercel)
-// with fallback to local uploads folder
+// Must come BEFORE static middleware
 // ============================================================
 app.get('/uploads/profiles/:filename', (req, res) => {
   const filename = req.params.filename;
@@ -81,12 +83,62 @@ app.get('/uploads/materials/:filename', (req, res) => {
   res.status(404).send('File not found');
 });
 
+// ============================================================
+// Simple debug route (safe, won't crash if directory missing)
+// ============================================================
+app.get('/debug-files', (req, res) => {
+  try {
+    const dir = '/tmp/uploads/profiles';
+    const result = { directory: dir };
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      result.files = files;
+      result.count = files.length;
+      result.exists = true;
+    } else {
+      result.exists = false;
+      // try to create it to see if we have write permissions
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        result.created = true;
+        result.files = [];
+        result.count = 0;
+      } catch (mkdirErr) {
+        result.created = false;
+        result.mkdirError = mkdirErr.message;
+      }
+    }
+    // also check parent
+    const parentDir = '/tmp/uploads';
+    if (fs.existsSync(parentDir)) {
+      const parentFiles = fs.readdirSync(parentDir);
+      result.parentExists = true;
+      result.parentContents = parentFiles;
+    } else {
+      result.parentExists = false;
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
+
+// ============================================================
+// Static files (fallback)
+// ============================================================
+app.use(express.static('public'));
+app.use('/uploads', express.static('uploads')); // local fallback
+
+// ============================================================
 // Body parsing and method override
+// ============================================================
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
 
+// ============================================================
 // Session (PostgreSQL store)
+// ============================================================
 app.use(session({
   store: new pgSession({
     conObject: {
@@ -100,11 +152,13 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   },
 }));
 
+// ============================================================
 // Custom middleware
+// ============================================================
 app.use(activityTracker());
 app.use(flash());
 
@@ -116,7 +170,7 @@ app.use('/parent', noCache);
 app.use('/accountant', noCache);
 app.use('/cashier', noCache);
 
-// User context for views
+// User context
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
     res.locals.user = req.session.user;
@@ -219,7 +273,7 @@ app.use('/admin', setSchoolContext);
 app.use('/accountant', setSchoolContext);
 app.use('/cashier', setSchoolContext);
 
-// Home route (redirects based on role)
+// Home route
 app.get('/', (req, res) => {
   if (req.session.user) {
     const role = req.session.user.role;
@@ -237,7 +291,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// Download route (handles both teachers and students)
+// Download route
 app.get('/download/material/:materialId', (req, res) => {
   if (req.session.user.role === 'teacher') {
     return teacherController.downloadMaterial(req, res);
@@ -274,7 +328,7 @@ app.get('/api/proxy/reasonlabs', async (req, res) => {
 });
 
 // =============================================
-// Error handling (production ready)
+// Error handling
 // =============================================
 
 // 404 handler
@@ -290,7 +344,7 @@ app.use((req, res) => {
   });
 });
 
-// 500 handler (with error page)
+// 500 handler
 app.use((err, req, res, next) => {
   console.error('💥 Global error:', err);
   const user = req.session?.user || null;
