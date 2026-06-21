@@ -1,12 +1,46 @@
 const express = require('express');
 
 app.get('/debug-files', (req, res) => {
-  const dir = '/tmp/uploads/profiles';
-  if (fs.existsSync(dir)) {
-    const files = fs.readdirSync(dir);
-    res.json({ directory: dir, files });
-  } else {
-    res.json({ error: 'Directory does not exist', dir });
+  try {
+    const dir = '/tmp/uploads/profiles';
+    let result = { directory: dir };
+
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      result.files = files;
+      result.count = files.length;
+      result.exists = true;
+    } else {
+      result.exists = false;
+      result.error = 'Directory does not exist yet';
+      // Try to create it to see if we have write permissions
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        result.created = true;
+        result.files = [];
+        result.count = 0;
+      } catch (mkdirErr) {
+        result.created = false;
+        result.mkdirError = mkdirErr.message;
+      }
+    }
+
+    // Also check if the parent /tmp/uploads exists
+    const parentDir = '/tmp/uploads';
+    if (fs.existsSync(parentDir)) {
+      const parentFiles = fs.readdirSync(parentDir);
+      result.parentExists = true;
+      result.parentContents = parentFiles;
+    } else {
+      result.parentExists = false;
+    }
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
