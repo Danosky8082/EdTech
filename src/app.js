@@ -183,74 +183,117 @@ app.use((req, res, next) => {
   next();
 });
 
-// Notifications middleware
+// ============================================================
+// Enhanced navbar data middleware (notifications + avatar)
+// ============================================================
 app.use(async (req, res, next) => {
-  if (!res.locals.user && req.session.user) {
-    res.locals.user = req.session.user;
+  // Default values (no user)
+  res.locals.notificationCount = 0;
+  res.locals.notificationsDropdownHtml = '';
+  res.locals.avatarUrl = '';
+  res.locals.fallbackAvatar = '';
+  res.locals.userFirstName = '';
+  res.locals.userLastName = '';
+  res.locals.userRole = '';
+
+  // If no user, skip
+  if (!req.session || !req.session.user) {
+    return next();
   }
-  if (req.session && req.session.user) {
-    try {
-      const notificationCount = await prisma.notification.count({
-        where: {
-          userId: req.session.user.id,
-          read: false,
-          OR: [
-            { expiresAt: { gt: new Date() } },
-            { expiresAt: null },
-          ],
-        },
+
+  const user = req.session.user;
+  const userId = user.id;
+
+  // ----- 1. Notification data -----
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: userId,
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { expiresAt: null }
+        ]
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+    res.locals.notificationCount = unreadCount;
+
+    // Build dropdown HTML (same logic as dashboard)
+    let dropdownHtml = '';
+    if (notifications && notifications.length > 0) {
+      let itemsHtml = '';
+      const display = notifications.slice(0, 5);
+      display.forEach(n => {
+        const isRead = n.read ? 'read' : 'unread';
+        const icon = n.icon || 'fa-info-circle';
+        const title = n.title || 'Notification';
+        const msg = n.message || '';
+        const time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+        const notifId = n.id || '';
+        const newBadge = !n.read ? `<span class="badge bg-danger ms-1">New</span>` : '';
+        const actions = !n.read
+          ? `<div class="notification-actions">
+               <button class="notification-action-btn mark-as-read-btn" onclick="event.stopPropagation(); markNotificationAsRead('${notifId}')">Mark as read</button>
+             </div>`
+          : '';
+        itemsHtml += `
+          <li class="notification-item ${isRead}" data-notification-id="${notifId}">
+            <div class="notification-icon"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+              <div class="notification-title">${title} ${newBadge}</div>
+              <div class="notification-message">${msg}</div>
+              <div class="notification-time">${time}</div>
+              ${actions}
+            </div>
+          </li>
+        `;
       });
-      res.locals.unreadNotifications = notificationCount;
-
-      const notifications = await prisma.notification.findMany({
-        where: {
-          userId: req.session.user.id,
-          OR: [
-            { expiresAt: { gt: new Date() } },
-            { expiresAt: null },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      });
-
-      const formatTimeAgo = (date) => {
-        const now = new Date();
-        const diffInSeconds = Math.floor((now - date) / 1000);
-        if (diffInSeconds < 60) return 'Just now';
-        if (diffInSeconds < 3600) {
-          const minutes = Math.floor(diffInSeconds / 60);
-          return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-        }
-        if (diffInSeconds < 86400) {
-          const hours = Math.floor(diffInSeconds / 3600);
-          return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-        }
-        if (diffInSeconds < 2592000) {
-          const days = Math.floor(diffInSeconds / 86400);
-          return `${days} day${days !== 1 ? 's' : ''} ago`;
-        }
-        return date.toLocaleDateString();
-      };
-
-      res.locals.notificationsData = notifications.map((notif) => ({
-        id: notif.id,
-        title: notif.title,
-        message: notif.message,
-        icon: notif.icon,
-        read: notif.read,
-        createdAt: notif.createdAt,
-        time: formatTimeAgo(notif.createdAt),
-      }));
-    } catch (error) {
-      console.error('Error getting notification count:', error);
-      res.locals.unreadNotifications = 0;
-      res.locals.notificationsData = [];
+      const header = `<li class="notification-header">
+                        <span>Notifications</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                      </li>`;
+      const markAll = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
+      dropdownHtml = header + itemsHtml + markAll;
+    } else {
+      dropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
-  } else {
-    res.locals.unreadNotifications = 0;
-    res.locals.notificationsData = [];
+    res.locals.notificationsDropdownHtml = dropdownHtml;
+
+  } catch (error) {
+    console.error('Error fetching notifications for navbar:', error);
+    res.locals.notificationCount = 0;
+    res.locals.notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>Error loading notifications</p></li>`;
   }
+
+  // ----- 2. Avatar and user info -----
+  try {
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    res.locals.userFirstName = firstName;
+    res.locals.userLastName = lastName;
+    res.locals.userRole = user.role || '';
+
+    let avatarUrl = '';
+    let fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+    if (user.avatar) {
+      if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+        avatarUrl = user.avatar;
+      } else {
+        avatarUrl = '/' + user.avatar;
+      }
+    }
+    res.locals.avatarUrl = avatarUrl;
+    res.locals.fallbackAvatar = fallbackAvatar;
+
+  } catch (error) {
+    console.error('Error processing avatar data:', error);
+    res.locals.avatarUrl = '';
+    res.locals.fallbackAvatar = '';
+  }
+
   next();
 });
 
