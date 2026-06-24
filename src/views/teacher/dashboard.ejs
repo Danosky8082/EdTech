@@ -77,10 +77,6 @@
             transform: translateX(5px);
         }
 
-        .avatar-img {
-            object-fit: cover;
-        }
-
         .stat-card {
             transition: all 0.3s ease;
             border-radius: 10px;
@@ -130,23 +126,18 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (user.avatar) { %>
-                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                    alt="Teacher Profile" class="profile-img mb-3 avatar-img"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                            <% if (avatarUrl) { %>
+                                <img src="<%= avatarUrl %>" alt="Teacher Profile" class="profile-img mb-3 avatar-img"
+                                    onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
                                 <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Teacher Profile"
-                                        class="profile-img mb-3">
+                                    <img src="<%= fallbackAvatar %>" alt="Teacher Profile" class="profile-img mb-3">
                                     <% } %>
                                         <h4>
                                             <%= user.firstName %>
                                                 <%= user.lastName %>
                                         </h4>
                                         <p class="welcome-text">Welcome to your dashboard</p>
-                                        <span class="user-role">
-                                            Teacher
-                                        </span>
-                                        <!-- Add school info -->
+                                        <span class="user-role">Teacher</span>
                                         <div class="mt-2">
                                             <small><i class="fas fa-school me-1"></i>
                                                 <%= userSchool %>
@@ -159,18 +150,14 @@
                                 <h5>Quick Actions</h5>
                             </div>
                             <div class="card-body">
-                                <!-- NEW: Class Works Management -->
                                 <a href="/teacher/class-works" class="btn btn-outline-primary w-100 mb-2 action-btn">
                                     <i class="fas fa-tasks"></i> Manage Class Works
                                     <span class="badge new-feature-badge ms-2">New</span>
                                 </a>
-
-                                <!-- NEW: Live Sessions Management -->
                                 <a href="/teacher/live-sessions" class="btn btn-outline-info w-100 mb-2 action-btn">
                                     <i class="fas fa-video"></i> Live Sessions
                                     <span class="badge new-feature-badge ms-2">New</span>
                                 </a>
-
                                 <a href="/teacher/assignments" class="btn btn-outline-secondary w-100 mb-2 action-btn">
                                     <i class="fas fa-tasks"></i> Create Assignment
                                 </a>
@@ -186,7 +173,6 @@
                             </div>
                         </div>
 
-                        <!-- Quick Stats -->
                         <div class="card dashboard-card mb-4">
                             <div class="card-header">
                                 <h5>Teaching Stats</h5>
@@ -222,7 +208,6 @@
 
                     <!-- Main Content -->
                     <div class="col-md-9">
-                        <!-- Statistics Cards Row -->
                         <div class="row">
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
@@ -274,7 +259,6 @@
                             </div>
                         </div>
 
-                        <!-- New Teaching Tools Section -->
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h3 class="mb-3">Teaching Tools</h3>
@@ -366,9 +350,6 @@
                                                                             Students: <%= cls.enrollments.length %>
                                                                 </p>
                                                                 <div class="btn-group w-100">
-                                                                    <!-- <a href="/teacher/class/<%= cls.id %>"
-                                                                        class="btn btn-sm btn-outline-primary">View
-                                                                        Class</a> -->
                                                                     <a href="/teacher/materials?class=<%= cls.id %>"
                                                                         class="btn btn-sm btn-outline-secondary">Materials</a>
                                                                 </div>
@@ -434,14 +415,13 @@
                                                         <%= classWork.title %>
                                                     </h6>
                                                     <small class="text-muted">
-                                                        Type: <span class="badge bg-<%= 
-                                                            classWork.type === 'quiz' ? 'primary' : 
-                                                            classWork.type === 'assignment' ? 'success' : 'warning' 
-                                                        %>">
+                                                        Type: <span
+                                                            class="badge bg-<%= classWork.type === 'quiz' ? 'primary' : classWork.type === 'assignment' ? 'success' : 'warning' %>">
                                                             <%= classWork.type %>
                                                         </span><br>
                                                         Class: <%= classWork.class.name %><br>
-                                                            Submissions: <%= classWork._count ? classWork._count.submissions : 0 %>
+                                                            Submissions: <%= classWork._count ?
+                                                                classWork._count.submissions : 0 %>
                                                     </small>
                                                     <div class="mt-2">
                                                         <a href="/teacher/class-works/<%= classWork.id %>/submissions"
@@ -480,14 +460,10 @@
                                                     <div class="mt-2">
                                                         <% if (session.status==='scheduled' ) { %>
                                                             <button class="btn btn-sm btn-success start-session"
-                                                                data-id="<%= session.id %>">
-                                                                Start Session
-                                                            </button>
+                                                                data-id="<%= session.id %>">Start Session</button>
                                                             <% } else if (session.status==='live' ) { %>
                                                                 <a href="/teacher/live-sessions/<%= session.id %>/room"
-                                                                    class="btn btn-sm btn-danger">
-                                                                    Join Session
-                                                                </a>
+                                                                    class="btn btn-sm btn-danger">Join Session</a>
                                                                 <% } %>
                                                     </div>
                                                 </div>
@@ -509,16 +485,12 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Start live session functionality
             document.querySelectorAll('.start-session').forEach(btn => {
                 btn.addEventListener('click', function () {
                     const sessionId = this.dataset.id;
-
                     fetch(`/teacher/live-sessions/${sessionId}/start`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
+                        headers: { 'Content-Type': 'application/json' }
                     })
                         .then(response => response.json())
                         .then(data => {
@@ -534,23 +506,6 @@
                         });
                 });
             });
-
-            // Quick navigation helpers
-            function createClassWork(classId = null) {
-                let url = '/teacher/class-works/create';
-                if (classId) {
-                    url += `?class=${classId}`;
-                }
-                window.location.href = url;
-            }
-
-            function scheduleLiveSession(classId = null) {
-                let url = '/teacher/live-sessions/create';
-                if (classId) {
-                    url += `?class=${classId}`;
-                }
-                window.location.href = url;
-            }
         </script>
 </body>
 

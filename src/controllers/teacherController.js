@@ -221,6 +221,23 @@ exports.dashboard = async (req, res) => {
       read: notif.read
     }));
 
+    // --- Compute avatar data for navbar and profile ---
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=100`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
+
     res.render('teacher/dashboard', {
       title: 'Teacher Dashboard',
       user: teacher.user,
@@ -235,7 +252,9 @@ exports.dashboard = async (req, res) => {
       notifications: formattedNotifications,
       notificationCount,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
+      isSuperAdmin: isSuperAdmin,
+      avatarUrl: avatarUrl,
+      fallbackAvatar: fallbackAvatar
     });
 
   } catch (error) {
