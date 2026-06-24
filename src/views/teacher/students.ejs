@@ -100,25 +100,19 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (teacher.user.avatar) { %>
-                                <img src="<%= teacher.user.avatar.startsWith('/') ? teacher.user.avatar : '/' + teacher.user.avatar %>"
-                                    alt="Teacher Profile" class="profile-img mb-3 avatar-img"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Teacher Profile"
-                                        class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= teacher.user.firstName %>
-                                                <%= teacher.user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">My Students</p>
-                                        <span class="user-role">Teacher</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ USE PARTIAL FOR TEACHER AVATAR -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                <h4>
+                                    <%= teacher.user.firstName %>
+                                        <%= teacher.user.lastName %>
+                                </h4>
+                                <p class="welcome-text">My Students</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <!-- Quick Actions -->
@@ -288,7 +282,6 @@
                 });
 
                 function showProgressModal(progress, studentName) {
-                    // Create modal HTML
                     const modalHTML = `
                     <div class="modal fade" id="progressModal" tabindex="-1">
                         <div class="modal-dialog modal-lg">
@@ -355,16 +348,10 @@
                     </div>
                 `;
 
-                    // Remove existing modal if any
                     const existingModal = document.getElementById('progressModal');
-                    if (existingModal) {
-                        existingModal.remove();
-                    }
+                    if (existingModal) existingModal.remove();
 
-                    // Add modal to page
                     document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-                    // Show modal
                     const modalElement = document.getElementById('progressModal');
                     const modal = new bootstrap.Modal(modalElement);
                     modal.show();
