@@ -106,7 +106,6 @@
         <div class="container mt-4">
             <%- include('../partials/alerts') %>
 
-                <!-- School info banner -->
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-school me-2"></i>
                     <strong>School:</strong>
@@ -117,58 +116,45 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (user.avatar) { %>
-                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                    alt="Student Profile" class="profile-img mb-3"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Student Profile"
-                                        class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">
-                                            <%= classData.name %>
-                                        </p>
-                                        <span class="user-role">Student</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ REPLACED with user-avatar partial -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">
+                                    <%= classData.name %>
+                                </p>
+                                <span class="user-role">Student</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
-                        <!-- Quick Actions -->
                         <div class="card dashboard-card mb-4">
                             <div class="card-header">
                                 <h5>Quick Actions</h5>
                             </div>
                             <div class="card-body">
                                 <a href="/student/class/<%= classData.id %>/materials"
-                                    class="btn btn-outline-primary w-100 mb-2 action-btn">
-                                    <i class="fas fa-book"></i> Materials
-                                </a>
+                                    class="btn btn-outline-primary w-100 mb-2 action-btn"><i class="fas fa-book"></i>
+                                    Materials</a>
                                 <a href="/student/class/<%= classData.id %>/assignments"
-                                    class="btn btn-outline-secondary w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Assignments
-                                </a>
+                                    class="btn btn-outline-secondary w-100 mb-2 action-btn"><i class="fas fa-tasks"></i>
+                                    Assignments</a>
                                 <a href="/student/class/<%= classData.id %>/exams"
-                                    class="btn btn-outline-success w-100 mb-2 action-btn">
-                                    <i class="fas fa-clipboard-list"></i> Exams
-                                </a>
+                                    class="btn btn-outline-success w-100 mb-2 action-btn"><i
+                                        class="fas fa-clipboard-list"></i> Exams</a>
                                 <a href="/student/class/<%= classData.id %>/class-works"
-                                    class="btn btn-outline-warning w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Class Works
-                                </a>
+                                    class="btn btn-outline-warning w-100 mb-2 action-btn"><i class="fas fa-tasks"></i>
+                                    Class Works</a>
                                 <a href="/student/class/<%= classData.id %>/live-sessions"
-                                    class="btn btn-outline-info w-100 mb-2 action-btn">
-                                    <i class="fas fa-video"></i> Live Sessions
-                                </a>
-                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn">
-                                    <i class="fas fa-home"></i> Dashboard
-                                </a>
+                                    class="btn btn-outline-info w-100 mb-2 action-btn"><i class="fas fa-video"></i> Live
+                                    Sessions</a>
+                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn"><i
+                                        class="fas fa-home"></i> Dashboard</a>
                             </div>
                         </div>
 
@@ -186,36 +172,26 @@
                                     .reduce((sum, e) => sum + e.score, 0) /
                                     (exams.filter(e => e.score !== null).length || 1);
                                     %>
-                                    <div class="mb-2">
-                                        <small><strong>Total Exams:</strong></small>
-                                        <span class="badge bg-primary float-end">
+                                    <div class="mb-2"><small><strong>Total Exams:</strong></small><span
+                                            class="badge bg-primary float-end">
                                             <%= totalExams %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Attempted:</strong></small>
-                                        <span class="badge bg-success float-end">
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Attempted:</strong></small><span
+                                            class="badge bg-success float-end">
                                             <%= attemptedExams %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Upcoming:</strong></small>
-                                        <span class="badge bg-warning float-end">
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Upcoming:</strong></small><span
+                                            class="badge bg-warning float-end">
                                             <%= upcomingExams %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Completed:</strong></small>
-                                        <span class="badge bg-info float-end">
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Completed:</strong></small><span
+                                            class="badge bg-info float-end">
                                             <%= completedExams %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Avg. Score:</strong></small>
-                                        <span class="badge bg-dark float-end">
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Avg. Score:</strong></small><span
+                                            class="badge bg-dark float-end">
                                             <%= avgScore.toFixed(1) %>%
-                                        </span>
-                                    </div>
+                                        </span></div>
                             </div>
                         </div>
                     </div>
@@ -230,9 +206,8 @@
                                             <%= classData.teacher.user.lastName %>
                                 </p>
                             </div>
-                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary">
-                                <i class="fas fa-arrow-left me-1"></i> Back to Class
-                            </a>
+                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary"><i
+                                    class="fas fa-arrow-left me-1"></i> Back to Class</a>
                         </div>
 
                         <!-- Exam Instructions -->
@@ -276,7 +251,7 @@
                                                                     <small class="ms-2"><i
                                                                             class="fas fa-clock me-1"></i>
                                                                         <%= examDate.toLocaleTimeString([],
-                                                                            {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                            {hour:'2-digit', minute:'2-digit'}) %>
                                                                     </small>
                                                                 </p>
                                                             </div>
@@ -290,20 +265,20 @@
                                                             <% } %>
 
                                                                 <div class="row mb-3">
-                                                                    <div class="col-4">
-                                                                        <small class="text-muted">Duration:</small>
+                                                                    <div class="col-4"><small
+                                                                            class="text-muted">Duration:</small>
                                                                         <div class="h5 mb-0">
                                                                             <%= exam.duration %> min
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-4">
-                                                                        <small class="text-muted">Max Attempts:</small>
+                                                                    <div class="col-4"><small class="text-muted">Max
+                                                                            Attempts:</small>
                                                                         <div class="h5 mb-0">
                                                                             <%= exam.maxAttempts || 1 %>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-4">
-                                                                        <small class="text-muted">Total Marks:</small>
+                                                                    <div class="col-4"><small class="text-muted">Total
+                                                                            Marks:</small>
                                                                         <div class="h5 mb-0">
                                                                             <%= exam.totalMarks || 100 %>
                                                                         </div>
@@ -322,9 +297,9 @@
                                                                                         days</small>
                                                                                 <% } %>
                                                                     </div>
-                                                                    <button class="btn btn-warning" disabled>
-                                                                        <i class="fas fa-clock me-1"></i> Starts Soon
-                                                                    </button>
+                                                                    <button class="btn btn-warning" disabled><i
+                                                                            class="fas fa-clock me-1"></i> Starts
+                                                                        Soon</button>
                                                                 </div>
                                                     </div>
                                                 </div>
@@ -367,7 +342,7 @@
                                                                                         class="fas fa-clock me-1"></i>
                                                                                     Ends: <%=
                                                                                         endTime.toLocaleTimeString([],
-                                                                                        {hour: '2-digit' ,
+                                                                                        {hour:'2-digit',
                                                                                         minute:'2-digit'}) %></small>
                                                                             </p>
                                                                         </div>
@@ -386,14 +361,12 @@
                                                                     </div>
 
                                                                     <div class="d-flex justify-content-between">
-                                                                        <div>
-                                                                            <small class="text-muted">Duration:</small>
+                                                                        <div><small class="text-muted">Duration:</small>
                                                                             <div>
                                                                                 <%= exam.duration %> minutes
                                                                             </div>
                                                                         </div>
-                                                                        <div>
-                                                                            <small class="text-muted">Total
+                                                                        <div><small class="text-muted">Total
                                                                                 Marks:</small>
                                                                             <div>
                                                                                 <%= exam.totalMarks || 100 %>
@@ -404,16 +377,14 @@
                                                                     <div class="mt-3">
                                                                         <% if (exam.hasAttempt) { %>
                                                                             <a href="/student/exams/<%= exam.attempts[0].id %>/results"
-                                                                                class="btn btn-info w-100">
-                                                                                <i class="fas fa-eye me-1"></i> View
-                                                                                Attempt
-                                                                            </a>
+                                                                                class="btn btn-info w-100"><i
+                                                                                    class="fas fa-eye me-1"></i> View
+                                                                                Attempt</a>
                                                                             <% } else { %>
                                                                                 <a href="/student/exams/<%= exam.id %>/take"
-                                                                                    class="btn btn-success w-100">
-                                                                                    <i class="fas fa-play me-1"></i>
-                                                                                    Start Exam
-                                                                                </a>
+                                                                                    class="btn btn-success w-100"><i
+                                                                                        class="fas fa-play me-1"></i>
+                                                                                    Start Exam</a>
                                                                                 <% } %>
                                                                     </div>
                                                                 </div>
@@ -489,19 +460,15 @@
                                                                                 <td>
                                                                                     <% if (exam.hasAttempt) { %>
                                                                                         <a href="/student/exams/<%= exam.attempts[0].id %>/results"
-                                                                                            class="btn btn-sm btn-primary">
-                                                                                            <i
+                                                                                            class="btn btn-sm btn-primary"><i
                                                                                                 class="fas fa-eye me-1"></i>
-                                                                                            View Results
-                                                                                        </a>
+                                                                                            View Results</a>
                                                                                         <% } else { %>
                                                                                             <button
                                                                                                 class="btn btn-sm btn-secondary"
-                                                                                                disabled>
-                                                                                                <i
+                                                                                                disabled><i
                                                                                                     class="fas fa-times me-1"></i>
-                                                                                                Closed
-                                                                                            </button>
+                                                                                                Closed</button>
                                                                                             <% } %>
                                                                                 </td>
                                                                             </tr>
@@ -528,7 +495,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                // Countdown for upcoming exams
                 function updateUpcomingCountdowns() {
                     document.querySelectorAll('.countdown-timer[data-date]').forEach(timer => {
                         const examDate = new Date(timer.dataset.date);
@@ -554,7 +520,6 @@
                     });
                 }
 
-                // Timer for ongoing exams
                 function updateOngoingTimers() {
                     document.querySelectorAll('[id^="timer-inner-"]').forEach(timer => {
                         const examId = timer.id.replace('timer-inner-', '');
@@ -565,7 +530,6 @@
 
                         if (seconds === 0) {
                             if (minutes === 0) {
-                                // Exam ended
                                 timer.textContent = 'Time Up';
                                 circle.style.background = 'conic-gradient(#dc3545 100%, #e9ecef 0%)';
                                 window.location.reload();
@@ -577,20 +541,18 @@
                             seconds--;
                         }
 
-                        // Update timer text
                         timer.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
-                        // Update progress circle
                         const totalSeconds = (minutes * 60) + seconds;
-                        const examDuration = <% if (ongoingExams.length > 0) { %> <%= ongoingExams[0].duration %> * 60 <% } else { %> 60 * 60 <% } %>;
+                        const examDuration = <% if (ongoingExams.length > 0) { %><%= ongoingExams[0].duration %> * 60 <% } else { %> 60 * 60 <% } %>;
                         const percentage = ((examDuration - totalSeconds) / examDuration) * 100;
                         circle.style.background = `conic-gradient(#28a745 ${percentage}%, #e9ecef 0%)`;
                     });
                 }
 
                 updateUpcomingCountdowns();
-                setInterval(updateUpcomingCountdowns, 60000); // Update every minute
-                setInterval(updateOngoingTimers, 1000); // Update every second
+                setInterval(updateUpcomingCountdowns, 60000);
+                setInterval(updateOngoingTimers, 1000);
             });
         </script>
 </body>

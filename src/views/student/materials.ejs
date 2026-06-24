@@ -122,27 +122,21 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (user.avatar) { %>
-                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                    alt="Student Profile" class="profile-img mb-3"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Student Profile"
-                                        class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">
-                                            <%= classData.name %>
-                                        </p>
-                                        <span class="user-role">Student</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ REPLACED with user-avatar partial -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">
+                                    <%= classData.name %>
+                                </p>
+                                <span class="user-role">Student</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <!-- Quick Actions -->
@@ -152,28 +146,22 @@
                             </div>
                             <div class="card-body">
                                 <a href="/student/class/<%= classData.id %>/materials"
-                                    class="btn btn-outline-primary w-100 mb-2 action-btn">
-                                    <i class="fas fa-book"></i> Materials
-                                </a>
+                                    class="btn btn-outline-primary w-100 mb-2 action-btn"><i class="fas fa-book"></i>
+                                    Materials</a>
                                 <a href="/student/class/<%= classData.id %>/assignments"
-                                    class="btn btn-outline-secondary w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Assignments
-                                </a>
+                                    class="btn btn-outline-secondary w-100 mb-2 action-btn"><i class="fas fa-tasks"></i>
+                                    Assignments</a>
                                 <a href="/student/class/<%= classData.id %>/exams"
-                                    class="btn btn-outline-success w-100 mb-2 action-btn">
-                                    <i class="fas fa-clipboard-list"></i> Exams
-                                </a>
+                                    class="btn btn-outline-success w-100 mb-2 action-btn"><i
+                                        class="fas fa-clipboard-list"></i> Exams</a>
                                 <a href="/student/class/<%= classData.id %>/class-works"
-                                    class="btn btn-outline-warning w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Class Works
-                                </a>
+                                    class="btn btn-outline-warning w-100 mb-2 action-btn"><i class="fas fa-tasks"></i>
+                                    Class Works</a>
                                 <a href="/student/class/<%= classData.id %>/live-sessions"
-                                    class="btn btn-outline-info w-100 mb-2 action-btn">
-                                    <i class="fas fa-video"></i> Live Sessions
-                                </a>
-                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn">
-                                    <i class="fas fa-home"></i> Dashboard
-                                </a>
+                                    class="btn btn-outline-info w-100 mb-2 action-btn"><i class="fas fa-video"></i> Live
+                                    Sessions</a>
+                                <a href="/student/dashboard" class="btn btn-outline-dark w-100 mb-2 action-btn"><i
+                                        class="fas fa-home"></i> Dashboard</a>
                             </div>
                         </div>
 
@@ -183,25 +171,19 @@
                                 <h5>Class Information</h5>
                             </div>
                             <div class="card-body">
-                                <div class="mb-3">
-                                    <strong>Class:</strong><br>
+                                <div class="mb-3"><strong>Class:</strong><br>
                                     <%= classData.name %>
                                 </div>
-                                <div class="mb-3">
-                                    <strong>Teacher:</strong><br>
+                                <div class="mb-3"><strong>Teacher:</strong><br>
                                     <%= classData.teacher.user.firstName %>
                                         <%= classData.teacher.user.lastName %>
                                 </div>
-                                <div class="mb-3">
-                                    <strong>Grade/Section:</strong><br>
+                                <div class="mb-3"><strong>Grade/Section:</strong><br>
                                     <%= classData.grade %>-<%= classData.section %>
                                 </div>
-                                <div class="mb-3">
-                                    <strong>Total Materials:</strong><br>
-                                    <span class="badge bg-primary">
+                                <div class="mb-3"><strong>Total Materials:</strong><br><span class="badge bg-primary">
                                         <%= materials.length %>
-                                    </span>
-                                </div>
+                                    </span></div>
                             </div>
                         </div>
                     </div>
@@ -216,9 +198,8 @@
                                             <%= classData.teacher.user.lastName %>
                                 </p>
                             </div>
-                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary">
-                                <i class="fas fa-arrow-left me-1"></i> Back to Class
-                            </a>
+                            <a href="/student/class/<%= classData.id %>" class="btn btn-outline-primary"><i
+                                    class="fas fa-arrow-left me-1"></i> Back to Class</a>
                         </div>
 
                         <!-- Filter by Type -->
@@ -246,26 +227,12 @@
                                     let icon = 'fa-file';
 
                                     switch(material.type) {
-                                    case 'document':
-                                    borderColor = '#007bff';
-                                    icon = 'fa-file-pdf';
+                                    case 'document': borderColor = '#007bff'; icon = 'fa-file-pdf'; break;
+                                    case 'presentation': borderColor = '#28a745'; icon = 'fa-presentation-screen';
                                     break;
-                                    case 'presentation':
-                                    borderColor = '#28a745';
-                                    icon = 'fa-presentation-screen';
-                                    break;
-                                    case 'video':
-                                    borderColor = '#17a2b8';
-                                    icon = 'fa-video';
-                                    break;
-                                    case 'image':
-                                    borderColor = '#ffc107';
-                                    icon = 'fa-image';
-                                    break;
-                                    case 'other':
-                                    borderColor = '#dc3545';
-                                    icon = 'fa-file';
-                                    break;
+                                    case 'video': borderColor = '#17a2b8'; icon = 'fa-video'; break;
+                                    case 'image': borderColor = '#ffc107'; icon = 'fa-image'; break;
+                                    case 'other': borderColor = '#dc3545'; icon = 'fa-file'; break;
                                     }
                                     %>
                                     <div class="col-md-6 col-lg-4 mb-4 material-item" data-type="<%= material.type %>">
@@ -344,7 +311,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                // Filter functionality
                 const filterBadges = document.querySelectorAll('.filter-badge');
                 const materialItems = document.querySelectorAll('.material-item');
 
@@ -352,13 +318,9 @@
                     badge.addEventListener('click', function () {
                         const filter = this.dataset.filter;
 
-                        // Remove active class from all badges
                         filterBadges.forEach(b => b.classList.remove('bg-dark', 'text-white'));
-
-                        // Add active class to clicked badge
                         this.classList.add('bg-dark', 'text-white');
 
-                        // Filter materials
                         materialItems.forEach(item => {
                             if (filter === 'all' || item.dataset.type === filter) {
                                 item.style.display = 'block';
