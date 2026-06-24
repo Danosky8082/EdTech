@@ -176,7 +176,49 @@
         <!-- Modal and scripts (unchanged) -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // ... your existing JavaScript ...
+            let assignmentToDelete = null;
+
+            function editAssignment(assignmentId) {
+                window.location.href = `/teacher/assignments/view/${assignmentId}`;
+            }
+
+            function deleteAssignment(assignmentId) {
+                assignmentToDelete = assignmentId;
+                const modal = new bootstrap.Modal(document.getElementById('deleteAssignmentModal'));
+                modal.show();
+            }
+
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+                if (assignmentToDelete) {
+                    fetch(`/teacher/assignments/${assignmentToDelete}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Assignment deleted successfully');
+                                location.reload();
+                            } else {
+                                alert('Error deleting assignment: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error deleting assignment');
+                        });
+
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAssignmentModal'));
+                    modal.hide();
+                }
+            });
+
+            document.getElementById('assignmentTabs').addEventListener('click', function (e) {
+                if (e.target.tagName === 'BUTTON') {
+                    const tabId = e.target.getAttribute('data-bs-target');
+                    history.pushState(null, '', `/teacher/assignments${tabId === '#completed' ? '?tab=completed' : ''}`);
+                }
+            });
         </script>
 </body>
 
