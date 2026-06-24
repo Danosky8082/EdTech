@@ -1,0 +1,22 @@
+<% // This partial expects: // - localClass (optional) – extra CSS class for the <img>
+    // - avatarUrl and fallbackAvatar are available from the global middleware
+    // (if not, we fall back to using user.avatar)
+    var avatarSrc = avatarUrl;
+    var fallbackSrc = fallbackAvatar;
+    var cssClass = localClass || 'profile-img';
+    if (!avatarSrc && user && user.avatar) {
+    // Fallback: use user.avatar if avatarUrl is not defined
+    avatarSrc = user.avatar.startsWith('http') ? user.avatar : '/' + user.avatar;
+    }
+    if (!fallbackSrc && user) {
+    var name = (user.firstName || '') + ' ' + (user.lastName || '');
+    fallbackSrc = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) +
+    '&background=6a11cb&color=fff&size=100';
+    }
+    %>
+    <% if (avatarSrc) { %>
+        <img src="<%= avatarSrc %>" alt="Profile" class="<%= cssClass %>"
+            onerror="this.onerror=null; this.src='<%= fallbackSrc %>'">
+        <% } else { %>
+            <img src="<%= fallbackSrc %>" alt="Profile" class="<%= cssClass %>">
+            <% } %>
