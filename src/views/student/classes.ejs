@@ -57,24 +57,19 @@
                     <!-- Left Sidebar -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (user.avatar) { %>
-                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                    alt="Profile" class="profile-img mb-3"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Profile" class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">Student Dashboard</p>
-                                        <span class="user-role">Student</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ USE PARTIAL FOR STUDENT AVATAR -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Student Dashboard</p>
+                                <span class="user-role">Student</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <!-- Statistics -->
@@ -169,7 +164,8 @@
                                                                 class="btn btn-warning btn-sm">
                                                                 <i class="fas fa-tasks me-1"></i> Class Works
                                                             </a>
-                                                            <a href="/student/live-sessions" class="btn btn-sm btn-info text-white">
+                                                            <a href="/student/live-sessions"
+                                                                class="btn btn-sm btn-info text-white">
                                                                 <i class="fas fa-video me-1"></i> Live Sessions
                                                             </a>
                                                         </div>
