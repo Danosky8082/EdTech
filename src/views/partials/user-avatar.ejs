@@ -1,14 +1,8 @@
-<% // Expects: localClass (optional), avatarUrl, fallbackAvatar, user (fallback) var avatarSrc=avatarUrl; var
-    fallbackSrc=fallbackAvatar; var cssClass=localClass || 'profile-img' ; // Fallback to user.avatar if avatarUrl not
-    set if (!avatarSrc && user && user.avatar) { avatarSrc=user.avatar.startsWith('http') ? user.avatar : '/' +
-    user.avatar; } // Build fallback from initials if not provided if (!fallbackSrc && user) { var name=(user.firstName
-    || '' ) + ' ' + (user.lastName || '' ); fallbackSrc='https://ui-avatars.com/api/?name=' + encodeURIComponent(name)
-    + '&background=6a11cb&color=fff&size=100' ; } // Fixed inline style to guarantee a uniform size (overrides any
-    external CSS) var
-    defaultStyle='width:100px; height:100px; object-fit:cover; border-radius:50%; border:4px solid white;' ; %>
-    <% if (avatarSrc) { %>
-        <img src="<%= avatarSrc %>" alt="Profile" class="<%= cssClass %>" style="<%= defaultStyle %>"
-            onerror="this.onerror=null; this.src='<%= fallbackSrc %>'">
+<% var cssClass=localClass || 'profile-img' ; var
+    sizeStyle='width:100px; height:100px; object-fit:cover; border-radius:50%; border:4px solid white;' ; %>
+    <% if (avatarUrl) { %>
+        <img src="<%= avatarUrl %>" alt="Profile" class="<%= cssClass %>" style="<%= sizeStyle %>"
+            onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
         <% } else { %>
-            <img src="<%= fallbackSrc %>" alt="Profile" class="<%= cssClass %>" style="<%= defaultStyle %>">
+            <img src="<%= fallbackAvatar %>" alt="Profile" class="<%= cssClass %>" style="<%= sizeStyle %>">
             <% } %>
