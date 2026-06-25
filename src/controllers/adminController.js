@@ -1,11 +1,14 @@
+// ============================================================
+// CONTROLLER: adminController.js (Full)
+// ============================================================
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
 const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHelpers');
 const { uploadToBlob } = require('../utils/fileUpload');
 
-// ============================================================
+// --------------------------------------------
 // HELPERS
-// ============================================================
+// --------------------------------------------
 const generateTemporaryPassword = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let password = '';
@@ -77,33 +80,31 @@ function getAccessStatus(user) {
   return hasAccess ? 'active' : 'no-access';
 }
 
-// ============================================================
-// NEW HELPER: Find or create parent (prevents duplicates)
-// ============================================================
+// --------------------------------------------
+// CROSS-SCHOOL PARENT HELPER (DUPLICATE PREVENTION)
+// --------------------------------------------
 const findOrLinkParent = async (studentId, firstName, lastName, email, relationship, school) => {
   let parentUser = null;
 
-  // 1. Try to find by email (if provided)
+  // 1. Search by email across all schools
   if (email) {
     parentUser = await prisma.user.findFirst({
       where: {
         email: email.trim(),
         role: 'parent',
-        school: school,
         isActive: true
       },
       include: { parent: true }
     });
   }
 
-  // 2. If no email or no result, try by full name (case‑insensitive)
+  // 2. Search by full name (case-insensitive) across all schools
   if (!parentUser && firstName && lastName) {
     parentUser = await prisma.user.findFirst({
       where: {
         firstName: { equals: firstName.trim(), mode: 'insensitive' },
         lastName: { equals: lastName.trim(), mode: 'insensitive' },
         role: 'parent',
-        school: school,
         isActive: true
       },
       include: { parent: true }
@@ -111,9 +112,8 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
   }
 
   if (parentUser) {
-    // ---- Existing parent found ----
+    // Existing parent found – link if not already linked
     const parent = parentUser.parent;
-    // Check if already linked to this student
     const existingLink = await prisma.studentParent.findUnique({
       where: {
         parentId_studentId: {
@@ -133,7 +133,7 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
     }
     return { success: true, linked: true, existing: true, parentUser };
   } else {
-    // ---- Create new parent ----
+    // Create new parent (assign the student's school)
     const parentIdNumber = await generateParentId();
     const newParentUser = await prisma.user.create({
       data: {
@@ -161,9 +161,9 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // DASHBOARD
-// ============================================================
+// --------------------------------------------
 const dashboard = async (req, res) => {
   try {
     const userId = req.session.user.id;
@@ -312,9 +312,9 @@ const dashboard = async (req, res) => {
   }
 };
 
-// ============================================================
-// CREATE USER (with duplicate‑prevention)
-// ============================================================
+// --------------------------------------------
+// CREATE USER (with duplicate prevention)
+// --------------------------------------------
 const createUser = async (req, res) => {
   try {
     const { 
@@ -405,7 +405,7 @@ const createUser = async (req, res) => {
             parentLastName,
             parentEmail,
             parentRelationship,
-            assignedSchool   // uses the student's school
+            assignedSchool   // used only when creating a new parent
           );
           if (result.existing) {
             console.log(`👨‍👦 Linked existing parent (${result.parentUser.idNumber}) to student`);
@@ -499,9 +499,9 @@ const createUser = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // UPDATE USER
-// ============================================================
+// --------------------------------------------
 const updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -634,9 +634,9 @@ const updateUser = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // USER MANAGEMENT
-// ============================================================
+// --------------------------------------------
 const manageUsers = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -846,9 +846,9 @@ const manageUsers = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // TUITION MANAGEMENT
-// ============================================================
+// --------------------------------------------
 const manageTuition = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -1090,9 +1090,9 @@ const checkPasswordExpiry = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // TOGGLE USER STATUS
-// ============================================================
+// --------------------------------------------
 const toggleUserStatus = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1121,9 +1121,9 @@ const toggleUserStatus = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // GET USER (for editing)
-// ============================================================
+// --------------------------------------------
 const getUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1155,9 +1155,9 @@ const getUser = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // GET AVAILABLE STUDENTS (for parent linking)
-// ============================================================
+// --------------------------------------------
 const getAvailableStudents = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -1213,9 +1213,9 @@ const getAvailableStudents = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // CLASS MANAGEMENT
-// ============================================================
+// --------------------------------------------
 const manageClasses = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -1911,9 +1911,9 @@ const removeStudent = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // ANALYTICS & ACTIVITIES
-// ============================================================
+// --------------------------------------------
 const analytics = async (req, res) => {
   try {
     const userId = req.session.user.id;
@@ -2160,9 +2160,9 @@ const activitiesLog = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // STUDENT TUITION FUNCTIONS
-// ============================================================
+// --------------------------------------------
 const getStudentTuition = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -2269,9 +2269,9 @@ const extendAccess = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // SCHOOL MANAGEMENT (super admin only)
-// ============================================================
+// --------------------------------------------
 const manageSchools = async (req, res) => {
   try {
     if (!req.isSuperAdmin) {
@@ -2309,9 +2309,9 @@ const checkIdNumber = async (req, res) => {
   }
 };
 
-// ============================================================
-// PARENT MANAGEMENT (with duplicate prevention)
-// ============================================================
+// --------------------------------------------
+// PARENT MANAGEMENT (cross‑school)
+// --------------------------------------------
 const getStudentParent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -2348,14 +2348,14 @@ const getStudentParent = async (req, res) => {
   }
 };
 
+// UPDATED: List all active parents (cross‑school)
 const getAvailableParents = async (req, res) => {
   try {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    let whereClause = { role: 'parent' };
-    if (!isSuperAdmin && userSchool) {
-      whereClause.school = userSchool;
-    }
+    // No school filtering – all admins see all active parents
+    const whereClause = { role: 'parent', isActive: true };
+
     const parents = await prisma.user.findMany({
       where: whereClause,
       include: {
@@ -2417,7 +2417,7 @@ const linkExistingParent = async (req, res) => {
   }
 };
 
-// UPDATED: createNewParent with duplicate prevention
+// UPDATED: createNewParent with cross‑school duplicate prevention
 const createNewParent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -2431,14 +2431,13 @@ const createNewParent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
 
-    // Use the helper to find or create parent
     const result = await findOrLinkParent(
       studentId,
       firstName,
       lastName,
       email,
       relationship,
-      student.user.school   // parent gets same school as student
+      student.user.school
     );
 
     if (result.existing) {
@@ -2650,9 +2649,9 @@ const getStudentParentInfo = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // CLASS STUDENTS & SAVINGS GOALS
-// ============================================================
+// --------------------------------------------
 const getClassStudents = async (req, res) => {
   try {
     const { classId } = req.params;
@@ -2780,9 +2779,9 @@ const getAllSavingsGoals = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // FINANCIAL TRANSACTIONS (placeholders)
-// ============================================================
+// --------------------------------------------
 const getFinancialTransactions = async (req, res) => {
   res.json({ success: true, transactions: [] });
 };
@@ -2796,9 +2795,9 @@ const deleteFinancialTransaction = async (req, res) => {
   res.json({ success: true, message: 'Transaction deleted successfully' });
 };
 
-// ============================================================
+// --------------------------------------------
 // TUITION & ANALYTICS (additional)
-// ============================================================
+// --------------------------------------------
 const getTuitionAnalytics = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -2986,9 +2985,9 @@ const getActivitiesData = async (req, res) => {
   }
 };
 
-// ============================================================
+// --------------------------------------------
 // SYSTEM RESET FUNCTIONS
-// ============================================================
+// --------------------------------------------
 const systemResetPage = async (req, res) => {
   try {
     const userSchool = req.userSchool;
@@ -3243,9 +3242,9 @@ const resetNewTerm = async (req, res) => {
   }
 };
 
-// ============================================================
-// MODULE EXPORTS
-// ============================================================
+// --------------------------------------------
+// EXPORTS
+// --------------------------------------------
 module.exports = {
   dashboard,
   createUser,
@@ -3277,7 +3276,7 @@ module.exports = {
   getStudentParent,
   getAvailableParents,
   linkExistingParent,
-  createNewParent,    // updated
+  createNewParent,
   unlinkParent,
   getParentAccount,
   addWalletFunds,
