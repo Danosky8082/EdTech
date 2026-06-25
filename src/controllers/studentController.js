@@ -2244,6 +2244,7 @@ const takeClassWork = async (req, res) => {
       });
     }
 
+    // ✅ Get class work with class and enrollment check – includes all scalar fields (like questions)
     const classWork = await prisma.classWork.findUnique({
       where: { id: classWorkId },
       include: {
@@ -2276,6 +2277,7 @@ const takeClassWork = async (req, res) => {
       });
     }
 
+    // Verify enrollment
     if (!classWork.class.enrollments || classWork.class.enrollments.length === 0) {
       console.error('❌ Student not enrolled:', { classWorkId, studentId });
       return res.status(403).render('error/403', {
@@ -2284,6 +2286,7 @@ const takeClassWork = async (req, res) => {
       });
     }
 
+    // Check for existing submission
     const existingSubmission = await prisma.classWorkSubmission.findFirst({
       where: {
         classWorkId: classWorkId,
@@ -2296,6 +2299,7 @@ const takeClassWork = async (req, res) => {
       return res.redirect(`/student/class-works/${classWorkId}/results`);
     }
 
+    // Check if due date has passed
     if (classWork.dueDate && new Date() > new Date(classWork.dueDate)) {
       console.log('⏰ Class work is past due date');
       return res.status(400).render('error/400', {
@@ -2304,37 +2308,17 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    const classWorkWithQuestions = await prisma.classWork.findUnique({
-      where: { id: classWorkId },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        type: true,
-        points: true,
-        dueDate: true,
-        questions: true,
-        classId: true,
-        createdAt: true
-      }
-    });
-
-    if (!classWorkWithQuestions) {
-      return res.status(404).render('error/404', { 
-        title: 'Class Work Not Found',
-        message: 'Could not load class work questions.' 
-      });
-    }
-
+    // ✅ Use the same classWork object (it includes the class relation and all fields)
     console.log('✅ Rendering take-class-work view');
     res.render('student/take-class-work', {
       title: `Class Work: ${classWork.title}`,
-      classWork: classWorkWithQuestions,
+      classWork: classWork,                         // Pass the full object with class relation
       classId: classWork.classId,
       hasSubmission: !!existingSubmission,
       userSchool: userSchool || 'Unknown School',
       isSuperAdmin: isSuperAdmin || false
     });
+
   } catch (error) {
     console.error('❌ Error in takeClassWork:', error);
     res.status(500).render('error/500', {
