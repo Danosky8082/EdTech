@@ -268,7 +268,8 @@
                                             <span id="activeFilters" class="ms-2"></span>
                                             <% if (!isSuperAdmin && userSchool) { %>
                                                 <span class="badge bg-info ms-2"><i class="fas fa-school"></i> School:
-                                                    <%= userSchool %></span>
+                                                    <%= userSchool %>
+                                                </span>
                                                 <% } %>
                                         </div>
                                     </div>
@@ -531,7 +532,8 @@
                                         <% } else if (userSchool) { %>
                                             <input type="text" class="form-control" name="school"
                                                 value="<%= userSchool %>" readonly>
-                                            <div class="form-text">New users will be assigned to <%= userSchool %></div>
+                                            <div class="form-text">New users will be assigned to <%= userSchool %>
+                                            </div>
                                             <% } else { %>
                                                 <input type="text" class="form-control" name="school"
                                                     placeholder="Enter school name">
@@ -588,8 +590,7 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <label class="form-label">Receipt Number (If Paid)</label>
-                                        <input type="text" class="form-control" name="receiptNumber"
-                                            id="receiptNumber">
+                                        <input type="text" class="form-control" name="receiptNumber" id="receiptNumber">
                                     </div>
                                 </div>
 
