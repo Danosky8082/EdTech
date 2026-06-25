@@ -765,6 +765,18 @@
             // ALL JAVASCRIPT FUNCTIONS
             // ============================================================
 
+            // ----- Parent data cache for lookup (searchable datalist) -----
+            let parentsData = [];
+
+            // ----- Helper to find parent by full name (case‑insensitive) -----
+            function findParentByName(name) {
+                const trimmed = name.trim();
+                return parentsData.find(p => {
+                    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
+                    return fullName === trimmed.toLowerCase();
+                });
+            }
+
             // ----- Global functions for action buttons -----
             window.editUser = async function (userId) {
                 try {
@@ -1008,6 +1020,7 @@
                 }
             };
 
+            // ----- UPDATED manageParent with searchable datalist -----
             window.manageParent = async function (studentId) {
                 try {
                     const response = await fetch(`/admin/students/${studentId}/parent`);
@@ -1045,9 +1058,9 @@
                             <div class="alert alert-info"><p>No parent linked to this student.</p></div>
                             <div class="mb-3">
                                 <label class="form-label">Link Existing Parent</label>
-                                <select class="form-select" id="existingParentSelect">
-                                    <option value="">Select existing parent...</option>
-                                </select>
+                                <input type="text" class="form-control" id="existingParentInput" list="parentList" placeholder="Type parent name...">
+                                <datalist id="parentList"></datalist>
+                                <small class="form-text text-muted">Start typing the parent's first or last name to search.</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Or Create New Parent</label>
@@ -1082,6 +1095,7 @@
                         ${parentHTML}
                     `;
 
+                        // If no parent linked, load the parents list for the datalist
                         if (!student.parents || student.parents.length === 0) {
                             await loadExistingParents();
                         }
@@ -1346,57 +1360,58 @@
                 }
             }
 
+            // ----- UPDATED loadExistingParents (populates datalist) -----
             async function loadExistingParents() {
                 try {
                     const response = await fetch('/admin/parents/available');
                     const result = await response.json();
 
-                    if (result.success) {
-                        const select = document.getElementById('existingParentSelect');
-                        while (select.options.length > 1) select.remove(1);
+                    const datalist = document.getElementById('parentList');
+                    const input = document.getElementById('existingParentInput');
+                    if (!datalist) return;
 
-                        if (result.parents && result.parents.length > 0) {
-                            result.parents.forEach(parent => {
-                                if (parent && parent.id && parent.firstName && parent.lastName) {
-                                    const option = document.createElement('option');
-                                    option.value = parent.id;
-                                    option.textContent = `${parent.firstName} ${parent.lastName} (${parent.idNumber || 'No ID'})`;
-                                    select.appendChild(option);
-                                }
-                            });
-                        } else {
+                    // Clear previous options
+                    datalist.innerHTML = '';
+
+                    if (result.success && result.parents && result.parents.length > 0) {
+                        parentsData = result.parents; // store for lookup
+
+                        result.parents.forEach(parent => {
                             const option = document.createElement('option');
-                            option.value = "";
-                            option.textContent = "No available parents found";
-                            option.disabled = true;
-                            select.appendChild(option);
-                        }
+                            option.value = `${parent.firstName} ${parent.lastName}`;
+                            // Optionally add more details (e.g., ID) to the displayed text
+                            // option.textContent = `${parent.firstName} ${parent.lastName} (${parent.idNumber})`;
+                            datalist.appendChild(option);
+                        });
                     } else {
-                        const select = document.getElementById('existingParentSelect');
+                        // No parents found
                         const option = document.createElement('option');
-                        option.value = "";
-                        option.textContent = "Error: " + (result.message || 'Failed to load parents');
+                        option.value = 'No parents available';
                         option.disabled = true;
-                        select.appendChild(option);
+                        datalist.appendChild(option);
                     }
                 } catch (error) {
                     console.error('Error loading parents:', error);
-                    const select = document.getElementById('existingParentSelect');
-                    const option = document.createElement('option');
-                    option.value = "";
-                    option.textContent = "Error loading parents";
-                    option.disabled = true;
-                    select.appendChild(option);
                 }
             }
 
+            // ----- UPDATED linkExistingParent (uses input value) -----
             async function linkExistingParent(studentId) {
-                const parentSelect = document.getElementById('existingParentSelect');
-                const parentId = parentSelect.value;
-                if (!parentId) {
-                    alert('Please select a parent');
+                const input = document.getElementById('existingParentInput');
+                const name = input.value.trim();
+                if (!name) {
+                    alert('Please type a parent name');
                     return;
                 }
+
+                // Find the parent by name
+                const parent = findParentByName(name);
+                if (!parent) {
+                    alert(`No parent found with name "${name}". Please check spelling or create a new parent.`);
+                    return;
+                }
+
+                const parentId = parent.id;
                 const relationship = prompt('Enter relationship (father, mother, guardian, etc.):', 'parent');
                 if (!relationship) return;
 
