@@ -1,880 +1,146 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EdTech - User Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .search-highlight {
-            background-color: #fff3cd;
-            font-weight: bold;
-            padding: 2px 4px;
-            border-radius: 3px;
-        }
-
-        .table-responsive {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .sticky-header thead th {
-            position: sticky;
-            top: 0;
-            background-color: #f8f9fa;
-            z-index: 10;
-        }
-
-        th[data-sort] {
-            cursor: pointer;
-        }
-
-        th[data-sort]:hover {
-            background-color: #f8f9fa;
-        }
-
-        .parent-info {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 10px;
-        }
-
-        .parent-id {
-            font-family: monospace;
-            background: #e9ecef;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .parent-modal-content {
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .parent-card {
-            border-left: 4px solid #0d6efd;
-            transition: all 0.3s ease;
-        }
-
-        .parent-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .relationship-badge {
-            font-size: 0.75em;
-        }
-
-        .wallet-balance {
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #198754;
-        }
-    </style>
-</head>
-
-<body>
-    <%- include('../partials/navbar') %>
-
-        <div class="container mt-4">
-            <%- include('../partials/alerts') %>
-
-                <!-- Access Level Info -->
-                <div class="alert alert-info">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">
-                                <i class="fas fa-user-shield me-2"></i>
-                                <% if (isSuperAdmin) { %>Super Administrator Access - All Schools
-                                    <% } else if (userSchool) { %>
-                                        <%= adminInfo ? adminInfo.roleLevel.charAt(0).toUpperCase() +
-                                            adminInfo.roleLevel.slice(1) : 'Administrator' %> Access - <%= userSchool %>
-                                                <% } else { %>Administrator Access - No School Assigned<% } %>
-                            </h6>
-                            <small class="text-muted">
-                                <% if (isSuperAdmin) { %>You can view and manage all users across all schools
-                                    <% } else if (userSchool) { %>You can view and manage all users in <%= userSchool %>
-                                            (teachers, students, and administrators)
-                                            <% } else { %>You have administrator access but no school is assigned<% } %>
-                            </small>
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/users/create" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Row 1: Profile Image + ID Number -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Profile Image (Optional)</label>
+                            <input type="file" class="form-control" name="avatar" accept="image/*">
                         </div>
-                        <span class="badge bg-<%= isSuperAdmin ? 'danger' : userSchool ? 'warning' : 'secondary' %>">
-                            <%= isSuperAdmin ? 'Super Admin' : userSchool ? (adminInfo ?
-                                adminInfo.roleLevel.charAt(0).toUpperCase() + adminInfo.roleLevel.slice(1)
-                                : 'School Admin' ) : 'No School' %>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>User Management</h2>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                        <i class="fas fa-plus"></i> Create User
-                    </button>
-                </div>
-
-                <!-- Access Status Summary -->
-                <div class="row mb-4">
-                    <div class="col-md-2">
-                        <div class="card text-white bg-success">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof paidStudents !=='undefined' ? paidStudents : 0 %>
-                                </h4>
-                                <p>Fully Paid Students</p>
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ID Number *</label>
+                            <input type="text" class="form-control" name="idNumber" required>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="card text-white bg-warning">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof partialStudents !=='undefined' ? partialStudents : 0 %>
-                                </h4>
-                                <p>Partial Payment</p>
-                            </div>
+                    <!-- Row 2: First + Last Name -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" class="form-control" name="firstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" name="lastName" required>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="card text-white bg-danger">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof unpaidStudents !=='undefined' ? unpaidStudents : 0 %>
-                                </h4>
-                                <p>Unpaid Students</p>
-                            </div>
+                    <!-- Row 3: Email + Phone -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" name="phone">
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="card text-white bg-secondary">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof expiredStudents !=='undefined' ? expiredStudents : 0 %>
-                                </h4>
-                                <p>Access Expired</p>
-                            </div>
+                    <!-- Row 4: Date of Birth + School -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth (Optional)</label>
+                            <input type="date" class="form-control" name="dateOfBirth"
+                                max="<%= new Date().toISOString().split('T')[0] %>">
+                            <div class="form-text">Age will be calculated automatically</div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="card text-white bg-info">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof parentCount !=='undefined' ? parentCount : 0 %>
-                                </h4>
-                                <p>Parents</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="card text-white bg-dark">
-                            <div class="card-body text-center">
-                                <h4>
-                                    <%= typeof walletBalance !=='undefined' ? walletBalance : 0 %>
-                                </h4>
-                                <p>Total Wallet Balance</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Search and Filter Section -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                    <input type="text" id="searchInput" class="form-control"
-                                        placeholder="Search users by ID, name, email, role, school, or status...">
-                                    <button class="btn btn-outline-secondary" type="button" id="clearSearch"><i
-                                            class="fas fa-times"></i></button>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <select id="roleFilter" class="form-select">
-                                    <option value="">All Roles</option>
-                                    <option value="student">Student</option>
-                                    <option value="teacher">Teacher</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="parent">Parent</option>
-                                    <option value="cashier">Cashier</option>
-                                    <option value="accountant">Accountant</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <select id="statusFilter" class="form-select">
-                                    <option value="">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-md-4">
-                                <select id="tuitionFilter" class="form-select">
-                                    <option value="">All Tuition Status</option>
-                                    <option value="paid">Fully Paid</option>
-                                    <option value="partial">Partial Payment</option>
-                                    <option value="unpaid">Unpaid</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select id="accessFilter" class="form-select">
-                                    <option value="">All Access Status</option>
-                                    <option value="active">Active Access</option>
-                                    <option value="no-access">No Access</option>
-                                </select>
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">School</label>
                             <% if (isSuperAdmin) { %>
-                                <div class="col-md-4">
-                                    <select id="schoolFilter" class="form-select">
-                                        <option value="">All Schools</option>
-                                    </select>
-                                </div>
-                                <% } else { %>
-                                    <div class="col-md-4">
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary w-50" id="applyFilters"><i
-                                                    class="fas fa-filter"></i> Apply Filters</button>
-                                            <button class="btn btn-outline-secondary w-50" id="resetFilters"><i
-                                                    class="fas fa-redo"></i> Reset</button>
-                                        </div>
+                                <input type="text" class="form-control" name="school" placeholder="Enter school name">
+                                <div class="form-text">Super Admin: You can assign any school</div>
+                                <% } else if (userSchool) { %>
+                                    <input type="text" class="form-control" name="school" value="<%= userSchool %>"
+                                        readonly>
+                                    <div class="form-text">New users will be assigned to <%= userSchool %>
                                     </div>
-                                    <% } %>
-                        </div>
-                        <% if (isSuperAdmin) { %>
-                            <div class="row mt-2">
-                                <div class="col-md-8"></div>
-                                <div class="col-md-4">
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-outline-primary w-50" id="applyFilters"><i
-                                                class="fas fa-filter"></i> Apply Filters</button>
-                                        <button class="btn btn-outline-secondary w-50" id="resetFilters"><i
-                                                class="fas fa-redo"></i> Reset</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <% } %>
-                                <div class="row mt-2">
-                                    <div class="col-12">
-                                        <div class="form-text">
-                                            <span id="resultCount">
-                                                <%= users && users.length> 0 ? users.length : 0 %> users found
-                                            </span>
-                                            <span id="activeFilters" class="ms-2"></span>
-                                            <% if (!isSuperAdmin && userSchool) { %>
-                                                <span class="badge bg-info ms-2"><i class="fas fa-school"></i> School:
-                                                    <%= userSchool %></span>
-                                                <% } %>
-                                        </div>
-                                    </div>
-                                </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover sticky-header">
-                                <thead>
-                                    <tr>
-                                        <th>Avatar</th>
-                                        <th data-sort="idNumber">ID Number <i class="fas fa-sort"></i></th>
-                                        <th data-sort="name">Name <i class="fas fa-sort"></i></th>
-                                        <th>Email</th>
-                                        <th>Age</th>
-                                        <th>Date of Birth</th>
-                                        <th data-sort="role">Role <i class="fas fa-sort"></i></th>
-                                        <% if (isSuperAdmin) { %>
-                                            <th data-sort="school">School <i class="fas fa-sort"></i></th>
-                                            <% } %>
-                                                <th>Tuition Status</th>
-                                                <th>Access Status</th>
-                                                <th data-sort="status">Status <i class="fas fa-sort"></i></th>
-                                                <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="userTableBody">
-                                    <% if (users && users.length> 0) { %>
-                                        <% users.forEach(user=> { %>
-                                            <tr class="user-row" data-id="<%= user.id %>"
-                                                data-idnumber="<%= user.idNumber %>"
-                                                data-name="<%= user.firstName %> <%= user.lastName %>"
-                                                data-email="<%= user.email || '' %>" data-role="<%= user.role %>"
-                                                data-school="<%= user.school || '' %>"
-                                                data-status="<%= user.isActive ? 'active' : 'inactive' %>"
-                                                data-tuition="<%= user.student ? user.student.tuitionStatus : '' %>"
-                                                data-access="<%= getAccessStatus(user) %>">
-                                                <td>
-                                                    <% var fallbackUrl='https://ui-avatars.com/api/?name=' +
-                                                        encodeURIComponent(user.firstName + ' ' + user.lastName)
-                                                        + '&background=6a11cb&color=fff&size=40' ; %>
-                                                        <% if (user.avatar) { %>
-                                                            <img src="<%= user.avatar %>" alt="Avatar"
-                                                                class="rounded-circle" width="40" height="40"
-                                                                onerror="this.onerror=null; this.src='<%= fallbackUrl %>'">
-                                                            <% } else { %>
-                                                                <img src="<%= fallbackUrl %>" alt="Avatar"
-                                                                    class="rounded-circle" width="40" height="40">
-                                                                <% } %>
-                                                </td>
-                                                <td class="id-number">
-                                                    <%= user.idNumber %>
-                                                </td>
-                                                <td class="user-name">
-                                                    <%= user.firstName %>
-                                                        <%= user.lastName %>
-                                                </td>
-                                                <td class="user-email">
-                                                    <%= user.email || 'N/A' %>
-                                                </td>
-                                                <td class="user-age">
-                                                    <%= user.age !==null ? user.age + ' years' : 'N/A' %>
-                                                </td>
-                                                <td class="user-dob">
-                                                    <%= user.dateOfBirth ? new
-                                                        Date(user.dateOfBirth).toLocaleDateString() : 'N/A' %>
-                                                </td>
-                                                <td class="user-role">
-                                                    <span
-                                                        class="badge bg-<%= user.role === 'admin' ? 'danger' : user.role === 'teacher' ? 'warning' : user.role === 'parent' ? 'info' : 'primary' %>">
-                                                        <%= user.role %>
-                                                    </span>
-                                                </td>
-                                                <% if (isSuperAdmin) { %>
-                                                    <td class="user-school"><span class="badge bg-secondary">
-                                                            <%= user.school || 'No School' %>
-                                                        </span></td>
-                                                    <% } %>
-                                                        <td class="tuition-status">
-                                                            <% if (user.role==='student' && user.student) { %>
-                                                                <span
-                                                                    class="badge bg-<%= user.student.tuitionStatus === 'paid' ? 'success' : user.student.tuitionStatus === 'partial' ? 'warning' : 'danger' %>">
-                                                                    <%= user.student.tuitionStatus ?
-                                                                        user.student.tuitionStatus.charAt(0).toUpperCase()
-                                                                        + user.student.tuitionStatus.slice(1) : 'Unpaid'
-                                                                        %>
-                                                                </span>
-                                                                <% if (user.student.tuitionStatus==='paid' &&
-                                                                    user.student.tuitionPayments &&
-                                                                    user.student.tuitionPayments.length> 0) { %>
-                                                                    <br><small class="text-muted">Receipt: <%=
-                                                                            user.student.tuitionPayments[0].receiptNumber
-                                                                            %></small>
-                                                                    <% } %>
-                                                                        <% } else if (user.role==='parent' &&
-                                                                            user.parent && user.parent.wallet) { %>
-                                                                            <span class="badge bg-dark">Wallet: =N=<%=
-                                                                                    user.parent.wallet.balance.toFixed(2)
-                                                                                    %></span>
-                                                                            <% } else { %>
-                                                                                <span
-                                                                                    class="badge bg-secondary">N/A</span>
-                                                                                <% } %>
-                                                        </td>
-                                                        <td class="access-status">
-                                                            <% if (user.role==='student' && user.student) { %>
-                                                                <% const now=new Date(); %>
-                                                                    <% const
-                                                                        hasAccess=user.student.tuitionStatus==='paid' ||
-                                                                        (user.student.tuitionStatus==='partial' &&
-                                                                        user.student.tempPasswordExpiry && new
-                                                                        Date(user.student.tempPasswordExpiry)> now) %>
-                                                                        <span
-                                                                            class="badge bg-<%= hasAccess ? 'success' : 'danger' %>">
-                                                                            <%= hasAccess ? 'Active Access'
-                                                                                : 'No Access' %>
-                                                                        </span>
-                                                                        <% if (user.student.tuitionStatus==='partial' &&
-                                                                            user.student.tempPasswordExpiry) { %>
-                                                                            <br><small class="text-muted">
-                                                                                <% if (new
-                                                                                    Date(user.student.tempPasswordExpiry)>
-                                                                                    now) { %>
-                                                                                    Expires: <%= new
-                                                                                        Date(user.student.tempPasswordExpiry).toLocaleDateString()
-                                                                                        %>
-                                                                                        <% } else { %>
-                                                                                            Expired: <%= new
-                                                                                                Date(user.student.tempPasswordExpiry).toLocaleDateString()
-                                                                                                %>
-                                                                                                <% } %>
-                                                                            </small>
-                                                                            <% } %>
-                                                                                <% } else { %>
-                                                                                    <span class="badge bg-success">Full
-                                                                                        Access</span>
-                                                                                    <% } %>
-                                                        </td>
-                                                        <td class="user-status">
-                                                            <span
-                                                                class="badge bg-<%= user.isActive ? 'success' : 'secondary' %>">
-                                                                <%= user.isActive ? 'Active' : 'Inactive' %>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="btn-group">
-                                                                <button class="btn btn-sm btn-outline-primary"
-                                                                    onclick="editUser('<%= user.id %>')">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                <button
-                                                                    class="btn btn-sm btn-outline-<%= user.isActive ? 'danger' : 'success' %>"
-                                                                    onclick="toggleUserStatus('<%= user.id %>', <%= user.isActive %>)">
-                                                                    <%= user.isActive ? 'Deactivate' : 'Activate' %>
-                                                                </button>
-                                                                <% if (user.role==='student' && user.student) { %>
-                                                                    <button class="btn btn-sm btn-outline-info"
-                                                                        onclick="manageTuition('<%= user.student.id %>')">
-                                                                        <i class="fas fa-money-bill"></i>
-                                                                    </button>
-                                                                    <button class="btn btn-sm btn-outline-warning"
-                                                                        onclick="manageParent('<%= user.student.id %>')">
-                                                                        <i class="fas fa-users"></i>
-                                                                    </button>
-                                                                    <% if (user.student.parents &&
-                                                                        user.student.parents.length> 0) { %>
-                                                                        <button
-                                                                            class="btn btn-sm btn-outline-success view-parent-btn"
-                                                                            data-student-id="<%= user.student.id %>"
-                                                                            data-student-name="<%= user.firstName %> <%= user.lastName %>">
-                                                                            <i class="fas fa-eye"></i> Parent
-                                                                        </button>
-                                                                        <% } %>
-                                                                            <% } else if (user.role==='parent' &&
-                                                                                user.parent) { %>
-                                                                                <button
-                                                                                    class="btn btn-sm btn-outline-dark"
-                                                                                    onclick="manageParentAccount('<%= user.id %>')">
-                                                                                    <i class="fas fa-wallet"></i>
-                                                                                </button>
-                                                                                <% } %>
-                                                            </div>
-                                                        </td>
-                                            </tr>
-                                            <% }); %>
-                                                <% } else { %>
-                                                    <tr id="noUsersRow">
-                                                        <td colspan="12" class="text-center">No users found</td>
-                                                    </tr>
-                                                    <% } %>
-                                </tbody>
-                            </table>
+                                    <% } else { %>
+                                        <input type="text" class="form-control" name="school"
+                                            placeholder="Enter school name">
+                                        <div class="form-text">Assign school for new user</div>
+                                        <% } %>
                         </div>
                     </div>
-                </div>
-        </div>
-
-        <!-- Modals (all your existing modals – kept unchanged) -->
-        <div class="modal fade" id="createUserModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Create New User</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <!-- Role -->
+                    <div class="mb-3">
+                        <label class="form-label">Role *</label>
+                        <select class="form-select" name="role" required onchange="toggleRoleFields()">
+                            <option value="">Select Role</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Admin</option>
+                            <option value="parent">Parent</option>
+                            <option value="cashier">Cashier</option>
+                            <option value="accountant">Accountant</option>
+                        </select>
                     </div>
-                    <form action="/admin/users/create" method="POST" enctype="multipart/form-data">
-                        <div class="modal-body">
-                            <!-- ... your existing form fields ... -->
-                            <!-- (keep your existing form content – too long to repeat) -->
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Create User</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
-        <!-- Edit User Modal -->
-        <div class="modal fade" id="editUserModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit User</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form id="editUserForm" enctype="multipart/form-data">
-                        <div class="modal-body" id="editUserModalBody">
-                            <!-- Content loaded dynamically -->
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Update User</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tuition Modal -->
-        <div class="modal fade" id="tuitionModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Manage Tuition</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="tuitionModalBody">
-                        <!-- Content loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Parent Modal -->
-        <div class="modal fade" id="parentModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Manage Parent</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="parentModalBody">
-                        <!-- Content loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Parent Account Modal -->
-        <div class="modal fade" id="parentAccountModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Manage Parent Account</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="parentAccountModalBody">
-                        <!-- Content loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Parent Info Modal -->
-        <div class="modal fade" id="parentInfoModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content parent-modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="parentInfoModalTitle">Parent Information</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="parentInfoModalBody">
-                        <!-- Content loaded dynamically -->
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            // ============================================================
-            // ALL JAVASCRIPT FUNCTIONS (restored)
-            // ============================================================
-
-            // ----- Global functions for action buttons -----
-            window.editUser = async function (userId) {
-                try {
-                    const response = await fetch(`/admin/users/${userId}`);
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const user = result.user;
-                        const modalBody = document.getElementById('editUserModalBody');
-
-                        function cleanAvatarUrl(url) {
-                            if (!url) return null;
-                            if (url.startsWith('/https:/')) return url.replace('/https:/', 'https://');
-                            if (url.startsWith('/http:/')) return url.replace('/http:/', 'http://');
-                            if (url.startsWith('http://') || url.startsWith('https://')) return url;
-                            return '/' + url;
-                        }
-                        const avatarClean = cleanAvatarUrl(user.avatar);
-
-                        modalBody.innerHTML = `
+                    <!-- Student Fields -->
+                    <div id="studentFields" style="display: none;">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Profile Image</label>
-                                <input type="file" class="form-control" name="avatar" accept="image/*">
-                                ${avatarClean ? `<div class="mt-2"><img src="${avatarClean}" alt="Current avatar" width="60" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=6a11cb&color=fff&size=60'"></div>` : ''}
+                                <label class="form-label">Grade *</label>
+                                <input type="text" class="form-control" name="grade">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">ID Number</label>
-                                <input type="text" class="form-control" value="${user.idNumber}" disabled>
-                                <small class="text-muted">ID Number cannot be changed</small>
+                                <label class="form-label">Section *</label>
+                                <input type="text" class="form-control" name="section">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">First Name *</label>
-                                <input type="text" class="form-control" name="firstName" value="${user.firstName}" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Last Name *</label>
-                                <input type="text" class="form-control" name="lastName" value="${user.lastName}" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" value="${user.email || ''}">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Phone</label>
-                                <input type="tel" class="form-control" name="phone" value="${user.phone || ''}">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Date of Birth (Optional)</label>
-                                <input type="date" class="form-control" name="dateOfBirth" value="${user.dateOfBirth || ''}" 
-                                       max="${new Date().toISOString().split('T')[0]}">
-                                <div class="form-text">Age will be calculated automatically</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">School</label>
-                                <input type="text" class="form-control" name="school" value="${user.school || ''}" 
-                                       placeholder="Enter school name"
-                                       <%= userSchool ? 'readonly' : '' %>>
-                                <% if (userSchool) { %>
-                                    <div class="form-text">School cannot be changed</div>
-                                <% } %>
-                            </div>
-                        </div>
-                        ${user.role === 'student' && user.student ? `
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Grade / Class *</label>
-                                    <input type="text" class="form-control" name="grade" value="${user.student.grade}" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Section *</label>
-                                    <input type="text" class="form-control" name="section" value="${user.student.section}" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Tuition Status *</label>
-                                    <select class="form-select" name="tuitionStatus" required onchange="handleTuitionStatusChange(this)">
-                                        <option value="unpaid" ${user.student.tuitionStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
-                                        <option value="partial" ${user.student.tuitionStatus === 'partial' ? 'selected' : ''}>Partial Payment</option>
-                                        <option value="paid" ${user.student.tuitionStatus === 'paid' ? 'selected' : ''}>Fully Paid</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Receipt Number (Required if Paid)</label>
-                                    <input type="text" class="form-control" name="receiptNumber" 
-                                           value="${user.student.tuitionPayments && user.student.tuitionPayments.length > 0 ? user.student.tuitionPayments[0].receiptNumber : ''}" 
-                                           placeholder="Enter receipt number"
-                                           id="receiptNumberField">
-                                    <div class="form-text" id="receiptHelpText">
-                                        ${user.student.tuitionStatus === 'paid' ? 'Receipt number is required for fully paid status' : 'Only required for fully paid status'}
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="tuitionAlert">
-                                ${user.student.tuitionStatus === 'paid' ? `
-                                    <div class="alert alert-success"><i class="fas fa-check-circle"></i> Student can change password</div>
-                                ` : user.student.tuitionStatus === 'partial' ? `
-                                    <div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Temporary password expires in 30 days</div>
-                                ` : `
-                                    <div class="alert alert-danger"><i class="fas fa-times-circle"></i> Student cannot change password until tuition is paid</div>
-                                `}
-                            </div>
-                        ` : ''}
-                        ${user.role === 'teacher' && user.teacher ? `
-                            <div class="mb-3">
-                                <label class="form-label">Subject</label>
-                                <input type="text" class="form-control" name="subject" value="${user.teacher.subject}">
-                            </div>
-                        ` : ''}
-                        ${user.role === 'admin' && user.admin ? `
-                            <div class="mb-3">
-                                <label class="form-label">Role Level</label>
-                                <select class="form-select" name="roleLevel">
-                                    <option value="principal" ${user.admin.roleLevel === 'principal' ? 'selected' : ''}>Principal</option>
-                                    <option value="headteacher" ${user.admin.roleLevel === 'headteacher' ? 'selected' : ''}>Head Teacher</option>
-                                    <option value="administrator" ${user.admin.roleLevel === 'administrator' ? 'selected' : ''}>Administrator</option>
-                                    <% if (isSuperAdmin) { %>
-                                        <option value="superadmin" ${user.admin.roleLevel === 'superadmin' ? 'selected' : ''}>Super Admin</option>
-                                    <% } %>
+                                <label class="form-label">Tuition Status *</label>
+                                <select class="form-select" name="tuitionStatus" required
+                                    onchange="toggleTuitionFields()">
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="partial">Partial Payment</option>
+                                    <option value="paid">Fully Paid</option>
                                 </select>
                             </div>
-                        ` : ''}
-                    `;
-
-                        setTimeout(() => {
-                            const tuitionStatusSelect = modalBody.querySelector('select[name="tuitionStatus"]');
-                            if (tuitionStatusSelect) {
-                                handleTuitionStatusChange(tuitionStatusSelect);
-                                tuitionStatusSelect.addEventListener('change', function () {
-                                    handleTuitionStatusChange(this);
-                                });
-                            }
-                        }, 100);
-
-                        const editUserForm = document.getElementById('editUserForm');
-                        editUserForm.onsubmit = async (e) => {
-                            e.preventDefault();
-                            await updateUser(userId);
-                        };
-
-                        const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
-                        editModal.show();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while loading user data');
-                }
-            };
-
-            window.toggleUserStatus = async function (userId, isCurrentlyActive) {
-                if (!confirm(`Are you sure you want to ${isCurrentlyActive ? 'deactivate' : 'activate'} this user?`)) {
-                    return;
-                }
-                try {
-                    const response = await fetch(`/admin/users/${userId}/toggle-status`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating user status');
-                }
-            };
-
-            window.manageTuition = async function (studentId) {
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/tuition`);
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const student = result.student;
-                        const modalBody = document.getElementById('tuitionModalBody');
-
-                        modalBody.innerHTML = `
-                        <div class="mb-3">
-                            <h6>Student: ${student.user.firstName} ${student.user.lastName}</h6>
-                            <p>ID: ${student.user.idNumber}</p>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Current Tuition Status:</label>
-                            <span class="badge bg-${student.tuitionStatus === 'paid' ? 'success' : student.tuitionStatus === 'partial' ? 'warning' : 'danger'}">
-                                ${student.tuitionStatus ? student.tuitionStatus.toUpperCase() : 'UNPAID'}
-                            </span>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Update Tuition Status</label>
-                            <select class="form-select" id="updateTuitionStatus">
-                                <option value="unpaid" ${student.tuitionStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
-                                <option value="partial" ${student.tuitionStatus === 'partial' ? 'selected' : ''}>Partial Payment</option>
-                                <option value="paid" ${student.tuitionStatus === 'paid' ? 'selected' : ''}>Fully Paid</option>
-                            </select>
-                        </div>
-                        <div class="mb-3" id="partialPaymentFields" style="${student.tuitionStatus === 'partial' ? 'block' : 'none'}">
-                            <label class="form-label">Access Duration (Days)</label>
-                            <input type="number" class="form-control" id="accessDays" value="30" min="1" max="90">
-                        </div>
-                        <div class="mb-3" id="receiptFields" style="${student.tuitionStatus === 'paid' ? 'block' : 'none'}">
-                            <label class="form-label">Receipt Number</label>
-                            <input type="text" class="form-control" id="receiptNumber" placeholder="Enter receipt number">
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="button" class="btn btn-primary" onclick="updateTuitionStatus('${studentId}')">
-                                Update Tuition Status
-                            </button>
-                            <button type="button" class="btn btn-warning" onclick="extendAccess('${studentId}')">
-                                Extend Access
-                            </button>
-                        </div>
-                    `;
-
-                        document.getElementById('updateTuitionStatus').addEventListener('change', function () {
-                            const status = this.value;
-                            document.getElementById('partialPaymentFields').style.display = status === 'partial' ? 'block' : 'none';
-                            document.getElementById('receiptFields').style.display = status === 'paid' ? 'block' : 'none';
-                        });
-
-                        const tuitionModal = new bootstrap.Modal(document.getElementById('tuitionModal'));
-                        tuitionModal.show();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while loading tuition data');
-                }
-            };
-
-            window.manageParent = async function (studentId) {
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/parent`);
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const student = result.student;
-                        const modalBody = document.getElementById('parentModalBody');
-
-                        let parentHTML = '';
-                        if (student.parents && student.parents.length > 0) {
-                            const validParents = student.parents.filter(sp => sp.parent && sp.parent.user);
-                            if (validParents.length > 0) {
-                                const parentRelation = validParents[0];
-                                const parent = parentRelation.parent;
-                                parentHTML = `
-                                <div class="alert alert-success">
-                                    <h6>Current Parent</h6>
-                                    <p><strong>Name:</strong> ${parent.user.firstName} ${parent.user.lastName}</p>
-                                    <p><strong>Parent ID:</strong> <span class="parent-id">${parent.user.idNumber}</span></p>
-                                    <p><strong>Email:</strong> ${parent.user.email || 'N/A'}</p>
-                                    <p><strong>Relationship:</strong> ${parentRelation.relationship}</p>
-                                    <p><strong>Wallet Balance:</strong> =N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}</p>
-                                </div>
-                                <div class="d-grid gap-2">
-                                    <button type="button" class="btn btn-warning" onclick="unlinkParent('${studentId}', '${parent.user.id}')">Unlink Parent</button>
-                                    <button type="button" class="btn btn-info" onclick="viewParentProgress('${parent.user.id}')">View Parent Access</button>
-                                </div>
-                            `;
-                            } else {
-                                parentHTML = `<div class="alert alert-warning"><p>Parent data is incomplete. Please re-link the parent.</p></div>`;
-                            }
-                        } else {
-                            parentHTML = `
-                            <div class="alert alert-info"><p>No parent linked to this student.</p></div>
-                            <div class="mb-3">
-                                <label class="form-label">Link Existing Parent</label>
-                                <select class="form-select" id="existingParentSelect">
-                                    <option value="">Select existing parent...</option>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Access Duration (Partial Payment)</label>
+                                <select class="form-select" name="accessDuration" id="accessDuration">
+                                    <option value="7">7 Days</option>
+                                    <option value="15">15 Days</option>
+                                    <option value="30" selected>30 Days</option>
+                                    <option value="60">60 Days</option>
                                 </select>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Or Create New Parent</label>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Receipt Number (If Paid)</label>
+                                <input type="text" class="form-control" name="receiptNumber" id="receiptNumber">
+                            </div>
+                        </div>
+                        <!-- Parent Information for Student -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Parent Information (Optional)</h6>
+                            </div>
+                            <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-6 mb-2"><input type="text" class="form-control" id="newParentFirstName" placeholder="First Name"></div>
-                                    <div class="col-md-6 mb-2"><input type="text" class="form-control" id="newParentLastName" placeholder="Last Name"></div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Parent First Name</label>
+                                        <input type="text" class="form-control" name="parentFirstName">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Parent Last Name</label>
+                                        <input type="text" class="form-control" name="parentLastName">
+                                    </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-6 mb-2"><input type="email" class="form-control" id="newParentEmail" placeholder="Email"></div>
-                                    <div class="col-md-6 mb-2">
-                                        <select class="form-select" id="newParentRelationship">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Parent Email</label>
+                                        <input type="email" class="form-control" name="parentEmail">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Relationship</label>
+                                        <select class="form-select" name="parentRelationship">
                                             <option value="father">Father</option>
                                             <option value="mother">Mother</option>
                                             <option value="guardian">Guardian</option>
@@ -882,776 +148,50 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-primary" onclick="linkExistingParent('${studentId}')">Link Existing Parent</button>
-                                <button type="button" class="btn btn-success" onclick="createNewParent('${studentId}')">Create & Link New Parent</button>
-                            </div>
-                        `;
-                        }
-
-                        modalBody.innerHTML = `
-                        <div class="mb-3">
-                            <h6>Student: ${student.user.firstName} ${student.user.lastName}</h6>
-                            <p>ID: ${student.user.idNumber} | Grade: ${student.grade} | Section: ${student.section}</p>
-                        </div>
-                        ${parentHTML}
-                    `;
-
-                        if (!student.parents || student.parents.length === 0) {
-                            await loadExistingParents();
-                        }
-
-                        const parentModal = new bootstrap.Modal(document.getElementById('parentModal'));
-                        parentModal.show();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while loading parent data');
-                }
-            };
-
-            window.manageParentAccount = async function (parentUserId) {
-                try {
-                    const response = await fetch(`/admin/parents/${parentUserId}/account`);
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const parent = result.parent;
-                        const modalBody = document.getElementById('parentAccountModalBody');
-
-                        modalBody.innerHTML = `
-                        <div class="mb-3">
-                            <h6>Parent: ${parent.user.firstName} ${parent.user.lastName}</h6>
-                            <p>Parent ID: <span class="parent-id">${parent.user.idNumber}</span></p>
-                            <p>Email: ${parent.user.email || 'N/A'}</p>
-                        </div>
-                        <div class="mb-3">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Wallet Balance: =N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">Add Funds to Wallet</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">=N=</span>
-                                            <input type="number" class="form-control" id="addAmount" min="1" step="0.01" placeholder="Amount">
-                                            <button class="btn btn-success" type="button" onclick="addWalletFunds('${parent.user.id}')">Add Funds</button>
-                                        </div>
-                                    </div>
+                                <div class="form-text">
+                                    If provided, a parent account will be automatically created with access to this
+                                    student's progress.
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Teacher Fields -->
+                    <div id="teacherFields" style="display: none;">
                         <div class="mb-3">
-                            <h6>Linked Students</h6>
-                            ${parent.students && parent.students.length > 0 ?
-                                parent.students.map(sp => `
-                                    <div class="card mb-2">
-                                        <div class="card-body py-2">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>${sp.student.user.firstName} ${sp.student.user.lastName}</strong>
-                                                    <br><small>ID: ${sp.student.user.idNumber} | Grade: ${sp.student.grade} | Relationship: ${sp.relationship}</small>
-                                                </div>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="unlinkStudent('${parent.user.id}', '${sp.student.user.id}')">Unlink</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('') :
-                                '<p class="text-muted">No students linked</p>'}
+                            <label class="form-label">Subject *</label>
+                            <input type="text" class="form-control" name="subject">
                         </div>
+                    </div>
+
+                    <!-- Admin Fields -->
+                    <div id="adminFields" style="display: none;">
                         <div class="mb-3">
-                            <h6>Recent Transactions</h6>
-                            ${parent.wallet && parent.wallet.transactions && parent.wallet.transactions.length > 0 ?
-                                parent.wallet.transactions.map(t => `
-                                    <div class="card mb-2">
-                                        <div class="card-body py-2">
-                                            <div class="d-flex justify-content-between">
-                                                <div><strong>${t.description || t.type}</strong><br><small>${new Date(t.createdAt).toLocaleDateString()}</small></div>
-                                                <div class="text-${t.type === 'deposit' ? 'success' : 'danger'}">${t.type === 'deposit' ? '+' : '-'}=N=${t.amount.toFixed(2)}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('') :
-                                '<p class="text-muted">No transactions</p>'}
+                            <label class="form-label">Role Level</label>
+                            <select class="form-select" name="roleLevel">
+                                <option value="principal">Principal</option>
+                                <option value="headteacher">Head Teacher</option>
+                                <option value="administrator">Administrator</option>
+                                <% if (isSuperAdmin) { %>
+                                    <option value="superadmin">Super Admin</option>
+                                    <% } %>
+                            </select>
                         </div>
-                    `;
-
-                        const parentAccountModal = new bootstrap.Modal(document.getElementById('parentAccountModal'));
-                        parentAccountModal.show();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while loading parent account data');
-                }
-            };
-
-            window.showParentInfo = async function (studentId, studentName) {
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/parent-info`);
-                    if (!response.ok) throw new Error(`Server returned ${response.status}`);
-                    const contentType = response.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) throw new Error('Non-JSON response');
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const student = result.student;
-                        const modalBody = document.getElementById('parentInfoModalBody');
-                        const modalTitle = document.getElementById('parentInfoModalTitle');
-                        modalTitle.textContent = `Parent Information - ${studentName}`;
-
-                        if (student.parents && student.parents.length > 0) {
-                            let parentHTML = '';
-                            student.parents.forEach((parentRelation) => {
-                                const parent = parentRelation.parent;
-                                if (parent && parent.user) {
-                                    parentHTML += `
-                                    <div class="card parent-card mb-3">
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-8">
-                                                    <h6 class="card-title">
-                                                        <i class="fas fa-user-tie me-2"></i>
-                                                        ${parent.user.firstName} ${parent.user.lastName}
-                                                        <span class="badge bg-primary relationship-badge ms-2">${parentRelation.relationship || 'Parent'}</span>
-                                                    </h6>
-                                                    <div class="row mt-2">
-                                                        <div class="col-md-6">
-                                                            <p class="mb-1"><strong>Parent ID:</strong> <span class="parent-id">${parent.user.idNumber || 'N/A'}</span></p>
-                                                            <p class="mb-1"><strong>Email:</strong> ${parent.user.email || 'N/A'}</p>
-                                                            <p class="mb-1"><strong>Phone:</strong> ${parent.user.phone || 'N/A'}</p>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <p class="mb-1"><strong>Account Status:</strong> 
-                                                                <span class="badge bg-${parent.user.isActive ? 'success' : 'secondary'}">${parent.user.isActive ? 'Active' : 'Inactive'}</span>
-                                                            </p>
-                                                            <p class="mb-1"><strong>Wallet Balance:</strong> 
-                                                                <span class="wallet-balance">=N=${parent.wallet ? parent.wallet.balance.toFixed(2) : '0.00'}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-4 text-end">
-                                                    <button class="btn btn-sm btn-outline-primary mb-1" onclick="manageParentAccount('${parent.user.id}')">
-                                                        <i class="fas fa-wallet"></i> Manage Account
-                                                    </button>
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        Linked since: ${(() => {
-                                            if (!parentRelation.createdAt) return 'Unknown';
-                                            try {
-                                                const date = new Date(parentRelation.createdAt);
-                                                return isNaN(date.getTime()) ? 'Unknown' : date.toLocaleDateString();
-                                            } catch (e) {
-                                                return 'Unknown';
-                                            }
-                                        })()}
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                                }
-                            });
-                            modalBody.innerHTML = `
-                            <div class="alert alert-info"><i class="fas fa-info-circle"></i> This student has ${student.parents.length} parent(s) linked.</div>
-                            ${parentHTML}
-                        `;
-                        } else {
-                            modalBody.innerHTML = `
-                            <div class="alert alert-warning text-center">
-                                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                                <h5>No Parent Linked</h5>
-                                <p class="mb-0">This student doesn't have any parent linked to their account.</p>
-                            </div>
-                            <div class="text-center">
-                                <button class="btn btn-primary" onclick="manageParent('${studentId}')"><i class="fas fa-link"></i> Link a Parent</button>
-                            </div>
-                        `;
-                        }
-
-                        const parentInfoModal = new bootstrap.Modal(document.getElementById('parentInfoModal'));
-                        parentInfoModal.show();
-                    } else {
-                        alert('Error: ' + (result.message || 'Failed to load parent information'));
-                    }
-                } catch (error) {
-                    console.error('Error loading parent info:', error);
-                    alert('An error occurred while loading parent information: ' + error.message);
-                }
-            };
-
-            // ----- Helper functions (non‑global) -----
-            async function updateUser(userId) {
-                try {
-                    const formData = new FormData(document.getElementById('editUserForm'));
-                    const response = await fetch(`/admin/users/${userId}`, {
-                        method: 'PUT',
-                        body: formData
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating user');
-                }
-            }
-
-            async function updateTuitionStatus(studentId) {
-                const status = document.getElementById('updateTuitionStatus').value;
-                const accessDays = document.getElementById('accessDays') ? document.getElementById('accessDays').value : 30;
-                const receiptNumber = document.getElementById('receiptNumber') ? document.getElementById('receiptNumber').value : '';
-
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/tuition`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            tuitionStatus: status,
-                            accessDays: parseInt(accessDays),
-                            receiptNumber: receiptNumber
-                        })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating tuition status');
-                }
-            }
-
-            async function extendAccess(studentId) {
-                const extendDays = prompt('Enter number of days to extend access:', '30');
-                if (extendDays && !isNaN(extendDays)) {
-                    try {
-                        const response = await fetch(`/admin/students/${studentId}/extend-access`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ days: parseInt(extendDays) })
-                        });
-                        const result = await response.json();
-
-                        if (result.success) {
-                            alert(result.message);
-                            location.reload();
-                        } else {
-                            alert('Error: ' + result.message);
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('An error occurred while extending access');
-                    }
-                }
-            }
-
-            async function loadExistingParents() {
-                try {
-                    const response = await fetch('/admin/parents/available');
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const select = document.getElementById('existingParentSelect');
-                        while (select.options.length > 1) select.remove(1);
-
-                        if (result.parents && result.parents.length > 0) {
-                            result.parents.forEach(parent => {
-                                if (parent && parent.id && parent.firstName && parent.lastName) {
-                                    const option = document.createElement('option');
-                                    option.value = parent.id;
-                                    option.textContent = `${parent.firstName} ${parent.lastName} (${parent.idNumber || 'No ID'})`;
-                                    select.appendChild(option);
-                                }
-                            });
-                        } else {
-                            const option = document.createElement('option');
-                            option.value = "";
-                            option.textContent = "No available parents found";
-                            option.disabled = true;
-                            select.appendChild(option);
-                        }
-                    } else {
-                        const select = document.getElementById('existingParentSelect');
-                        const option = document.createElement('option');
-                        option.value = "";
-                        option.textContent = "Error: " + (result.message || 'Failed to load parents');
-                        option.disabled = true;
-                        select.appendChild(option);
-                    }
-                } catch (error) {
-                    console.error('Error loading parents:', error);
-                    const select = document.getElementById('existingParentSelect');
-                    const option = document.createElement('option');
-                    option.value = "";
-                    option.textContent = "Error loading parents";
-                    option.disabled = true;
-                    select.appendChild(option);
-                }
-            }
-
-            async function linkExistingParent(studentId) {
-                const parentSelect = document.getElementById('existingParentSelect');
-                const parentId = parentSelect.value;
-                if (!parentId) {
-                    alert('Please select a parent');
-                    return;
-                }
-                const relationship = prompt('Enter relationship (father, mother, guardian, etc.):', 'parent');
-                if (!relationship) return;
-
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/link-parent`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ parentId, relationship })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while linking parent');
-                }
-            }
-
-            async function createNewParent(studentId) {
-                const firstName = document.getElementById('newParentFirstName').value;
-                const lastName = document.getElementById('newParentLastName').value;
-                const email = document.getElementById('newParentEmail').value;
-                const relationship = document.getElementById('newParentRelationship').value;
-
-                if (!firstName || !lastName) {
-                    alert('Please enter parent first and last name');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/create-parent`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            firstName, lastName, email, relationship
-                        })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while creating parent');
-                }
-            }
-
-            async function unlinkParent(studentId, parentId) {
-                if (!confirm('Are you sure you want to unlink this parent?')) return;
-
-                try {
-                    const response = await fetch(`/admin/students/${studentId}/unlink-parent`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ parentId })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while unlinking parent');
-                }
-            }
-
-            async function unlinkStudent(parentId, studentId) {
-                if (!confirm('Are you sure you want to unlink this student?')) return;
-
-                try {
-                    const response = await fetch(`/admin/parents/${parentId}/unlink-student`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ studentId })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while unlinking student');
-                }
-            }
-
-            async function addWalletFunds(parentId) {
-                const amount = document.getElementById('addAmount').value;
-                if (!amount || amount <= 0) {
-                    alert('Please enter a valid amount');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/admin/parents/${parentId}/add-funds`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            amount: parseFloat(amount),
-                            description: 'Admin deposit'
-                        })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while adding funds');
-                }
-            }
-
-            async function viewParentProgress(parentId) {
-                alert(`Parent progress view for parent ID: ${parentId}\n\nThis would show the parent dashboard with student progress, comments, and payment options.`);
-            }
-
-            // ----- Search and Filter -----
-            let currentSort = { field: null, direction: 'asc' };
-
-            document.addEventListener('DOMContentLoaded', function () {
-                initializeSearch();
-                initializeSorting();
-            <% if (isSuperAdmin) { %>
-                    initializeSchoolFilter();
-            <% } %>
-
-                    // View parent button listeners
-                    document.querySelectorAll('.view-parent-btn').forEach(button => {
-                        button.addEventListener('click', function () {
-                            const studentId = this.getAttribute('data-student-id');
-                            const studentName = this.getAttribute('data-student-name');
-                            showParentInfo(studentId, studentName);
-                        });
-                    });
-
-                // Role toggle in create modal
-                const roleSelect = document.querySelector('select[name="role"]');
-                if (roleSelect) roleSelect.addEventListener('change', toggleRoleFields);
-
-                // Tuition toggle in create modal
-                const tuitionStatusSelect = document.querySelector('select[name="tuitionStatus"]');
-                if (tuitionStatusSelect) tuitionStatusSelect.addEventListener('change', toggleTuitionFields);
-
-                document.querySelectorAll('.view-parent-btn').forEach(button => {
-                    button.addEventListener('click', function () {
-                        const studentId = this.getAttribute('data-student-id');
-                        const studentName = this.getAttribute('data-student-name');
-                        showParentInfo(studentId, studentName);
-                    });
-                });
-            });
-
-            function initializeSearch() {
-                const searchInput = document.getElementById('searchInput');
-                const clearSearch = document.getElementById('clearSearch');
-                const applyFilters = document.getElementById('applyFilters');
-                const resetFilters = document.getElementById('resetFilters');
-                const roleFilter = document.getElementById('roleFilter');
-                const statusFilter = document.getElementById('statusFilter');
-                const tuitionFilter = document.getElementById('tuitionFilter');
-                const accessFilter = document.getElementById('accessFilter');
-
-                if (!searchInput) return;
-
-                searchInput.addEventListener('input', performSearch);
-                if (clearSearch) clearSearch.addEventListener('click', function () {
-                    searchInput.value = '';
-                    performSearch();
-                    searchInput.focus();
-                });
-                if (applyFilters) applyFilters.addEventListener('click', performSearch);
-                if (resetFilters) resetFilters.addEventListener('click', function () {
-                    searchInput.value = '';
-                    if (roleFilter) roleFilter.value = '';
-                    if (statusFilter) statusFilter.value = '';
-                    if (tuitionFilter) tuitionFilter.value = '';
-                    if (accessFilter) accessFilter.value = '';
-                    <% if (isSuperAdmin) { %>
-                        const schoolFilter = document.getElementById('schoolFilter');
-                        if (schoolFilter) schoolFilter.value = '';
-                    <% } %>
-                        performSearch();
-                });
-
-                searchInput.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') performSearch();
-                });
-
-                if (roleFilter) roleFilter.addEventListener('change', performSearch);
-                if (statusFilter) statusFilter.addEventListener('change', performSearch);
-                if (tuitionFilter) tuitionFilter.addEventListener('change', performSearch);
-                if (accessFilter) accessFilter.addEventListener('change', performSearch);
-
-                performSearch();
-            }
-
-            function performSearch() {
-                const searchInput = document.getElementById('searchInput');
-                const roleFilter = document.getElementById('roleFilter');
-                const statusFilter = document.getElementById('statusFilter');
-                const tuitionFilter = document.getElementById('tuitionFilter');
-                const accessFilter = document.getElementById('accessFilter');
-
-                if (!searchInput) return;
-
-                const searchTerm = searchInput.value.toLowerCase();
-                const roleValue = roleFilter ? roleFilter.value : '';
-                const statusValue = statusFilter ? statusFilter.value : '';
-                const tuitionValue = tuitionFilter ? tuitionFilter.value : '';
-                const accessValue = accessFilter ? accessFilter.value : '';
-
-                const schoolFilter = document.getElementById('schoolFilter') ?
-                    document.getElementById('schoolFilter').value.toLowerCase() : '';
-
-                const rows = document.querySelectorAll('#userTableBody .user-row');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const idNumber = row.getAttribute('data-idnumber').toLowerCase();
-                    const name = row.getAttribute('data-name').toLowerCase();
-                    const email = row.getAttribute('data-email').toLowerCase();
-                    const role = row.getAttribute('data-role');
-                    const school = row.getAttribute('data-school').toLowerCase();
-                    const status = row.getAttribute('data-status');
-                    const tuition = row.getAttribute('data-tuition');
-                    const access = row.getAttribute('data-access');
-
-                    const textMatch = !searchTerm ||
-                        idNumber.includes(searchTerm) ||
-                        name.includes(searchTerm) ||
-                        email.includes(searchTerm) ||
-                        school.includes(searchTerm) ||
-                        role.includes(searchTerm);
-
-                    const roleMatch = !roleValue || role === roleValue;
-                    const statusMatch = !statusValue || status === statusValue;
-                    const tuitionMatch = !tuitionValue || tuition === tuitionValue;
-                    const accessMatch = !accessValue || access === accessValue;
-                    const schoolMatch = !schoolFilter || school.includes(schoolFilter);
-
-                    const shouldShow = textMatch && roleMatch && statusMatch && tuitionMatch && accessMatch && schoolMatch;
-
-                    row.style.display = shouldShow ? '' : 'none';
-
-                    if (shouldShow) {
-                        visibleCount++;
-                        highlightSearchTerms(row, searchTerm);
-                    }
-                });
-
-                const resultCount = document.getElementById('resultCount');
-                if (resultCount) resultCount.textContent = `${visibleCount} users found`;
-
-                const noUsersRow = document.getElementById('noUsersRow');
-                if (noUsersRow) noUsersRow.style.display = visibleCount === 0 ? '' : 'none';
-
-                updateActiveFiltersDisplay();
-            }
-
-            function highlightSearchTerms(row, searchTerm) {
-                if (!searchTerm) return;
-                const fields = ['id-number', 'user-name', 'user-email', 'user-school'];
-                const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
-                fields.forEach(field => {
-                    const element = row.querySelector(`.${field}`);
-                    if (element) {
-                        const text = element.textContent;
-                        element.innerHTML = text.replace(regex, '<span class="search-highlight">$1</span>');
-                    }
-                });
-            }
-
-            function escapeRegex(string) {
-                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            }
-
-            function updateActiveFiltersDisplay() {
-                const roleFilter = document.getElementById('roleFilter');
-                const statusFilter = document.getElementById('statusFilter');
-                const tuitionFilter = document.getElementById('tuitionFilter');
-                const accessFilter = document.getElementById('accessFilter');
-                const schoolFilter = document.getElementById('schoolFilter');
-
-                const activeFilters = [];
-                if (roleFilter && roleFilter.value) activeFilters.push(`Role: ${roleFilter.value}`);
-                if (statusFilter && statusFilter.value) activeFilters.push(`Status: ${statusFilter.value}`);
-                if (tuitionFilter && tuitionFilter.value) activeFilters.push(`Tuition: ${tuitionFilter.value}`);
-                if (accessFilter && accessFilter.value) activeFilters.push(`Access: ${accessFilter.value}`);
-                if (schoolFilter && schoolFilter.value) activeFilters.push(`School: ${schoolFilter.value}`);
-
-                const activeFiltersElement = document.getElementById('activeFilters');
-                if (activeFiltersElement) {
-                    if (activeFilters.length > 0) {
-                        activeFiltersElement.innerHTML = `<i class="fas fa-filter"></i> Active: ${activeFilters.join(', ')}`;
-                    } else {
-                        activeFiltersElement.innerHTML = '';
-                    }
-                }
-            }
-
-            function initializeSorting() {
-                document.querySelectorAll('th[data-sort]').forEach(header => {
-                    header.style.cursor = 'pointer';
-                    header.addEventListener('click', function () {
-                        sortTable(this.getAttribute('data-sort'));
-                    });
-                });
-            }
-
-            function sortTable(field) {
-                const rows = Array.from(document.querySelectorAll('#userTableBody .user-row'));
-                const direction = currentSort.field === field && currentSort.direction === 'asc' ? 'desc' : 'asc';
-
-                rows.sort((a, b) => {
-                    let aValue, bValue;
-                    switch (field) {
-                        case 'idNumber':
-                            aValue = a.getAttribute('data-idnumber');
-                            bValue = b.getAttribute('data-idnumber');
-                            if (!isNaN(aValue) && !isNaN(bValue)) {
-                                aValue = parseInt(aValue);
-                                bValue = parseInt(bValue);
-                            }
-                            break;
-                        case 'name':
-                            aValue = a.getAttribute('data-name').toLowerCase();
-                            bValue = b.getAttribute('data-name').toLowerCase();
-                            break;
-                        case 'role':
-                            aValue = a.getAttribute('data-role');
-                            bValue = b.getAttribute('data-role');
-                            break;
-                        case 'school':
-                            aValue = a.getAttribute('data-school').toLowerCase();
-                            bValue = b.getAttribute('data-school').toLowerCase();
-                            break;
-                        case 'status':
-                            aValue = a.getAttribute('data-status');
-                            bValue = b.getAttribute('data-status');
-                            break;
-                        default:
-                            return 0;
-                    }
-                    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-                    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-                    return 0;
-                });
-
-                const tbody = document.getElementById('userTableBody');
-                rows.forEach(row => tbody.appendChild(row));
-
-                updateSortIndicators(field, direction);
-                currentSort = { field, direction };
-            }
-
-            function updateSortIndicators(field, direction) {
-                document.querySelectorAll('th[data-sort] i').forEach(icon => {
-                    icon.className = 'fas fa-sort';
-                });
-                const currentHeader = document.querySelector(`th[data-sort="${field}"]`);
-                if (currentHeader) {
-                    const icon = currentHeader.querySelector('i');
-                    icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                }
-            }
-
-            function initializeSchoolFilter() {
-                const schoolFilter = document.getElementById('schoolFilter');
-                if (!schoolFilter) return;
-
-                const schools = new Set();
-                document.querySelectorAll('#userTableBody .user-row').forEach(row => {
-                    const school = row.getAttribute('data-school');
-                    if (school) schools.add(school);
-                });
-
-                const sortedSchools = Array.from(schools).sort();
-                sortedSchools.forEach(school => {
-                    const option = document.createElement('option');
-                    option.value = school;
-                    option.textContent = school;
-                    schoolFilter.appendChild(option);
-                });
-
-                schoolFilter.addEventListener('change', performSearch);
-            }
-
-            function toggleTuitionFields() {
-                const tuitionStatus = document.querySelector('select[name="tuitionStatus"]');
-                const receiptField = document.getElementById('receiptNumber');
-                const accessDuration = document.getElementById('accessDuration');
-
-                if (!tuitionStatus) return;
-
-                const status = tuitionStatus.value;
-                if (receiptField) receiptField.required = status === 'paid';
-                if (accessDuration && accessDuration.parentElement) {
-                    accessDuration.parentElement.style.display = status === 'partial' ? 'block' : 'none';
-                }
-            }
-
-            function toggleRoleFields() {
-                const roleSelect = document.querySelector('select[name="role"]');
-                if (!roleSelect) return;
-
-                const role = roleSelect.value;
-                const studentFields = document.getElementById('studentFields');
-                const teacherFields = document.getElementById('teacherFields');
-                const adminFields = document.getElementById('adminFields');
-                const parentFields = document.getElementById('parentFields');
-
-                if (studentFields) studentFields.style.display = role === 'student' ? 'block' : 'none';
-                if (teacherFields) teacherFields.style.display = role === 'teacher' ? 'block' : 'none';
-                if (adminFields) adminFields.style.display = role === 'admin' ? 'block' : 'none';
-                if (parentFields) parentFields.style.display = role === 'parent' ? 'block' : 'none';
-
-                if (role === 'student') toggleTuitionFields();
-            }
-        </script>
-</body>
-
-</html>
+                    </div>
+
+                    <!-- Parent Fields -->
+                    <div id="parentFields" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Parent accounts can be linked to students later for viewing progress and making payments.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
