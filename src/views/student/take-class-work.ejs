@@ -65,6 +65,7 @@
             padding: 10px 20px;
             border-radius: 5px;
             margin-bottom: 20px;
+            text-align: center;
         }
 
         .progress-bar {
@@ -94,8 +95,7 @@
                         <!-- Header -->
                         <div class="card mb-4">
                             <div class="card-header bg-primary text-white">
-                                <h3 class="mb-0">
-                                    <i class="fas fa-tasks me-2"></i>
+                                <h3 class="mb-0"><i class="fas fa-tasks me-2"></i>
                                     <%= classWork.title %>
                                 </h3>
                             </div>
@@ -138,12 +138,21 @@
                                                     </strong>
                                                 </div>
 
-                                                <% if (hasSubmission) { %>
-                                                    <div class="alert alert-warning">
-                                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                                        You have already started this class work. Continue below.
+                                                <!-- ✅ Timer display (only if duration exists) -->
+                                                <% if (classWork.duration) { %>
+                                                    <div class="timer">
+                                                        <i class="fas fa-hourglass-half me-2"></i>
+                                                        <span id="timerDisplay">--:--</span>
                                                     </div>
                                                     <% } %>
+
+                                                        <% if (hasSubmission) { %>
+                                                            <div class="alert alert-warning">
+                                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                                You have already started this class work. Continue
+                                                                below.
+                                                            </div>
+                                                            <% } %>
                             </div>
                         </div>
 
@@ -167,8 +176,7 @@
                                                             <%= question.description %>
                                                         </p>
                                                         <% } %>
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-star me-1"></i>
+                                                            <small class="text-muted"><i class="fas fa-star me-1"></i>
                                                                 <%= question.points || 1 %> point(s)
                                                             </small>
                                                 </div>
@@ -214,10 +222,8 @@
                                                             </div>
                                                             <% } else if (question.type==='file_upload' ) { %>
                                                                 <div class="form-group">
-                                                                    <div class="mb-2">
-                                                                        <small class="text-muted">Upload your
-                                                                            file:</small>
-                                                                    </div>
+                                                                    <div class="mb-2"><small class="text-muted">Upload
+                                                                            your file:</small></div>
                                                                     <input type="file" class="form-control"
                                                                         name="q<%= index %>_file"
                                                                         accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
@@ -242,12 +248,10 @@
                                 <!-- Submit Button -->
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-paper-plane me-2"></i>
-                                        Submit Class Work
+                                        <i class="fas fa-paper-plane me-2"></i> Submit Class Work
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
-                                        <i class="fas fa-save me-2"></i>
-                                        Save Draft
+                                        <i class="fas fa-save me-2"></i> Save Draft
                                     </button>
                                 </div>
                                 <% } else { %>
@@ -291,59 +295,42 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
+            // Pass questions from server to client
+            const questions = <% - JSON.stringify(classWork.questions || []) %>;
+            const totalQuestions = questions.length;
+
             // Handle option selection
             document.querySelectorAll('.option-input[type="radio"]').forEach(radio => {
                 radio.addEventListener('change', function () {
                     const label = this.closest('.option-label');
                     const card = this.closest('.question-card');
-
-                    // Remove selected class from all options in this question
-                    card.querySelectorAll('.option-label').forEach(opt => {
-                        opt.classList.remove('selected');
-                    });
-
-                    // Add selected class to current option
+                    card.querySelectorAll('.option-label').forEach(opt => opt.classList.remove('selected'));
                     label.classList.add('selected');
-
                     updateProgress();
                 });
             });
 
-            // Handle textarea changes
             document.querySelectorAll('textarea').forEach(textarea => {
                 textarea.addEventListener('input', updateProgress);
             });
 
-            // Update progress
             function updateProgress() {
-                const totalQuestions = <%= classWork.questions ?classWork.questions.length: 0 %>;
                 let answered = 0;
-
-                // Count answered questions
-                document.querySelectorAll('.question-card').forEach(card => {
-                    const index = card.dataset.questionIndex;
-                    const questionType = '<%= classWork.questions ? classWork.questions[0]?.type : "" %>';
-
-                    // Check based on question type
-                    if (questionType === 'multiple_choice' || questionType === 'true_false') {
-                        const selectedRadio = card.querySelector('.option-input:checked');
-                        if (selectedRadio && selectedRadio.value) {
-                            answered++;
-                        }
-                    } else if (questionType === 'short_answer' || questionType === 'essay') {
+                document.querySelectorAll('.question-card').forEach((card, index) => {
+                    const qType = questions[index]?.type || '';
+                    let isAnswered = false;
+                    if (qType === 'multiple_choice' || qType === 'true_false') {
+                        isAnswered = !!card.querySelector('.option-input:checked');
+                    } else if (qType === 'short_answer' || qType === 'essay') {
                         const textarea = card.querySelector('textarea');
-                        if (textarea && textarea.value.trim().length > 0) {
-                            answered++;
-                        }
-                    } else if (questionType === 'file_upload') {
+                        isAnswered = textarea && textarea.value.trim().length > 0;
+                    } else if (qType === 'file_upload') {
                         const fileInput = card.querySelector('input[type="file"]');
-                        if (fileInput && fileInput.files.length > 0) {
-                            answered++;
-                        }
+                        isAnswered = fileInput && fileInput.files.length > 0;
                     }
+                    if (isAnswered) answered++;
                 });
 
-                // Update UI
                 document.getElementById('answeredCount').textContent = answered;
                 const progressPercent = totalQuestions > 0 ? (answered / totalQuestions) * 100 : 0;
                 document.getElementById('progressFill').style.width = progressPercent + '%';
@@ -356,52 +343,45 @@
             });
 
             function showConfirmation() {
-                // Collect answers
                 const answers = {};
                 let answered = 0;
-                let total = <%= classWork.questions ?classWork.questions.length: 0 %>;
 
                 document.querySelectorAll('.question-card').forEach((card, index) => {
-                    const questionType = '<%= classWork.questions ? classWork.questions[index]?.type : "" %>';
+                    const qType = questions[index]?.type || '';
                     let answer = null;
 
-                    if (questionType === 'multiple_choice' || questionType === 'true_false') {
+                    if (qType === 'multiple_choice' || qType === 'true_false') {
                         const selected = card.querySelector('.option-input:checked');
                         if (selected) {
                             answer = selected.value;
                             answered++;
                         }
-                    } else if (questionType === 'short_answer' || questionType === 'essay') {
+                    } else if (qType === 'short_answer' || qType === 'essay') {
                         const textarea = card.querySelector('textarea');
                         if (textarea && textarea.value.trim()) {
                             answer = textarea.value;
                             answered++;
                         }
-                    } else if (questionType === 'file_upload') {
+                    } else if (qType === 'file_upload') {
                         const fileInput = card.querySelector('input[type="file"]');
                         if (fileInput && fileInput.files.length > 0) {
                             answer = fileInput.files[0].name;
                             answered++;
                         }
                     }
-
                     answers[index] = answer;
                 });
 
-                // Update modal summary
                 const summaryHtml = `
-                <div class="alert ${answered === total ? 'alert-success' : 'alert-warning'} mt-3">
-                    <i class="fas ${answered === total ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
-                    ${answered} of ${total} questions answered
+                <div class="alert ${answered === totalQuestions ? 'alert-success' : 'alert-warning'} mt-3">
+                    <i class="fas ${answered === totalQuestions ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+                    ${answered} of ${totalQuestions} questions answered
                 </div>
             `;
                 document.getElementById('summary').innerHTML = summaryHtml;
 
-                // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
                 modal.show();
-
-                // Store answers for confirmation
                 window.pendingAnswers = answers;
             }
 
@@ -409,15 +389,10 @@
                 const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
                 modal.hide();
 
-                // Submit via AJAX
                 fetch(`/student/class-works/<%= classWork.id %>/submit`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        answers: window.pendingAnswers
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: window.pendingAnswers })
                 })
                     .then(response => response.json())
                     .then(data => {
@@ -435,34 +410,23 @@
             }
 
             function saveDraft() {
-                // Save draft to localStorage
                 const draftData = {
                     classWorkId: '<%= classWork.id %>',
                     answers: {},
                     timestamp: new Date().toISOString()
                 };
-
                 document.querySelectorAll('.question-card').forEach((card, index) => {
-                    const questionType = '<%= classWork.questions ? classWork.questions[index]?.type : "" %>';
+                    const qType = questions[index]?.type || '';
                     let answer = null;
-
-                    if (questionType === 'multiple_choice' || questionType === 'true_false') {
+                    if (qType === 'multiple_choice' || qType === 'true_false') {
                         const selected = card.querySelector('.option-input:checked');
-                        if (selected) {
-                            answer = selected.value;
-                        }
-                    } else if (questionType === 'short_answer' || questionType === 'essay') {
+                        if (selected) answer = selected.value;
+                    } else if (qType === 'short_answer' || qType === 'essay') {
                         const textarea = card.querySelector('textarea');
-                        if (textarea) {
-                            answer = textarea.value;
-                        }
+                        if (textarea) answer = textarea.value;
                     }
-
-                    if (answer) {
-                        draftData.answers[index] = answer;
-                    }
+                    if (answer) draftData.answers[index] = answer;
                 });
-
                 localStorage.setItem(`draft_<%= classWork.id %>`, JSON.stringify(draftData));
                 alert('Draft saved successfully!');
             }
@@ -477,59 +441,51 @@
                             const answer = draftData.answers[index];
                             const card = document.querySelector(`[data-question-index="${index}"]`);
                             if (card) {
-                                const questionType = '<%= classWork.questions ? classWork.questions[index]?.type : "" %>';
-
-                                if (questionType === 'multiple_choice' || questionType === 'true_false') {
+                                const qType = questions[index]?.type || '';
+                                if (qType === 'multiple_choice' || qType === 'true_false') {
                                     const radio = card.querySelector(`input[value="${answer}"]`);
                                     if (radio) {
                                         radio.checked = true;
                                         radio.closest('.option-label').classList.add('selected');
                                     }
-                                } else if (questionType === 'short_answer' || questionType === 'essay') {
+                                } else if (qType === 'short_answer' || qType === 'essay') {
                                     const textarea = card.querySelector('textarea');
-                                    if (textarea) {
-                                        textarea.value = answer;
-                                    }
+                                    if (textarea) textarea.value = answer;
                                 }
                             }
                         });
-
                         updateProgress();
-
-                        // Show draft loaded message
                         console.log('Draft loaded from', new Date(draftData.timestamp).toLocaleString());
                     } catch (error) {
                         console.error('Error loading draft:', error);
                     }
                 }
-
-                // Initial progress update
                 updateProgress();
             });
 
-        // Timer functionality for timed class works
+        // ✅ Timer (only if duration exists)
         <% if (classWork.duration) { %>
-                let timeLeft = <%= classWork.duration %> * 60; // Convert minutes to seconds
+                let timeLeft = <%= classWork.duration %> * 60; // minutes -> seconds
 
                 function updateTimer() {
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
-
-                    document.getElementById('timerDisplay').textContent =
-                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    const display = document.getElementById('timerDisplay');
+                    if (display) {
+                        display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
 
                     if (timeLeft <= 0) {
-                        // Auto-submit when time is up
                         alert('Time is up! Submitting automatically...');
                         confirmSubmit();
+                        clearInterval(timerInterval);
                     } else {
                         timeLeft--;
                     }
                 }
 
-                // Start timer
-                setInterval(updateTimer, 1000);
-                updateTimer(); // Initial call
+                let timerInterval = setInterval(updateTimer, 1000);
+                updateTimer(); // initial call
         <% } %>
         </script>
 </body>
