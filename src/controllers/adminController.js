@@ -78,7 +78,91 @@ function getAccessStatus(user) {
 }
 
 // ============================================================
-// DASHBOARD (updated – builds notification HTML in controller)
+// NEW HELPER: Find or create parent (prevents duplicates)
+// ============================================================
+const findOrLinkParent = async (studentId, firstName, lastName, email, relationship, school) => {
+  let parentUser = null;
+
+  // 1. Try to find by email (if provided)
+  if (email) {
+    parentUser = await prisma.user.findFirst({
+      where: {
+        email: email.trim(),
+        role: 'parent',
+        school: school,
+        isActive: true
+      },
+      include: { parent: true }
+    });
+  }
+
+  // 2. If no email or no result, try by full name (case‑insensitive)
+  if (!parentUser && firstName && lastName) {
+    parentUser = await prisma.user.findFirst({
+      where: {
+        firstName: { equals: firstName.trim(), mode: 'insensitive' },
+        lastName: { equals: lastName.trim(), mode: 'insensitive' },
+        role: 'parent',
+        school: school,
+        isActive: true
+      },
+      include: { parent: true }
+    });
+  }
+
+  if (parentUser) {
+    // ---- Existing parent found ----
+    const parent = parentUser.parent;
+    // Check if already linked to this student
+    const existingLink = await prisma.studentParent.findUnique({
+      where: {
+        parentId_studentId: {
+          parentId: parent.id,
+          studentId: studentId
+        }
+      }
+    });
+    if (!existingLink) {
+      await prisma.studentParent.create({
+        data: {
+          parentId: parent.id,
+          studentId: studentId,
+          relationship: relationship || 'parent'
+        }
+      });
+    }
+    return { success: true, linked: true, existing: true, parentUser };
+  } else {
+    // ---- Create new parent ----
+    const parentIdNumber = await generateParentId();
+    const newParentUser = await prisma.user.create({
+      data: {
+        idNumber: parentIdNumber,
+        password: await hashPassword('12345'),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email ? email.trim() : null,
+        role: 'parent',
+        isTemporaryPassword: true,
+        school: school,
+        isActive: true
+      }
+    });
+    const parent = await prisma.parent.create({ data: { userId: newParentUser.id } });
+    await prisma.wallet.create({ data: { parentId: parent.id, balance: 0 } });
+    await prisma.studentParent.create({
+      data: {
+        parentId: parent.id,
+        studentId: studentId,
+        relationship: relationship || 'parent'
+      }
+    });
+    return { success: true, linked: true, existing: false, parentUser: newParentUser };
+  }
+};
+
+// ============================================================
+// DASHBOARD
 // ============================================================
 const dashboard = async (req, res) => {
   try {
@@ -86,7 +170,6 @@ const dashboard = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    // --- Filters for school-based filtering ---
     let studentWhere = {};
     let teacherWhere = {};
     let classWhere = {};
@@ -101,13 +184,11 @@ const dashboard = async (req, res) => {
       activityWhere = { school: userSchool };
     }
 
-    // --- Fetch statistics ---
     const totalStudents = await prisma.student.count({ where: studentWhere });
     const totalTeachers = await prisma.teacher.count({ where: teacherWhere });
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    // --- Recent activities ---
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -128,7 +209,6 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
-    // --- Notifications (raw data for navbar) ---
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -141,13 +221,11 @@ const dashboard = async (req, res) => {
       take: 10
     });
 
-    // --- Build notification dropdown HTML (to avoid loops in EJS) ---
     let notificationsDropdownHtml = '';
     const unreadCount = notifications.filter(n => !n.read).length;
 
     if (notifications && notifications.length > 0) {
       let itemsHtml = '';
-      // Limit to 5 most recent
       const displayNotifications = notifications.slice(0, 5);
       displayNotifications.forEach(n => {
         const isRead = n.read ? 'read' : 'unread';
@@ -174,7 +252,6 @@ const dashboard = async (req, res) => {
           </li>
         `;
       });
-      // Mark all read button
       const markAllReadBtn = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
       const header = `<li class="notification-header">
                         <span>Notifications</span>
@@ -185,7 +262,6 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
-    // --- User data for navbar ---
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -206,7 +282,6 @@ const dashboard = async (req, res) => {
       where: { userId: userId }
     });
 
-    // --- Render the dashboard with all variables ---
     res.render('admin/dashboard', {
       title: 'Admin Dashboard',
       overview: {
@@ -216,7 +291,6 @@ const dashboard = async (req, res) => {
         totalAssignments
       },
       recentActivities: formattedActivities,
-      // Pass the pre‑built HTML string and other navbar data
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
       userRole: user.role || '',
@@ -239,7 +313,7 @@ const dashboard = async (req, res) => {
 };
 
 // ============================================================
-// CREATE USER (with avatar fix)
+// CREATE USER (with duplicate‑prevention)
 // ============================================================
 const createUser = async (req, res) => {
   try {
@@ -275,7 +349,6 @@ const createUser = async (req, res) => {
     const hashedPassword = await hashPassword(tempPassword);
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
-    // Avatar upload – use Blob URL or fallback
     let avatarUrl = null;
     if (req.file) {
       try {
@@ -296,55 +369,16 @@ const createUser = async (req, res) => {
         phone: phone ? phone.trim() : null,
         role,
         dateOfBirth: parsedDateOfBirth,
-        avatar: avatarUrl,   // now correctly defined
+        avatar: avatarUrl,
         isTemporaryPassword: true,
         school: assignedSchool,
         isActive: true
       }
     });
 
-    let parentUser = null;
-
-    if (role === 'student' && parentFirstName && parentLastName) {
-      try {
-        const parentIdNumber = await generateParentId();
-        parentUser = await prisma.user.create({
-          data: {
-            idNumber: parentIdNumber,
-            password: await hashPassword('12345'),
-            firstName: parentFirstName.trim(),
-            lastName: parentLastName.trim(),
-            email: parentEmail ? parentEmail.trim() : null,
-            role: 'parent',
-            isTemporaryPassword: true,
-            school: assignedSchool,
-            isActive: true
-          }
-        });
-
-        const parent = await prisma.parent.create({
-          data: { userId: parentUser.id }
-        });
-
-        await prisma.wallet.create({
-          data: {
-            parentId: parent.id,
-            balance: 0
-          }
-        });
-
-        console.log('👨‍👦 Parent account created:', parentIdNumber);
-      } catch (parentError) {
-        console.error('Error creating parent account:', parentError);
-      }
-    }
-
     if (role === 'student') {
       if (!grade || !section) {
         await prisma.user.delete({ where: { id: user.id } });
-        if (parentUser) {
-          await prisma.user.delete({ where: { id: parentUser.id } });
-        }
         return res.redirect('/admin/users?error=Grade and section are required for students');
       }
 
@@ -362,22 +396,24 @@ const createUser = async (req, res) => {
         }
       });
 
-      if (parentUser) {
+      // ---- Parent handling (optional) ----
+      if (parentFirstName && parentLastName) {
         try {
-          const parentRecord = await prisma.parent.findUnique({ 
-            where: { userId: parentUser.id } 
-          });
-          if (parentRecord) {
-            await prisma.studentParent.create({
-              data: {
-                parentId: parentRecord.id,
-                studentId: student.id,
-                relationship: parentRelationship || 'parent'
-              }
-            });
+          const result = await findOrLinkParent(
+            student.id,
+            parentFirstName,
+            parentLastName,
+            parentEmail,
+            parentRelationship,
+            assignedSchool   // uses the student's school
+          );
+          if (result.existing) {
+            console.log(`👨‍👦 Linked existing parent (${result.parentUser.idNumber}) to student`);
+          } else {
+            console.log(`👨‍👦 Created new parent (${result.parentUser.idNumber}) for student`);
           }
-        } catch (linkError) {
-          console.error('Error linking parent to student:', linkError);
+        } catch (parentError) {
+          console.error('Error linking/creating parent:', parentError);
         }
       }
 
@@ -443,8 +479,8 @@ const createUser = async (req, res) => {
     }
 
     let successMessage = 'User created successfully. Temporary password: 12345';
-    if (parentUser) {
-      successMessage += `. Parent account created with ID: ${parentUser.idNumber} (Password: 12345)`;
+    if (parentFirstName && parentLastName) {
+      successMessage += `. Parent account created/linked successfully.`;
     }
 
     return res.redirect(`/admin/users?success=${encodeURIComponent(successMessage)}`);
@@ -464,7 +500,7 @@ const createUser = async (req, res) => {
 };
 
 // ============================================================
-// UPDATE USER (with avatar fix)
+// UPDATE USER
 // ============================================================
 const updateUser = async (req, res) => {
   try {
@@ -490,14 +526,12 @@ const updateUser = async (req, res) => {
     
     const parsedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
     
-    // --- Avatar handling ---
-    let avatarUrl = user.avatar; // keep existing if no new file
+    let avatarUrl = user.avatar;
     if (req.file) {
       try {
         avatarUrl = await uploadToBlob(req.file, 'profiles');
       } catch (blobError) {
         console.error('Blob upload error:', blobError);
-        // fallback: store as relative path (not recommended for Vercel)
         avatarUrl = `uploads/profiles/${req.file.filename}`;
       }
     }
@@ -510,7 +544,7 @@ const updateUser = async (req, res) => {
         email,
         phone,
         dateOfBirth: parsedDateOfBirth,
-        avatar: avatarUrl,   // now always defined
+        avatar: avatarUrl,
         school: school
       }
     });
@@ -600,9 +634,6 @@ const updateUser = async (req, res) => {
   }
 };
 
-// ============================================================
-// USER MANAGEMENT
-// ============================================================
 // ============================================================
 // USER MANAGEMENT
 // ============================================================
@@ -700,7 +731,6 @@ const manageUsers = async (req, res) => {
     const success = req.query.success;
     const error = req.query.error;
 
-    // --- Get notification count for navbar ---
     const userId = req.session.user.id;
     const notificationCount = await prisma.notification.count({
       where: {
@@ -713,7 +743,6 @@ const manageUsers = async (req, res) => {
       }
     });
 
-    // --- Fetch notifications for navbar dropdown ---
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -726,7 +755,6 @@ const manageUsers = async (req, res) => {
       take: 10
     });
 
-    // --- Build notification dropdown HTML ---
     let notificationsDropdownHtml = '';
     const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -768,7 +796,6 @@ const manageUsers = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
-    // --- Compute avatar data for navbar ---
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -802,14 +829,12 @@ const manageUsers = async (req, res) => {
       success,
       error,
       getAccessStatus,
-      // Navbar variables
       notificationCount: notificationCount,
       notificationsDropdownHtml: notificationsDropdownHtml,
       userFirstName: user ? user.firstName || '' : '',
       userLastName: user ? user.lastName || '' : '',
       avatarUrl: avatarUrl,
       fallbackAvatar: fallbackAvatar,
-      // You may also pass the full notifications array if needed elsewhere
       notifications: notifications
     });
   } catch (error) {
@@ -2285,7 +2310,7 @@ const checkIdNumber = async (req, res) => {
 };
 
 // ============================================================
-// PARENT MANAGEMENT
+// PARENT MANAGEMENT (with duplicate prevention)
 // ============================================================
 const getStudentParent = async (req, res) => {
   try {
@@ -2392,10 +2417,12 @@ const linkExistingParent = async (req, res) => {
   }
 };
 
+// UPDATED: createNewParent with duplicate prevention
 const createNewParent = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { firstName, lastName, email, relationship } = req.body;
+
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       include: { user: true }
@@ -2403,34 +2430,32 @@ const createNewParent = async (req, res) => {
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
-    const parentIdNumber = await generateParentId();
-    const parentUser = await prisma.user.create({
-      data: {
-        idNumber: parentIdNumber,
-        password: await hashPassword('12345'),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email ? email.trim() : null,
-        role: 'parent',
-        isTemporaryPassword: true,
-        school: student.user.school,
-        isActive: true
-      }
-    });
-    const parent = await prisma.parent.create({ data: { userId: parentUser.id } });
-    await prisma.wallet.create({ data: { parentId: parent.id, balance: 0 } });
-    await prisma.studentParent.create({
-      data: {
-        parentId: parent.id,
-        studentId: student.id,
-        relationship: relationship || 'parent'
-      }
-    });
-    res.json({
-      success: true,
-      message: `Parent created and linked successfully. Parent ID: ${parentIdNumber}, Password: 12345`,
-      parentId: parentUser.id
-    });
+
+    // Use the helper to find or create parent
+    const result = await findOrLinkParent(
+      studentId,
+      firstName,
+      lastName,
+      email,
+      relationship,
+      student.user.school   // parent gets same school as student
+    );
+
+    if (result.existing) {
+      return res.json({
+        success: true,
+        message: `Parent already exists and has been linked to the student. Parent ID: ${result.parentUser.idNumber}`,
+        parentId: result.parentUser.id,
+        existing: true
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: `Parent created and linked successfully. Parent ID: ${result.parentUser.idNumber}, Password: 12345`,
+        parentId: result.parentUser.id,
+        existing: false
+      });
+    }
   } catch (error) {
     console.error('Create new parent error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -3252,7 +3277,7 @@ module.exports = {
   getStudentParent,
   getAvailableParents,
   linkExistingParent,
-  createNewParent,
+  createNewParent,    // updated
   unlinkParent,
   getParentAccount,
   addWalletFunds,
