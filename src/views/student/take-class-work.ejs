@@ -81,6 +81,10 @@
             border-radius: 5px;
             transition: width 0.3s;
         }
+
+        .loading-spinner {
+            display: none;
+        }
     </style>
 </head>
 
@@ -138,7 +142,6 @@
                                                     </strong>
                                                 </div>
 
-                                                <!-- Timer display (only if duration exists) -->
                                                 <% if (classWork.duration) { %>
                                                     <div class="timer">
                                                         <i class="fas fa-hourglass-half me-2"></i>
@@ -247,8 +250,11 @@
 
                                 <!-- Submit Button -->
                                 <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-paper-plane me-2"></i> Submit Class Work
+                                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                        <span class="spinner-border spinner-border-sm loading-spinner" role="status"
+                                            aria-hidden="true"></span>
+                                        <span class="btn-text"><i class="fas fa-paper-plane me-2"></i> Submit Class
+                                            Work</span>
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
                                         <i class="fas fa-save me-2"></i> Save Draft
@@ -287,7 +293,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-success" onclick="confirmSubmit()">Confirm Submit</button>
+                        <button type="button" class="btn btn-success" id="confirmSubmitBtn">Confirm Submit</button>
                     </div>
                 </div>
             </div>
@@ -300,6 +306,7 @@
             // ------------------------------------------------------------
             var questions = <% - JSON.stringify(classWork.questions || []) %>;
             var totalQuestions = questions.length;
+            var classWorkId = '<%= classWork.id %>';
 
             // ------------------------------------------------------------
             // 2. Progress update
@@ -344,8 +351,11 @@
             });
 
             // ------------------------------------------------------------
-            // 4. Form submission
+            // 4. Form submission flow
             // ------------------------------------------------------------
+            var submitBtn = document.getElementById('submitBtn');
+            var confirmBtn = document.getElementById('confirmSubmitBtn');
+
             document.getElementById('classWorkForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 showConfirmation();
@@ -387,41 +397,71 @@
                     '</div>';
                 document.getElementById('summary').innerHTML = summaryHtml;
 
+                // Store answers for later
+                window.pendingAnswers = answers;
+
+                // Show modal
                 var modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
                 modal.show();
-                window.pendingAnswers = answers;
             }
 
-            function confirmSubmit() {
+            // Confirm button inside modal
+            confirmBtn.addEventListener('click', function () {
+                // Disable button and show spinner
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Submitting...';
+
                 var modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
                 modal.hide();
 
-                fetch('/student/class-works/<%= classWork.id %>/submit', {
+                // Show loading on main button
+                submitBtn.disabled = true;
+                var spinner = submitBtn.querySelector('.spinner-border');
+                var btnText = submitBtn.querySelector('.btn-text');
+                if (spinner) spinner.style.display = 'inline-block';
+                if (btnText) btnText.textContent = ' Submitting...';
+
+                // Send request
+                fetch('/student/class-works/' + classWorkId + '/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ answers: window.pendingAnswers })
                 })
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
+                        // Reset button
+                        submitBtn.disabled = false;
+                        if (spinner) spinner.style.display = 'none';
+                        if (btnText) btnText.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Submit Class Work';
+
                         if (data.success) {
+                            // Show success and redirect
                             alert('Class work submitted successfully!');
-                            window.location.href = '/student/class-works/<%= classWork.id %>/results';
+                            window.location.href = '/student/class-works/' + classWorkId + '/results';
                         } else {
-                            alert('Error: ' + data.message);
+                            alert('Error: ' + (data.message || 'Unknown error'));
+                            // Re-enable confirm button
+                            confirmBtn.disabled = false;
+                            confirmBtn.innerHTML = 'Confirm Submit';
                         }
                     })
                     .catch(function (error) {
                         console.error('Error:', error);
                         alert('Failed to submit class work. Please try again.');
+                        submitBtn.disabled = false;
+                        if (spinner) spinner.style.display = 'none';
+                        if (btnText) btnText.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Submit Class Work';
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = 'Confirm Submit';
                     });
-            }
+            });
 
             // ------------------------------------------------------------
             // 5. Draft functions
             // ------------------------------------------------------------
             function saveDraft() {
                 var draftData = {
-                    classWorkId: '<%= classWork.id %>',
+                    classWorkId: classWorkId,
                     answers: {},
                     timestamp: new Date().toISOString()
                 };
@@ -437,7 +477,7 @@
                     }
                     if (answer) draftData.answers[index] = answer;
                 });
-                localStorage.setItem('draft_<%= classWork.id %>', JSON.stringify(draftData));
+                localStorage.setItem('draft_' + classWorkId, JSON.stringify(draftData));
                 alert('Draft saved successfully!');
             }
 
@@ -445,7 +485,7 @@
             // 6. Load draft on page load
             // ------------------------------------------------------------
             document.addEventListener('DOMContentLoaded', function () {
-                var draft = localStorage.getItem('draft_<%= classWork.id %>');
+                var draft = localStorage.getItem('draft_' + classWorkId);
                 if (draft) {
                     try {
                         var draftData = JSON.parse(draft);
@@ -476,7 +516,7 @@
             });
 
         // ------------------------------------------------------------
-        // 7. Timer (only if duration exists)
+        // 7. Timer (if duration exists)
         // ------------------------------------------------------------
         <% if (classWork.duration) { %>
             var timeLeft = <%= classWork.duration %> * 60;
@@ -492,7 +532,8 @@
 
                     if (timeLeft <= 0) {
                         alert('Time is up! Submitting automatically...');
-                        confirmSubmit();
+                        // Trigger the confirm submit
+                        confirmBtn.click();
                         clearInterval(timerInterval);
                     } else {
                         timeLeft--;
