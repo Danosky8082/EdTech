@@ -295,75 +295,84 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Pass questions from server to client – fixed EJS syntax
-            const questions = <% - JSON.stringify(classWork.questions || []) %>;
-            const totalQuestions = questions.length;
+            // ------------------------------------------------------------
+            // 1. Get questions data safely
+            // ------------------------------------------------------------
+            var questions = <% - JSON.stringify(classWork.questions || []) %>;
+            var totalQuestions = questions.length;
 
-            // Handle option selection
-            document.querySelectorAll('.option-input[type="radio"]').forEach(radio => {
-                radio.addEventListener('change', function () {
-                    const label = this.closest('.option-label');
-                    const card = this.closest('.question-card');
-                    card.querySelectorAll('.option-label').forEach(opt => opt.classList.remove('selected'));
-                    label.classList.add('selected');
-                    updateProgress();
-                });
-            });
-
-            document.querySelectorAll('textarea').forEach(textarea => {
-                textarea.addEventListener('input', updateProgress);
-            });
-
+            // ------------------------------------------------------------
+            // 2. Progress update
+            // ------------------------------------------------------------
             function updateProgress() {
-                let answered = 0;
-                document.querySelectorAll('.question-card').forEach((card, index) => {
-                    const qType = questions[index]?.type || '';
-                    let isAnswered = false;
+                var answered = 0;
+                document.querySelectorAll('.question-card').forEach(function (card, index) {
+                    var qType = questions[index] ? questions[index].type : '';
+                    var isAnswered = false;
                     if (qType === 'multiple_choice' || qType === 'true_false') {
                         isAnswered = !!card.querySelector('.option-input:checked');
                     } else if (qType === 'short_answer' || qType === 'essay') {
-                        const textarea = card.querySelector('textarea');
+                        var textarea = card.querySelector('textarea');
                         isAnswered = textarea && textarea.value.trim().length > 0;
                     } else if (qType === 'file_upload') {
-                        const fileInput = card.querySelector('input[type="file"]');
+                        var fileInput = card.querySelector('input[type="file"]');
                         isAnswered = fileInput && fileInput.files.length > 0;
                     }
                     if (isAnswered) answered++;
                 });
 
                 document.getElementById('answeredCount').textContent = answered;
-                const progressPercent = totalQuestions > 0 ? (answered / totalQuestions) * 100 : 0;
+                var progressPercent = totalQuestions > 0 ? (answered / totalQuestions) * 100 : 0;
                 document.getElementById('progressFill').style.width = progressPercent + '%';
             }
 
-            // Form submission
+            // ------------------------------------------------------------
+            // 3. Event listeners
+            // ------------------------------------------------------------
+            document.querySelectorAll('.option-input[type="radio"]').forEach(function (radio) {
+                radio.addEventListener('change', function () {
+                    var label = this.closest('.option-label');
+                    var card = this.closest('.question-card');
+                    card.querySelectorAll('.option-label').forEach(function (opt) { opt.classList.remove('selected'); });
+                    label.classList.add('selected');
+                    updateProgress();
+                });
+            });
+
+            document.querySelectorAll('textarea').forEach(function (textarea) {
+                textarea.addEventListener('input', updateProgress);
+            });
+
+            // ------------------------------------------------------------
+            // 4. Form submission
+            // ------------------------------------------------------------
             document.getElementById('classWorkForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 showConfirmation();
             });
 
             function showConfirmation() {
-                const answers = {};
-                let answered = 0;
+                var answers = {};
+                var answered = 0;
 
-                document.querySelectorAll('.question-card').forEach((card, index) => {
-                    const qType = questions[index]?.type || '';
-                    let answer = null;
+                document.querySelectorAll('.question-card').forEach(function (card, index) {
+                    var qType = questions[index] ? questions[index].type : '';
+                    var answer = null;
 
                     if (qType === 'multiple_choice' || qType === 'true_false') {
-                        const selected = card.querySelector('.option-input:checked');
+                        var selected = card.querySelector('.option-input:checked');
                         if (selected) {
                             answer = selected.value;
                             answered++;
                         }
                     } else if (qType === 'short_answer' || qType === 'essay') {
-                        const textarea = card.querySelector('textarea');
+                        var textarea = card.querySelector('textarea');
                         if (textarea && textarea.value.trim()) {
                             answer = textarea.value;
                             answered++;
                         }
                     } else if (qType === 'file_upload') {
-                        const fileInput = card.querySelector('input[type="file"]');
+                        var fileInput = card.querySelector('input[type="file"]');
                         if (fileInput && fileInput.files.length > 0) {
                             answer = fileInput.files[0].name;
                             answered++;
@@ -372,84 +381,87 @@
                     answers[index] = answer;
                 });
 
-                const summaryHtml = `
-                <div class="alert ${answered === totalQuestions ? 'alert-success' : 'alert-warning'} mt-3">
-                    <i class="fas ${answered === totalQuestions ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
-                    ${answered} of ${totalQuestions} questions answered
-                </div>
-            `;
+                var summaryHtml = '<div class="alert ' + (answered === totalQuestions ? 'alert-success' : 'alert-warning') + ' mt-3">' +
+                    '<i class="fas ' + (answered === totalQuestions ? 'fa-check-circle' : 'fa-exclamation-triangle') + ' me-2"></i>' +
+                    answered + ' of ' + totalQuestions + ' questions answered' +
+                    '</div>';
                 document.getElementById('summary').innerHTML = summaryHtml;
 
-                const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                var modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
                 modal.show();
                 window.pendingAnswers = answers;
             }
 
             function confirmSubmit() {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+                var modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
                 modal.hide();
 
-                fetch(`/student/class-works/<%= classWork.id %>/submit`, {
+                fetch('/student/class-works/<%= classWork.id %>/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ answers: window.pendingAnswers })
                 })
-                    .then(response => response.json())
-                    .then(data => {
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
                         if (data.success) {
                             alert('Class work submitted successfully!');
-                            window.location.href = `/student/class-works/<%= classWork.id %>/results`;
+                            window.location.href = '/student/class-works/<%= classWork.id %>/results';
                         } else {
                             alert('Error: ' + data.message);
                         }
                     })
-                    .catch(error => {
+                    .catch(function (error) {
                         console.error('Error:', error);
                         alert('Failed to submit class work. Please try again.');
                     });
             }
 
+            // ------------------------------------------------------------
+            // 5. Draft functions
+            // ------------------------------------------------------------
             function saveDraft() {
-                const draftData = {
+                var draftData = {
                     classWorkId: '<%= classWork.id %>',
                     answers: {},
                     timestamp: new Date().toISOString()
                 };
-                document.querySelectorAll('.question-card').forEach((card, index) => {
-                    const qType = questions[index]?.type || '';
-                    let answer = null;
+                document.querySelectorAll('.question-card').forEach(function (card, index) {
+                    var qType = questions[index] ? questions[index].type : '';
+                    var answer = null;
                     if (qType === 'multiple_choice' || qType === 'true_false') {
-                        const selected = card.querySelector('.option-input:checked');
+                        var selected = card.querySelector('.option-input:checked');
                         if (selected) answer = selected.value;
                     } else if (qType === 'short_answer' || qType === 'essay') {
-                        const textarea = card.querySelector('textarea');
+                        var textarea = card.querySelector('textarea');
                         if (textarea) answer = textarea.value;
                     }
                     if (answer) draftData.answers[index] = answer;
                 });
-                localStorage.setItem(`draft_<%= classWork.id %>`, JSON.stringify(draftData));
+                localStorage.setItem('draft_<%= classWork.id %>', JSON.stringify(draftData));
                 alert('Draft saved successfully!');
             }
 
-            // Load draft on page load
+            // ------------------------------------------------------------
+            // 6. Load draft on page load
+            // ------------------------------------------------------------
             document.addEventListener('DOMContentLoaded', function () {
-                const draft = localStorage.getItem(`draft_<%= classWork.id %>`);
+                var draft = localStorage.getItem('draft_<%= classWork.id %>');
                 if (draft) {
                     try {
-                        const draftData = JSON.parse(draft);
-                        Object.keys(draftData.answers).forEach(index => {
-                            const answer = draftData.answers[index];
-                            const card = document.querySelector(`[data-question-index="${index}"]`);
+                        var draftData = JSON.parse(draft);
+                        Object.keys(draftData.answers).forEach(function (index) {
+                            var answer = draftData.answers[index];
+                            var card = document.querySelector('[data-question-index="' + index + '"]');
                             if (card) {
-                                const qType = questions[index]?.type || '';
+                                var qType = questions[index] ? questions[index].type : '';
                                 if (qType === 'multiple_choice' || qType === 'true_false') {
-                                    const radio = card.querySelector(`input[value="${answer}"]`);
+                                    var radio = card.querySelector('input[value="' + answer + '"]');
                                     if (radio) {
                                         radio.checked = true;
                                         radio.closest('.option-label').classList.add('selected');
                                     }
                                 } else if (qType === 'short_answer' || qType === 'essay') {
-                                    const textarea = card.querySelector('textarea');
+                                    var textarea = card.querySelector('textarea');
                                     if (textarea) textarea.value = answer;
                                 }
                             }
@@ -463,16 +475,19 @@
                 updateProgress();
             });
 
-        // Timer (only if duration exists)
+        // ------------------------------------------------------------
+        // 7. Timer (only if duration exists)
+        // ------------------------------------------------------------
         <% if (classWork.duration) { %>
-                let timeLeft = <%= classWork.duration %> * 60; // minutes -> seconds
+            var timeLeft = <%= classWork.duration %> * 60;
+                var timerInterval;
 
                 function updateTimer() {
-                    const minutes = Math.floor(timeLeft / 60);
-                    const seconds = timeLeft % 60;
-                    const display = document.getElementById('timerDisplay');
+                    var minutes = Math.floor(timeLeft / 60);
+                    var seconds = timeLeft % 60;
+                    var display = document.getElementById('timerDisplay');
                     if (display) {
-                        display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        display.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
                     }
 
                     if (timeLeft <= 0) {
@@ -484,8 +499,8 @@
                     }
                 }
 
-                let timerInterval = setInterval(updateTimer, 1000);
-                updateTimer(); // initial call
+                timerInterval = setInterval(updateTimer, 1000);
+                updateTimer();
         <% } %>
         </script>
 </body>
