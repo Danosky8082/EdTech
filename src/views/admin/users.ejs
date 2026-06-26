@@ -765,6 +765,18 @@
             // ALL JAVASCRIPT FUNCTIONS
             // ============================================================
 
+            // ----- Global cleanup function for modal backdrops -----
+            function cleanupModals() {
+                // Remove all lingering backdrop elements
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                // Restore body scroll and remove modal-open class
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                // Also remove any leftover inline styles that Bootstrap might have added
+                document.body.style.removeProperty('padding-right');
+            }
+
             // ----- Parent data cache for lookup (searchable datalist) -----
             let parentsData = [];
 
@@ -1020,9 +1032,12 @@
                 }
             };
 
-            // ----- UPDATED manageParent with searchable datalist -----
+            // ----- UPDATED manageParent with searchable datalist and cleanup -----
             window.manageParent = async function (studentId) {
                 try {
+                    // Clean up any leftover backdrops before opening
+                    cleanupModals();
+
                     const response = await fetch(`/admin/students/${studentId}/parent`);
                     const result = await response.json();
 
@@ -1102,6 +1117,9 @@
 
                         const parentModal = new bootstrap.Modal(document.getElementById('parentModal'));
                         parentModal.show();
+
+                        // After showing, also clean up any stray backdrops (safety net)
+                        setTimeout(cleanupModals, 100);
                     } else {
                         alert('Error: ' + result.message);
                     }
@@ -1588,15 +1606,21 @@
                 // ============================================================
                 const parentModalEl = document.getElementById('parentModal');
                 if (parentModalEl) {
+                    // Clean up when hidden
                     parentModalEl.addEventListener('hidden.bs.modal', function () {
-                        // Remove any lingering backdrop elements
-                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                        // Restore body scroll and padding
-                        document.body.classList.remove('modal-open');
-                        document.body.style.overflow = '';
-                        document.body.style.paddingRight = '';
+                        cleanupModals();
+                    });
+
+                    // Also clean up right before showing to remove any stray backdrops
+                    parentModalEl.addEventListener('show.bs.modal', function () {
+                        cleanupModals();
                     });
                 }
+
+                // Also clean up when any modal is hidden (safety net)
+                document.addEventListener('hidden.bs.modal', function (e) {
+                    cleanupModals();
+                });
             });
 
             function initializeSearch() {
