@@ -124,17 +124,17 @@ const uploadSingle = (fieldName) => multer({
 // ============================================================
 module.exports = {
   // Profile upload (field name: 'avatar')
-  upload: profileUpload,           // for backward compatibility
   profileUpload,
   uploadProfile: profileUpload,    // alias
 
   // Materials upload (field name: 'materialFile')
   materialsUpload,
-  uploadMaterial: materialsUpload, // alias
+  uploadMaterial: materialsUpload, // alias (for backward compatibility)
 
   // Generic single file uploader (field name passed)
   uploadSingle,
 
-  // If you need multiple files, you can add:
-  // uploadMultiple: (fieldName, maxCount) => multer({...}).array(fieldName, maxCount)
+  // Keep 'upload' for backward compatibility (points to profileUpload by default)
+  // but better to use explicit exports above.
+  upload: profileUpload   // fallback
 };
