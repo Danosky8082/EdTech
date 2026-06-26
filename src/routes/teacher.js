@@ -5,11 +5,14 @@ const { isAuthenticated, isTeacher, setSchoolContext } = require('../middleware/
 const prisma = require('../config/database');
 const multer = require('multer');
 
-// ✅ Import the correct middlewares
-const { materialsUpload, profileUpload } = require('../middleware/upload');
+// ✅ Import the correct middleware
+const { materialsUpload } = require('../middleware/upload');
 
-// Memory upload for parsing files (5MB)
-const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+// Memory upload for parsing text files (5MB)
+const memoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 // Apply auth & school context
 teacherRouter.use(isAuthenticated, isTeacher, setSchoolContext);
@@ -38,7 +41,7 @@ teacherRouter.get('/exam/:id/results', teacherController.viewExamResults);
 teacherRouter.get('/materials', teacherController.viewMaterials);
 teacherRouter.get('/materials/upload', teacherController.uploadMaterialForm);
 
-// ✅ CORRECT: use materialsUpload
+// ✅ Use materialsUpload (definitely defined)
 teacherRouter.post('/materials/upload', materialsUpload, teacherController.uploadMaterial);
 
 teacherRouter.delete('/materials/:id', teacherController.deleteMaterial);
