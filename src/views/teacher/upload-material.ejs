@@ -195,6 +195,9 @@
                         <div class="upload-container">
                             <h2 class="mb-4"><i class="fas fa-upload me-2"></i>Upload Material</h2>
 
+                            <!-- Error display area -->
+                            <div id="uploadError" class="alert alert-danger" style="display: none;"></div>
+
                             <form id="uploadForm" action="/teacher/materials/upload" method="POST"
                                 enctype="multipart/form-data">
                                 <!-- File Upload Section -->
@@ -328,6 +331,7 @@
             const progressBar = document.getElementById('progressBar');
             const progressPercentage = document.getElementById('progressPercentage');
             const uploadBtn = document.getElementById('uploadBtn');
+            const uploadError = document.getElementById('uploadError');
 
             let selectedFile = null;
             let tags = [];
@@ -559,12 +563,27 @@
                 hiddenTags.value = tags.join(',');
             }
 
-            // Form submission with progress
+            // Form submission with progress and improved error handling
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
+                // Clear previous errors
+                uploadError.style.display = 'none';
+                uploadError.textContent = '';
+
+                // Validate required fields
+                const title = document.querySelector('input[name="title"]').value.trim();
+                const type = document.querySelector('select[name="type"]').value;
+                if (!title) {
+                    showError('Please enter a title for the material.');
+                    return;
+                }
+                if (!type) {
+                    showError('Please select a material type.');
+                    return;
+                }
                 if (!selectedFile) {
-                    alert('Please select a file to upload');
+                    showError('Please select a file to upload.');
                     return;
                 }
 
@@ -587,27 +606,49 @@
                     });
 
                     xhr.addEventListener('load', () => {
-                        if (xhr.status === 200) {
+                        const status = xhr.status;
+                        const responseText = xhr.responseText;
+
+                        if (status === 200) {
+                            // Try to parse as JSON
                             try {
-                                const response = JSON.parse(xhr.responseText);
+                                const response = JSON.parse(responseText);
                                 if (response.success) {
+                                    // Success – redirect to materials list
                                     window.location.href = '/teacher/materials';
+                                    return;
                                 } else {
-                                    alert('Upload failed: ' + (response.message || 'Unknown error'));
+                                    // Server returned success: false
+                                    showError('Upload failed: ' + (response.message || 'Unknown error'));
                                     resetUploadForm();
+                                    return;
                                 }
-                            } catch (error) {
-                                // If response is not JSON (might be a redirect or HTML), assume success
+                            } catch (jsonError) {
+                                // If response is not JSON (maybe redirect), assume success and redirect
                                 window.location.href = '/teacher/materials';
+                                return;
                             }
                         } else {
-                            alert('Upload failed. Please try again.');
+                            // Non-200 status – try to extract error message from response
+                            let errorMsg = 'Server error (status ' + status + ')';
+                            try {
+                                const errorJson = JSON.parse(responseText);
+                                if (errorJson.message) {
+                                    errorMsg = errorJson.message;
+                                }
+                            } catch (e) {
+                                // If not JSON, show the first few characters of the response
+                                if (responseText) {
+                                    errorMsg = responseText.substring(0, 200);
+                                }
+                            }
+                            showError('Upload failed: ' + errorMsg);
                             resetUploadForm();
                         }
                     });
 
                     xhr.addEventListener('error', () => {
-                        alert('Network error. Please check your connection.');
+                        showError('Network error. Please check your connection.');
                         resetUploadForm();
                     });
 
@@ -616,10 +657,17 @@
 
                 } catch (error) {
                     console.error('Upload error:', error);
-                    alert('Upload failed. Please try again.');
+                    showError('Upload failed: ' + error.message);
                     resetUploadForm();
                 }
             });
+
+            function showError(message) {
+                uploadError.textContent = message;
+                uploadError.style.display = 'block';
+                // Scroll to error
+                uploadError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
 
             function resetUploadForm() {
                 uploadBtn.disabled = false;
