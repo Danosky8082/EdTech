@@ -1,15 +1,16 @@
 const express = require('express');
 const teacherRouter = express.Router();
 const teacherController = require('../controllers/teacherController');
-const { upload } = require('../middleware/upload');
+// ✅ Import both upload and materialsUpload
+const { upload, materialsUpload } = require('../middleware/upload');
 const { isAuthenticated, isTeacher, setSchoolContext } = require('../middleware/auth');
-const prisma = require('../config/database'); 
-const multer = require('multer'); // <-- ADDED for memory storage
+const prisma = require('../config/database');
+const multer = require('multer');
 
 // Memory storage for question file parsing (5MB limit)
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 // Apply auth and school context middleware to all routes
@@ -23,9 +24,8 @@ teacherRouter.get('/assignments', teacherController.viewAssignments);
 teacherRouter.get('/assignments/create', teacherController.createAssignmentForm);
 teacherRouter.post('/assignments/create', teacherController.createAssignment);
 teacherRouter.get('/assignments/view/:id', teacherController.getAssignment);
-teacherRouter.put('/assignments/:id', teacherController.updateAssignment);  
+teacherRouter.put('/assignments/:id', teacherController.updateAssignment);
 teacherRouter.delete('/assignments/:id', teacherController.deleteAssignment);
-// NEW: Parse uploaded .txt/.docx file and return plain text for assignment description
 teacherRouter.post(
   '/assignments/parse-description',
   memoryUpload.single('descriptionFile'),
@@ -36,41 +36,26 @@ teacherRouter.post(
 teacherRouter.get('/exams', teacherController.viewExams);
 teacherRouter.get('/exams/create', teacherController.createExamForm);
 teacherRouter.post('/exams/create', teacherController.createExam);
-
-// NEW: Parse uploaded .txt or .docx file and return questions as JSON
 teacherRouter.post(
   '/exams/parse-questions',
   memoryUpload.single('questionsFile'),
   teacherController.parseExamQuestions
 );
-
 teacherRouter.get('/exam/:id', teacherController.viewExam);
 teacherRouter.get('/exam/:id/results', teacherController.viewExamResults);
 
 // ========== MATERIAL ROUTES ==========
-// Material statistics API
 teacherRouter.get('/api/material-stats', teacherController.getMaterialStats);
-
-// Update material route – KEEP ONLY THIS ONE (the duplicate later is removed)
 teacherRouter.put('/materials/:id/update', teacherController.updateMaterial);
 
-// Track material download
+// Track material download (separate from the /api/materials/:id/track-download below)
 teacherRouter.post('/api/materials/:id/track-download', async (req, res) => {
   try {
     const materialId = req.params.id;
-    
-    // You could track downloads in a separate table
-    // For now, we'll just acknowledge the request
-    res.json({
-      success: true,
-      message: 'Download tracked'
-    });
+    res.json({ success: true, message: 'Download tracked' });
   } catch (error) {
     console.error('Error tracking download:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to track download'
-    });
+    res.status(500).json({ success: false, message: 'Failed to track download' });
   }
 });
 
@@ -84,6 +69,7 @@ teacherRouter.get('/students', teacherController.viewStudents);
 teacherRouter.get('/api/students/:id/profile', teacherController.getStudentProfile);
 teacherRouter.get('/api/students/:id/progress', teacherController.getStudentProgress);
 
+// ========== DEBUG ==========
 teacherRouter.get('/debug/session-check', (req, res) => {
   console.log('🔍 Session check:', {
     session: req.session,
@@ -92,7 +78,6 @@ teacherRouter.get('/debug/session-check', (req, res) => {
     params: req.params,
     body: req.body
   });
-  
   res.json({
     success: true,
     session: {
@@ -102,7 +87,7 @@ teacherRouter.get('/debug/session-check', (req, res) => {
   });
 });
 
-// Add this route BEFORE the POST route
+// ========== GRADING ROUTES ==========
 teacherRouter.get('/grading/:id', async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -115,26 +100,16 @@ teacherRouter.get('/grading/:id', async (req, res) => {
     const submission = await prisma.submission.findFirst({
       where: {
         id: submissionId,
-        assignment: {
-          teacherId: teacherId
-        }
+        assignment: { teacherId: teacherId }
       },
       include: {
         assignment: {
           include: {
             class: true,
-            teacher: {
-              include: {
-                user: true
-              }
-            }
+            teacher: { include: { user: true } }
           }
         },
-        student: {
-          include: {
-            user: true
-          }
-        }
+        student: { include: { user: true } }
       }
     });
 
@@ -149,7 +124,6 @@ teacherRouter.get('/grading/:id', async (req, res) => {
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin
     });
-
   } catch (error) {
     console.error('Error viewing submission:', error);
     req.flash('error', 'Failed to load submission');
@@ -157,120 +131,94 @@ teacherRouter.get('/grading/:id', async (req, res) => {
   }
 });
 
-// ========== GRADING ROUTES ==========
-// REORDERED TO PREVENT CONFLICTS:
 teacherRouter.get('/grading', teacherController.viewGrading);
-teacherRouter.post('/grading/:submissionId', teacherController.submitGrade); // Submit grade for a submission
+teacherRouter.post('/grading/:submissionId', teacherController.submitGrade);
 
-// API Routes for regrading functionality (these should come AFTER specific routes)
+// API Routes for regrading
 teacherRouter.get('/api/grading/:id/details', async (req, res) => {
-    // Add this route for regrade functionality
-    try {
-        const teacherId = req.session.user.teacherId;
-        const submissionId = req.params.id;
-        
-        const submission = await prisma.submission.findFirst({
-            where: { 
-                id: submissionId,
-                assignment: {
-                    teacherId: teacherId
-                }
-            },
-            include: {
-                assignment: {
-                    include: {
-                        class: true
-                    }
-                },
-                student: {
-                    include: { 
-                        user: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                                idNumber: true
-                            }
-                        }
-                    }
-                }
+  try {
+    const teacherId = req.session.user.teacherId;
+    const submissionId = req.params.id;
+    const submission = await prisma.submission.findFirst({
+      where: {
+        id: submissionId,
+        assignment: { teacherId: teacherId }
+      },
+      include: {
+        assignment: { include: { class: true } },
+        student: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                idNumber: true
+              }
             }
-        });
-        
-        if (!submission) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Submission not found or unauthorized' 
-            });
+          }
         }
-        
-        res.json({ 
-            success: true, 
-            submission: {
-                id: submission.id,
-                grade: submission.grade,  // Changed from 'score' to 'grade'
-                feedback: submission.feedback,
-                assignment: {
-                    id: submission.assignment.id,
-                    title: submission.assignment.title,
-                    points: submission.assignment.points || 100,
-                    class: submission.assignment.class
-                },
-                student: submission.student
-            }
-        });
-    } catch (error) {
-        console.error('Error getting submission details:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Server error: ' + error.message 
-        });
+      }
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Submission not found or unauthorized'
+      });
     }
+
+    res.json({
+      success: true,
+      submission: {
+        id: submission.id,
+        grade: submission.grade,
+        feedback: submission.feedback,
+        assignment: {
+          id: submission.assignment.id,
+          title: submission.assignment.title,
+          points: submission.assignment.points || 100,
+          class: submission.assignment.class
+        },
+        student: submission.student
+      }
+    });
+  } catch (error) {
+    console.error('Error getting submission details:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+  }
 });
 
 teacherRouter.put('/api/grading/:id/update', async (req, res) => {
-    // Update grade route - using 'grade' field instead of 'score'
-    try {
-        const teacherId = req.session.user.teacherId;
-        const submissionId = req.params.id;
-        const { score, feedback } = req.body;
-        
-        // Update the submission
-        const updatedSubmission = await prisma.submission.updateMany({
-            where: {
-                id: submissionId,
-                assignment: {
-                    teacherId: teacherId
-                }
-            },
-            data: {
-                grade: parseFloat(score),  // Changed from 'score' to 'grade'
-                feedback: feedback,
-                gradedAt: new Date()
-            }
-        });
-        
-        if (updatedSubmission.count === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Submission not found or unauthorized' 
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            message: 'Grade updated successfully' 
-        });
-    } catch (error) {
-        console.error('Error updating grade:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update grade: ' + error.message 
-        });
+  try {
+    const teacherId = req.session.user.teacherId;
+    const submissionId = req.params.id;
+    const { score, feedback } = req.body;
+
+    const updatedSubmission = await prisma.submission.updateMany({
+      where: {
+        id: submissionId,
+        assignment: { teacherId: teacherId }
+      },
+      data: {
+        grade: parseFloat(score),
+        feedback: feedback,
+        gradedAt: new Date()
+      }
+    });
+
+    if (updatedSubmission.count === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Submission not found or unauthorized'
+      });
     }
+
+    res.json({ success: true, message: 'Grade updated successfully' });
+  } catch (error) {
+    console.error('Error updating grade:', error);
+    res.status(500).json({ success: false, message: 'Failed to update grade: ' + error.message });
+  }
 });
-
-
-// teacherRouter.get('/grading/:id', teacherController.gradeAssignment);
 
 // ========== CLASS WORKS ROUTES ==========
 teacherRouter.get('/class-works', teacherController.viewClassWorks);
@@ -280,7 +228,6 @@ teacherRouter.get('/class-works/:id/edit', teacherController.editClassWorkForm);
 teacherRouter.put('/class-works/:id', teacherController.updateClassWork);
 teacherRouter.delete('/class-works/:id', teacherController.deleteClassWork);
 teacherRouter.get('/class-works/:id/submissions', teacherController.viewSubmissions);
-// NEW: Parse uploaded .txt/.docx file and return questions JSON for class work
 teacherRouter.post(
   '/class-works/parse-questions',
   memoryUpload.single('questionsFile'),
@@ -295,10 +242,10 @@ teacherRouter.get('/live-sessions/:id/edit', teacherController.editLiveSessionFo
 teacherRouter.put('/live-sessions/:id', teacherController.updateLiveSession);
 teacherRouter.delete('/live-sessions/:id', teacherController.deleteLiveSession);
 
-// Test route
+// ========== TEST & DEBUG ==========
 teacherRouter.get('/test', (req, res) => {
-    console.log('✅ Teacher test route working');
-    res.json({ success: true, message: 'Teacher routes are working!' });
+  console.log('✅ Teacher test route working');
+  res.json({ success: true, message: 'Teacher routes are working!' });
 });
 
 teacherRouter.get('/test-health', (req, res) => {
@@ -311,26 +258,22 @@ teacherRouter.get('/test-health', (req, res) => {
   });
 });
 
-// Get submission details (for modal) - Class Works submissions
 teacherRouter.get('/submissions/:id', teacherController.getSubmissionDetails);
-
-// Grade submission - Class Works submissions
 teacherRouter.post('/submissions/:id/grade', teacherController.gradeSubmission);
 
-// Add this route for debugging file access
 teacherRouter.get('/debug/file/:filename', (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const filename = req.params.filename;
   const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
   const filePath = path.join(uploadsDir, filename);
-  
+
   console.log('🔍 Debug file check:');
   console.log('  - Requested filename:', filename);
   console.log('  - Uploads directory:', uploadsDir);
   console.log('  - Full file path:', filePath);
   console.log('  - File exists:', fs.existsSync(filePath));
-  
+
   if (fs.existsSync(filePath)) {
     res.json({
       success: true,
@@ -359,7 +302,10 @@ teacherRouter.get('/debug/file/:filename', (req, res) => {
 // ========== MATERIAL ROUTES (continued) ==========
 teacherRouter.get('/materials', teacherController.viewMaterials);  // HTML page
 teacherRouter.get('/materials/upload', teacherController.uploadMaterialForm);
-teacherRouter.post('/materials/upload', upload.single('materialFile'), teacherController.uploadMaterial);
+
+// ✅ FIXED: Use materialsUpload for material file uploads
+teacherRouter.post('/materials/upload', materialsUpload.single('materialFile'), teacherController.uploadMaterial);
+
 teacherRouter.delete('/materials/:id', teacherController.deleteMaterial);
 
 // API Routes for materials
@@ -408,14 +354,13 @@ teacherRouter.get('/api/materials/:id', async (req, res) => {
   }
 });
 
-// ⚠️ DUPLICATE PUT ROUTE REMOVED – only one exists now (see line ~34)
+// (Duplicate removed)
 
 teacherRouter.post('/api/materials/:id/track-download', async (req, res) => {
   try {
     const materialId = req.params.id;
     const userId = req.session.user.id;
-    
-    // Track view
+
     await prisma.materialView.create({
       data: {
         materialId: materialId,
@@ -423,7 +368,7 @@ teacherRouter.post('/api/materials/:id/track-download', async (req, res) => {
         viewedAt: new Date()
       }
     });
-    
+
     res.json({
       success: true,
       message: 'Download tracked'
@@ -437,28 +382,28 @@ teacherRouter.post('/api/materials/:id/track-download', async (req, res) => {
   }
 });
 
-// Debug route for uploads
+// Debug uploads
 teacherRouter.get('/debug/uploads', (req, res) => {
   const fs = require('fs');
   const path = require('path');
-  
+
   const uploadsDir = path.join(__dirname, '../public/uploads/materials');
   const uploadsDir2 = path.join(__dirname, '../uploads/materials');
-  
+
   console.log('Checking upload directories...');
   console.log('Public uploads dir:', uploadsDir, 'Exists:', fs.existsSync(uploadsDir));
   console.log('Direct uploads dir:', uploadsDir2, 'Exists:', fs.existsSync(uploadsDir2));
-  
-  let files1 = [], files2 = [];
-  
+
+  let files1 = [],
+    files2 = [];
+
   if (fs.existsSync(uploadsDir)) {
     files1 = fs.readdirSync(uploadsDir);
   }
-  
   if (fs.existsSync(uploadsDir2)) {
     files2 = fs.readdirSync(uploadsDir2);
   }
-  
+
   res.json({
     success: true,
     directories: {
@@ -476,14 +421,13 @@ teacherRouter.get('/debug/uploads', (req, res) => {
   });
 });
 
-// Test upload route
-teacherRouter.post('/test-upload', upload.single('testFile'), (req, res) => {
+// ✅ FIXED: Use materialsUpload for test upload
+teacherRouter.post('/test-upload', materialsUpload.single('testFile'), (req, res) => {
   console.log('Test upload received:');
   console.log('File:', req.file);
   console.log('Body:', req.body);
-  
+
   if (req.file) {
-    // Test if file is accessible
     const fileUrl = `/uploads/materials/${req.file.filename}`;
     res.json({
       success: true,
@@ -500,7 +444,7 @@ teacherRouter.post('/test-upload', upload.single('testFile'), (req, res) => {
   }
 });
 
-// Add this route to debug the update
+// Debug assignment
 teacherRouter.get('/debug/assignment/:id', async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -508,7 +452,6 @@ teacherRouter.get('/debug/assignment/:id', async (req, res) => {
 
     console.log('🔍 Debugging assignment:', assignmentId);
 
-    // Check if assignment exists
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
@@ -526,7 +469,6 @@ teacherRouter.get('/debug/assignment/:id', async (req, res) => {
       });
     }
 
-    // Check the Prisma model structure
     const modelInfo = {
       assignmentId: assignment.id,
       title: assignment.title,
@@ -545,7 +487,6 @@ teacherRouter.get('/debug/assignment/:id', async (req, res) => {
       modelInfo: modelInfo,
       message: 'Assignment found'
     });
-
   } catch (error) {
     console.error('Debug error:', error);
     res.status(500).json({
@@ -556,88 +497,77 @@ teacherRouter.get('/debug/assignment/:id', async (req, res) => {
   }
 });
 
-// Debug route for materials API
+// Debug materials API
 teacherRouter.get('/debug/materials-api', (req, res) => {
-    res.json({
-        success: true,
-        routes: {
-            getMaterialById: 'GET /teacher/api/materials/:id',
-            updateMaterial: 'PUT /teacher/materials/:id/update',
-            deleteMaterial: 'DELETE /teacher/materials/:id',
-            uploadMaterial: 'POST /teacher/materials/upload',
-            viewMaterials: 'GET /teacher/materials'
-        },
-        session: req.session.user,
-        teacherId: req.session.user?.teacherId
-    });
+  res.json({
+    success: true,
+    routes: {
+      getMaterialById: 'GET /teacher/api/materials/:id',
+      updateMaterial: 'PUT /teacher/materials/:id/update',
+      deleteMaterial: 'DELETE /teacher/materials/:id',
+      uploadMaterial: 'POST /teacher/materials/upload',
+      viewMaterials: 'GET /teacher/materials'
+    },
+    session: req.session.user,
+    teacherId: req.session.user?.teacherId
+  });
 });
 
-// Add debug route for submission IDs
+// Debug submission
 teacherRouter.get('/debug/submission/:id', async (req, res) => {
-    try {
-        const teacherId = req.session.user.teacherId;
-        const submissionId = req.params.id;
-        
-        console.log('🔍 Debug submission check:');
-        console.log('  - Submission ID:', submissionId);
-        console.log('  - Teacher ID:', teacherId);
-        
-        // Check if submission exists
-        const submission = await prisma.submission.findFirst({
-            where: {
-                id: submissionId
-            },
-            include: {
-                assignment: true
-            }
-        });
-        
-        res.json({
-            success: true,
-            submissionExists: !!submission,
-            submission: submission,
-            teacherOwnsAssignment: submission && submission.assignment.teacherId === teacherId,
-            idsMatch: submissionId === (submission?.id || '')
-        });
-    } catch (error) {
-        console.error('Debug error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const teacherId = req.session.user.teacherId;
+    const submissionId = req.params.id;
+
+    console.log('🔍 Debug submission check:');
+    console.log('  - Submission ID:', submissionId);
+    console.log('  - Teacher ID:', teacherId);
+
+    const submission = await prisma.submission.findFirst({
+      where: { id: submissionId },
+      include: { assignment: true }
+    });
+
+    res.json({
+      success: true,
+      submissionExists: !!submission,
+      submission: submission,
+      teacherOwnsAssignment: submission && submission.assignment.teacherId === teacherId,
+      idsMatch: submissionId === (submission?.id || '')
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
-// Debug route for submission model
+// Debug submission model
 teacherRouter.get('/debug/submission-model', async (req, res) => {
   try {
-    // Try to create a test submission with grade
     const testData = {
       data: {
-        assignment: {
-          connect: { id: 'test-assignment-id' }
-        },
-        student: {
-          connect: { id: 'test-student-id' }
-        },
+        assignment: { connect: { id: 'test-assignment-id' } },
+        student: { connect: { id: 'test-student-id' } },
         grade: 85.5,
         feedback: 'Test feedback',
         gradedAt: new Date(),
         submittedAt: new Date()
       }
     };
-    
+
     console.log('📋 Submission model test data:', testData);
-    
-    // Get the Prisma model metadata
+
     const modelInfo = {
       submissionFields: Object.keys(prisma.submission.fields || {}),
       availableOperations: Object.keys(prisma.submission || {}),
       modelName: 'Submission'
     };
-    
+
     console.log('📋 Submission model info:', modelInfo);
-    
+
     res.json({
       success: true,
       modelInfo: modelInfo,
@@ -659,29 +589,25 @@ teacherRouter.post('/test-grade/:submissionId', async (req, res) => {
     const teacherId = req.session.user.teacherId;
     const submissionId = req.params.submissionId;
     const { score, feedback } = req.body;
-    
+
     console.log('🧪 Direct grade test:', { submissionId, score, feedback, teacherId });
-    
-    // Check if submission exists
+
     const submission = await prisma.submission.findFirst({
       where: {
         id: submissionId,
-        assignment: {
-          teacherId: teacherId
-        }
+        assignment: { teacherId: teacherId }
       }
     });
-    
+
     console.log('🧪 Found submission:', submission);
-    
+
     if (!submission) {
       return res.status(404).json({
         success: false,
         message: 'Submission not found'
       });
     }
-    
-    // Try direct update
+
     const result = await prisma.submission.update({
       where: { id: submissionId },
       data: {
@@ -690,15 +616,14 @@ teacherRouter.post('/test-grade/:submissionId', async (req, res) => {
         gradedAt: new Date()
       }
     });
-    
+
     console.log('🧪 Update result:', result);
-    
+
     res.json({
       success: true,
       message: 'Direct update successful',
       result: result
     });
-    
   } catch (error) {
     console.error('🧪 Test error:', error);
     res.status(500).json({
@@ -709,7 +634,7 @@ teacherRouter.post('/test-grade/:submissionId', async (req, res) => {
   }
 });
 
-// Add this debug route to your teacher routes
+// Debug assignment submissions
 teacherRouter.get('/debug/assignment-submissions/:assignmentId', async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -719,7 +644,6 @@ teacherRouter.get('/debug/assignment-submissions/:assignmentId', async (req, res
     console.log('Assignment ID:', assignmentId);
     console.log('Teacher ID:', teacherId);
 
-    // Get the assignment with raw submissions
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
@@ -745,7 +669,6 @@ teacherRouter.get('/debug/assignment-submissions/:assignmentId', async (req, res
     console.log('📊 Assignment Title:', assignment.title);
     console.log('📊 Total Submissions:', assignment.submissions.length);
 
-    // Log each submission's status
     assignment.submissions.forEach((submission, index) => {
       console.log(`\n📋 Submission ${index + 1}:`);
       console.log('  ID:', submission.id);
@@ -773,7 +696,6 @@ teacherRouter.get('/debug/assignment-submissions/:assignmentId', async (req, res
         }))
       }
     });
-
   } catch (error) {
     console.error('Debug error:', error);
     res.status(500).json({ success: false, error: error.message });
