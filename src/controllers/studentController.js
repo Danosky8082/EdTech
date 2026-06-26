@@ -1954,7 +1954,7 @@ const updateNote = async (req, res) => {
   }
 };
 
-// Download material file – fixed version with correct materials subfolder
+// Download material file – FINAL FIX
 const downloadMaterial = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -2012,48 +2012,31 @@ const downloadMaterial = async (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    // Determine possible base directories (common locations)
-    const isVercel = !!process.env.VERCEL;
-    const baseDirs = [
-      isVercel ? '/tmp/uploads' : null,
-      path.join(process.cwd(), 'public/uploads'),
-      path.join(process.cwd(), 'uploads'),
-      path.join(process.cwd(), 'public'),
-      path.join(process.cwd()),
-    ].filter(Boolean);
+    // Extract just the filename
+    const fileName = path.basename(material.fileUrl);
 
-    // Try different ways to construct the file path
-    const fileName = path.basename(material.fileUrl); // just the filename
-    const dirName = path.dirname(material.fileUrl);   // e.g., 'materials' or '.'
-
+    // Build a comprehensive list of possible file locations
     const possiblePaths = [];
 
-    // 1. Use the fileUrl as given (if it's already a full path)
+    // --- Explicit Vercel /tmp paths ---
+    possiblePaths.push(`/tmp/uploads/materials/${fileName}`);
+    possiblePaths.push(`/tmp/uploads/${fileName}`);      // fallback
+
+    // --- Explicit /var/task paths (common on Vercel serverless) ---
+    possiblePaths.push(`/var/task/public/uploads/materials/${fileName}`);
+    possiblePaths.push(`/var/task/uploads/materials/${fileName}`);
+    possiblePaths.push(`/var/task/public/uploads/${fileName}`);
+    possiblePaths.push(`/var/task/uploads/${fileName}`);
+
+    // --- Relative from current working directory ---
+    const cwd = process.cwd();
+    possiblePaths.push(path.join(cwd, 'public', 'uploads', 'materials', fileName));
+    possiblePaths.push(path.join(cwd, 'public', 'uploads', fileName));
+    possiblePaths.push(path.join(cwd, 'uploads', 'materials', fileName));
+    possiblePaths.push(path.join(cwd, 'uploads', fileName));
+
+    // --- Use the original fileUrl as stored (might be relative) ---
     possiblePaths.push(material.fileUrl);
-
-    // 2. Try /tmp/uploads/materials/filename (Vercel)
-    if (isVercel) {
-      possiblePaths.push(path.join('/tmp/uploads', 'materials', fileName));
-    }
-
-    // 3. Try each baseDir + the original fileUrl
-    baseDirs.forEach(base => {
-      possiblePaths.push(path.join(base, material.fileUrl));
-    });
-
-    // 4. Try baseDir + materials + filename
-    baseDirs.forEach(base => {
-      possiblePaths.push(path.join(base, 'materials', fileName));
-    });
-
-    // 5. Try just the file in the base dir
-    baseDirs.forEach(base => {
-      possiblePaths.push(path.join(base, fileName));
-    });
-
-    // 6. Try relative to the current working directory (extra fallback)
-    possiblePaths.push(path.join(process.cwd(), 'uploads', 'materials', fileName));
-    possiblePaths.push(path.join(process.cwd(), 'public', 'uploads', 'materials', fileName));
 
     // Remove duplicates
     const uniquePaths = [...new Set(possiblePaths)];
@@ -2071,7 +2054,7 @@ const downloadMaterial = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'The requested file could not be found on the server.',
-        // In development, include the last checked path for debugging
+        // In development, include the last few paths for debugging
         ...(process.env.NODE_ENV === 'development' && { debug: uniquePaths.slice(-5) })
       });
     }
