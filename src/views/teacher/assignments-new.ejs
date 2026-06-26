@@ -137,9 +137,9 @@
                                     <div class="mt-2">
                                         Progress
                                         <div class="progress">
-                                            <div class="progress-bar bg-success"
-                                                style="width: <%= Math.round((totalSubmissions - pendingGrading) / totalSubmissions * 100) %>%">
-                                            </div>
+                                            <% var pct=Math.round((totalSubmissions - pendingGrading) / totalSubmissions
+                                                * 100); %>
+                                                <div class="progress-bar bg-success" style="width: <%= pct %>%;"></div>
                                         </div>
                                     </div>
                                     <% } %>
