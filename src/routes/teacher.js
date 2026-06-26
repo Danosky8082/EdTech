@@ -5,10 +5,13 @@ const { isAuthenticated, isTeacher, setSchoolContext } = require('../middleware/
 const prisma = require('../config/database');
 const multer = require('multer');
 
-// ✅ Import materialsUpload (must match export name)
+// ✅ Import materialsUpload from middleware
 const { materialsUpload } = require('../middleware/upload');
 
-// Memory upload for text files (5MB)
+// ✅ Debug: log to confirm it's defined
+console.log('🔍 materialsUpload in teacher.js:', materialsUpload);
+
+// Memory upload for parsing text files (5MB)
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }
@@ -41,7 +44,7 @@ teacherRouter.get('/exam/:id/results', teacherController.viewExamResults);
 teacherRouter.get('/materials', teacherController.viewMaterials);
 teacherRouter.get('/materials/upload', teacherController.uploadMaterialForm);
 
-// ✅ This is the critical line – materialsUpload is now defined
+// ✅ Use materialsUpload – should be a function
 teacherRouter.post('/materials/upload', materialsUpload, teacherController.uploadMaterial);
 
 teacherRouter.delete('/materials/:id', teacherController.deleteMaterial);

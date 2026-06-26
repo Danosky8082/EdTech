@@ -60,7 +60,7 @@ const materialsUpload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-// ✅ CLEAR EXPORT – no aliases, just direct exports
+// ✅ Explicit exports
 module.exports = {
   profileUpload,
   materialsUpload
