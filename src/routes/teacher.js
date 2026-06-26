@@ -5,8 +5,9 @@ const { isAuthenticated, isTeacher, setSchoolContext } = require('../middleware/
 const prisma = require('../config/database');
 const multer = require('multer');
 
-// ✅ Import the updated upload middlewares
-const { uploadMaterial, profileUpload, upload } = require('../middleware/upload');
+// ✅ Import the correct middleware for materials (documents, videos, etc.)
+//    and the profile upload for avatars.
+const { materialsUpload, profileUpload } = require('../middleware/upload');
 
 // Memory storage for parsing .txt/.docx files (5MB limit)
 const memoryUpload = multer({
@@ -49,8 +50,8 @@ teacherRouter.get('/exam/:id/results', teacherController.viewExamResults);
 teacherRouter.get('/materials', teacherController.viewMaterials);
 teacherRouter.get('/materials/upload', teacherController.uploadMaterialForm);
 
-// ✅ FIX: Use uploadMaterial (supports documents, videos, etc.)
-teacherRouter.post('/materials/upload', uploadMaterial, teacherController.uploadMaterial);
+// ✅ FIX: Use materialsUpload (supports all file types, 100MB limit)
+teacherRouter.post('/materials/upload', materialsUpload, teacherController.uploadMaterial);
 
 teacherRouter.delete('/materials/:id', teacherController.deleteMaterial);
 teacherRouter.put('/materials/:id/update', teacherController.updateMaterial);
@@ -303,8 +304,8 @@ teacherRouter.get('/debug/uploads', (req, res) => {
   });
 });
 
-// Test upload route (use uploadMaterial for consistency)
-teacherRouter.post('/test-upload', uploadMaterial, (req, res) => {
+// Test upload route – use materialsUpload for consistency
+teacherRouter.post('/test-upload', materialsUpload, (req, res) => {
   if (req.file) {
     const fileUrl = `/uploads/materials/${req.file.filename}`;
     res.json({
