@@ -264,53 +264,53 @@
         }
 
         .material-thumbnail-container {
-    position: relative;
-    height: 150px;
-    overflow: hidden;
-}
+            position: relative;
+            height: 150px;
+            overflow: hidden;
+        }
 
-.material-thumbnail {
-    height: 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    text-align: center;
-}
+        .material-thumbnail {
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
 
-.material-thumbnail i {
-    margin-bottom: 10px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
+        .material-thumbnail i {
+            margin-bottom: 10px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
 
-.thumbnail-label {
-    background: rgba(0,0,0,0.7);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    font-weight: bold;
-}
+        .thumbnail-label {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
 
-.video-thumbnail {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
+        .video-thumbnail {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
 
-.pdf-thumbnail {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
+        .pdf-thumbnail {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
 
-.doc-thumbnail {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
+        .doc-thumbnail {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
 
-.image-thumbnail {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
+        .image-thumbnail {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
 
-.default-thumbnail {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
+        .default-thumbnail {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
     </style>
 </head>
 
@@ -334,25 +334,19 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (user.avatar) { %>
-                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                    alt="Teacher Profile" class="profile-img mb-3 avatar-img"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Teacher Profile"
-                                        class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">Teaching Materials</p>
-                                        <span class="user-role">Teacher</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ FIX: Use partial for user avatar -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Teaching Materials</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <!-- Quick Actions -->
@@ -534,193 +528,174 @@
                                         material.fileUrl.split('.').pop().toLowerCase() : '' ; %>
                                         <div class="col-md-6 col-lg-4 mb-4">
                                             <div class="card material-card h-100">
-                                            <!-- Thumbnail/Preview -->
-                                            <div class="material-thumbnail-container">
-                                                <% if (material.type==='video' ) { %>
-                                                    <div class="material-thumbnail video-thumbnail">
-                                                        <i class="fas fa-video fa-3x"></i>
-                                                        <div class="thumbnail-label">Video</div>
-                                                    </div>
-                                                    <% } else if (fileExtension==='pdf' ) { %>
-                                                        <div class="material-thumbnail pdf-thumbnail">
-                                                            <i class="fas fa-file-pdf fa-3x"></i>
-                                                            <div class="thumbnail-label">PDF</div>
+                                                <!-- Thumbnail/Preview -->
+                                                <div class="material-thumbnail-container">
+                                                    <% if (material.type==='video' ) { %>
+                                                        <div class="material-thumbnail video-thumbnail">
+                                                            <i class="fas fa-video fa-3x"></i>
+                                                            <div class="thumbnail-label">Video</div>
                                                         </div>
-                                                        <% } else if (['doc', 'docx' ].includes(fileExtension)) { %>
-                                                            <div class="material-thumbnail doc-thumbnail">
-                                                                <i class="fas fa-file-word fa-3x"></i>
-                                                                <div class="thumbnail-label">Document</div>
+                                                        <% } else if (fileExtension==='pdf' ) { %>
+                                                            <div class="material-thumbnail pdf-thumbnail">
+                                                                <i class="fas fa-file-pdf fa-3x"></i>
+                                                                <div class="thumbnail-label">PDF</div>
                                                             </div>
-                                                            <% } else if (['jpg', 'jpeg' , 'png' , 'gif' ].includes(fileExtension)) { %>
-                                                                <div class="material-thumbnail image-thumbnail">
-                                                                    <i class="fas fa-image fa-3x"></i>
-                                                                    <div class="thumbnail-label">Image</div>
+                                                            <% } else if (['doc', 'docx' ].includes(fileExtension)) { %>
+                                                                <div class="material-thumbnail doc-thumbnail">
+                                                                    <i class="fas fa-file-word fa-3x"></i>
+                                                                    <div class="thumbnail-label">Document</div>
                                                                 </div>
-                                                                <% } else { %>
-                                                                    <div class="material-thumbnail default-thumbnail">
-                                                                        <i class="fas fa-file fa-3x"></i>
-                                                                        <div class="thumbnail-label">
-                                                                            <%= material.type.toUpperCase() %>
+                                                                <% } else if (['jpg', 'jpeg' , 'png' , 'gif'
+                                                                    ].includes(fileExtension)) { %>
+                                                                    <div class="material-thumbnail image-thumbnail">
+                                                                        <i class="fas fa-image fa-3x"></i>
+                                                                        <div class="thumbnail-label">Image</div>
+                                                                    </div>
+                                                                    <% } else { %>
+                                                                        <div
+                                                                            class="material-thumbnail default-thumbnail">
+                                                                            <i class="fas fa-file fa-3x"></i>
+                                                                            <div class="thumbnail-label">
+                                                                                <%= material.type.toUpperCase() %>
+                                                                            </div>
                                                                         </div>
+                                                                        <% } %>
+                                                </div>
+
+                                                <div class="card-body">
+                                                    <!-- Material Header -->
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <span
+                                                                class="badge type-<%= material.type %> material-type-badge">
+                                                                <i class="fas <%= iconClass %> me-1"></i>
+                                                                <%= material.type.charAt(0).toUpperCase() +
+                                                                    material.type.slice(1) %>
+                                                            </span>
+                                                            <% if (material.isPublic) { %>
+                                                                <span class="badge bg-success material-type-badge ms-1">
+                                                                    <i class="fas fa-globe me-1"></i>Public
+                                                                </span>
+                                                                <% } %>
+                                                        </div>
+                                                        <div class="dropdown">
+                                                            <button
+                                                                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                                type="button" data-bs-toggle="dropdown">
+                                                                <i class="fas fa-ellipsis-v"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="<%= material.fileUrl %>" target="_blank"
+                                                                        onclick="trackDownload('<%= material.id %>')">
+                                                                        <i class="fas fa-download me-2"></i>Download
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item"
+                                                                        onclick="editMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-edit me-2"></i>Edit
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item"
+                                                                        onclick="previewMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-eye me-2"></i>Preview
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <hr class="dropdown-divider">
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item text-danger"
+                                                                        onclick="deleteMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-trash me-2"></i>Delete
+                                                                    </button>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Material Title & Description -->
+                                                    <h5 class="card-title">
+                                                        <%= material.title %>
+                                                    </h5>
+                                                    <% if (material.description) { %>
+                                                        <p class="card-text text-muted small mb-3">
+                                                            <%= material.description.length> 80 ?
+                                                                material.description.substring(0,
+                                                                80) + '...' :
+                                                                material.description %>
+                                                        </p>
+                                                        <% } %>
+
+                                                            <!-- Material Details -->
+                                                            <div class="mb-3">
+                                                                <% if (material.class) { %>
+                                                                    <div class="d-flex align-items-center mb-1">
+                                                                        <i
+                                                                            class="fas fa-chalkboard me-2 text-muted small"></i>
+                                                                        <small class="text-muted">
+                                                                            <%= material.class.name %>
+                                                                        </small>
                                                                     </div>
                                                                     <% } %>
-                                            </div>
-
-                                                                    <div class="card-body">
-                                                                        <!-- Material Header -->
-                                                                        <div
-                                                                            class="d-flex justify-content-between align-items-start mb-2">
-                                                                            <div>
-                                                                                <span
-                                                                                    class="badge type-<%= material.type %> material-type-badge">
-                                                                                    <i
-                                                                                        class="fas <%= iconClass %> me-1"></i>
-                                                                                    <%= material.type.charAt(0).toUpperCase()
-                                                                                        + material.type.slice(1) %>
-                                                                                </span>
-                                                                                <% if (material.isPublic) { %>
-                                                                                    <span
-                                                                                        class="badge bg-success material-type-badge ms-1">
-                                                                                        <i
-                                                                                            class="fas fa-globe me-1"></i>Public
-                                                                                    </span>
-                                                                                    <% } %>
-                                                                            </div>
-                                                                            <div class="dropdown">
-                                                                                <button
-                                                                                    class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                                                                    type="button"
-                                                                                    data-bs-toggle="dropdown">
-                                                                                    <i class="fas fa-ellipsis-v"></i>
-                                                                                </button>
-                                                                                <ul class="dropdown-menu">
-                                                                                    <li>
-                                                                                        <a class="dropdown-item"
-                                                                                            href="<%= material.fileUrl %>"
-                                                                                            target="_blank"
-                                                                                            onclick="trackDownload('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-download me-2"></i>Download
-                                                                                        </a>
-                                                                                    </li>
-                                                                                    <li>
-                                                                                        <button class="dropdown-item"
-                                                                                            onclick="editMaterial('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-edit me-2"></i>Edit
-                                                                                        </button>
-                                                                                    </li>
-                                                                                    <li>
-                                                                                        <button class="dropdown-item"
-                                                                                            onclick="previewMaterial('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-eye me-2"></i>Preview
-                                                                                        </button>
-                                                                                    </li>
-                                                                                    <li>
-                                                                                        <hr class="dropdown-divider">
-                                                                                    </li>
-                                                                                    <li>
-                                                                                        <button
-                                                                                            class="dropdown-item text-danger"
-                                                                                            onclick="deleteMaterial('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-trash me-2"></i>Delete
-                                                                                        </button>
-                                                                                    </li>
-                                                                                </ul>
-                                                                            </div>
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <i
+                                                                                class="fas fa-calendar me-2 text-muted small"></i>
+                                                                            <small class="text-muted">Uploaded:
+                                                                                <%= uploadDate %>
+                                                                            </small>
                                                                         </div>
-
-                                                                        <!-- Material Title & Description -->
-                                                                        <h5 class="card-title">
-                                                                            <%= material.title %>
-                                                                        </h5>
-                                                                        <% if (material.description) { %>
-                                                                            <p class="card-text text-muted small mb-3">
-                                                                                <%= material.description.length> 80 ?
-                                                                                    material.description.substring(0,
-                                                                                    80) + '...' :
-                                                                                    material.description %>
-                                                                            </p>
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <i
+                                                                                class="fas fa-eye me-2 text-muted small"></i>
+                                                                            <small class="text-muted">
+                                                                                <%= viewCount %>
+                                                                                    views
+                                                                            </small>
+                                                                        </div>
+                                                                        <% if (material.tags && material.tags.length> 0)
+                                                                            { %>
+                                                                            <div class="mt-2">
+                                                                                <% material.tags.slice(0,
+                                                                                    3).forEach(tag=>
+                                                                                    { %>
+                                                                                    <span
+                                                                                        class="badge bg-light text-dark me-1 mb-1">
+                                                                                        <%= tag %>
+                                                                                    </span>
+                                                                                    <% }) %>
+                                                                            </div>
                                                                             <% } %>
+                                                            </div>
 
-                                                                                <!-- Material Details -->
-                                                                                <div class="mb-3">
-                                                                                    <% if (material.class) { %>
-                                                                                        <div
-                                                                                            class="d-flex align-items-center mb-1">
-                                                                                            <i
-                                                                                                class="fas fa-chalkboard me-2 text-muted small"></i>
-                                                                                            <small class="text-muted">
-                                                                                                <%= material.class.name
-                                                                                                    %>
-                                                                                            </small>
-                                                                                        </div>
-                                                                                        <% } %>
-                                                                                            <div
-                                                                                                class="d-flex align-items-center mb-1">
-                                                                                                <i
-                                                                                                    class="fas fa-calendar me-2 text-muted small"></i>
-                                                                                                <small
-                                                                                                    class="text-muted">Uploaded:
-                                                                                                    <%= uploadDate %>
-                                                                                                        </small>
-                                                                                            </div>
-                                                                                            <div
-                                                                                                class="d-flex align-items-center mb-1">
-                                                                                                <i
-                                                                                                    class="fas fa-eye me-2 text-muted small"></i>
-                                                                                                <small
-                                                                                                    class="text-muted">
-                                                                                                    <%= viewCount %>
-                                                                                                        views
-                                                                                                </small>
-                                                                                            </div>
-                                                                                            <% if (material.tags &&
-                                                                                                material.tags.length> 0)
-                                                                                                { %>
-                                                                                                <div class="mt-2">
-                                                                                                    <% material.tags.slice(0,
-                                                                                                        3).forEach(tag=>
-                                                                                                        { %>
-                                                                                                        <span
-                                                                                                            class="badge bg-light text-dark me-1 mb-1">
-                                                                                                            <%= tag %>
-                                                                                                        </span>
-                                                                                                        <% }) %>
-                                                                                                </div>
-                                                                                                <% } %>
-                                                                                </div>
-
-                                                                                <!-- Actions -->
-                                                                                <div
-                                                                                    class="d-flex justify-content-between align-items-center mt-3">
-                                                                                    <div class="material-actions">
-                                                                                        <a href="<%= material.fileUrl %>"
-                                                                                            class="btn btn-sm btn-primary"
-                                                                                            onclick="trackDownload('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-download me-1"></i>
-                                                                                            Download
-                                                                                        </a>
-                                                                                        <button
-                                                                                            class="btn btn-sm btn-outline-secondary ms-1"
-                                                                                            onclick="previewMaterial('<%= material.id %>')">
-                                                                                            <i
-                                                                                                class="fas fa-eye me-1"></i>
-                                                                                            Preview
-                                                                                        </button>
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <span class="view-count">
-                                                                                            <i
-                                                                                                class="fas fa-eye me-1"></i>
-                                                                                            <%= viewCount %>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </div>
-                                                                    </div>
+                                                            <!-- Actions -->
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center mt-3">
+                                                                <div class="material-actions">
+                                                                    <a href="<%= material.fileUrl %>"
+                                                                        class="btn btn-sm btn-primary"
+                                                                        onclick="trackDownload('<%= material.id %>')">
+                                                                        <i class="fas fa-download me-1"></i>
+                                                                        Download
+                                                                    </a>
+                                                                    <button
+                                                                        class="btn btn-sm btn-outline-secondary ms-1"
+                                                                        onclick="previewMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-eye me-1"></i>
+                                                                        Preview
+                                                                    </button>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="view-count">
+                                                                        <i class="fas fa-eye me-1"></i>
+                                                                        <%= viewCount %>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <% }); %>
@@ -954,42 +929,42 @@
 
             // Preview material
             async function previewMaterial(materialId) {
-                    try {
-                        console.log('🔍 Previewing material:', materialId);
-                        showLoading(true);
+                try {
+                    console.log('🔍 Previewing material:', materialId);
+                    showLoading(true);
 
-                        // Use absolute URL with /teacher prefix since route is under teacher router
-                        const response = await fetch(`/teacher/api/materials/${materialId}`);
+                    // Use absolute URL with /teacher prefix since route is under teacher router
+                    const response = await fetch(`/teacher/api/materials/${materialId}`);
 
-                        console.log('Response status:', response.status);
+                    console.log('Response status:', response.status);
 
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
 
-                        const contentType = response.headers.get('content-type');
-                        console.log('Content-Type:', contentType);
+                    const contentType = response.headers.get('content-type');
+                    console.log('Content-Type:', contentType);
 
-                        if (!contentType || !contentType.includes('application/json')) {
-                            const text = await response.text();
-                            console.error('Expected JSON but got:', text.substring(0, 200));
-                            throw new Error('Server returned HTML instead of JSON');
-                        }
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        console.error('Expected JSON but got:', text.substring(0, 200));
+                        throw new Error('Server returned HTML instead of JSON');
+                    }
 
-                        const data = await response.json();
-                        console.log('Preview data:', data);
+                    const data = await response.json();
+                    console.log('Preview data:', data);
 
-                        if (data.success) {
-                            const material = data.material;
-                            const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-                            const previewContent = document.getElementById('previewContent');
-                            const downloadBtn = document.getElementById('previewDownloadBtn');
+                    if (data.success) {
+                        const material = data.material;
+                        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                        const previewContent = document.getElementById('previewContent');
+                        const downloadBtn = document.getElementById('previewDownloadBtn');
 
-                            document.getElementById('previewTitle').textContent = material.title;
-                            downloadBtn.href = material.fileUrl;
-                            downloadBtn.setAttribute('onclick', `trackDownload('${material.id}')`);
+                        document.getElementById('previewTitle').textContent = material.title;
+                        downloadBtn.href = material.fileUrl;
+                        downloadBtn.setAttribute('onclick', `trackDownload('${material.id}')`);
 
-                            let previewHtml = `
+                        let previewHtml = `
       <div class="row">
         <div class="col-md-4">
           <div class="card">
@@ -1019,11 +994,11 @@
               <h6 class="card-title mb-3">Preview</h6>
       `;
 
-                            // Add preview based on file type
-                            const fileExtension = material.fileUrl ? material.fileUrl.split('.').pop().toLowerCase() : '';
+                        // Add preview based on file type
+                        const fileExtension = material.fileUrl ? material.fileUrl.split('.').pop().toLowerCase() : '';
 
-                            if (material.type === 'video' || ['mp4', 'avi', 'mov', 'wmv'].includes(fileExtension)) {
-                                previewHtml += `
+                        if (material.type === 'video' || ['mp4', 'avi', 'mov', 'wmv'].includes(fileExtension)) {
+                            previewHtml += `
           <div class="alert alert-info">
             <i class="fas fa-video me-2"></i>Video Preview
           </div>
@@ -1037,8 +1012,8 @@
             </a>
           </div>
         `;
-                            } else if (fileExtension === 'pdf') {
-                                previewHtml += `
+                        } else if (fileExtension === 'pdf') {
+                            previewHtml += `
           <div class="alert alert-info">
             <i class="fas fa-file-pdf me-2"></i>PDF Document
           </div>
@@ -1050,8 +1025,8 @@
             </a>
           </div>
         `;
-                            } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-                                previewHtml += `
+                        } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                            previewHtml += `
           <div class="alert alert-info">
             <i class="fas fa-image me-2"></i>Image Preview
           </div>
@@ -1065,8 +1040,8 @@
             </a>
           </div>
         `;
-                            } else {
-                                previewHtml += `
+                        } else {
+                            previewHtml += `
           <div class="alert alert-warning">
             <i class="fas fa-file me-2"></i>File Preview Not Available
           </div>
@@ -1078,27 +1053,27 @@
             </a>
           </div>
         `;
-                            }
+                        }
 
-                            previewHtml += `
+                        previewHtml += `
             </div>
           </div>
         </div>
       </div>
       `;
 
-                            previewContent.innerHTML = previewHtml;
-                            modal.show();
-                        } else {
-                            alert('Failed to load material: ' + (data.message || 'Unknown error'));
-                        }
-                    } catch (error) {
-                        console.error('❌ Error previewing material:', error);
-                        alert('Error loading material preview: ' + error.message);
-                    } finally {
-                        showLoading(false);
+                        previewContent.innerHTML = previewHtml;
+                        modal.show();
+                    } else {
+                        alert('Failed to load material: ' + (data.message || 'Unknown error'));
                     }
+                } catch (error) {
+                    console.error('❌ Error previewing material:', error);
+                    alert('Error loading material preview: ' + error.message);
+                } finally {
+                    showLoading(false);
                 }
+            }
 
             // Edit material
             async function editMaterial(materialId) {
