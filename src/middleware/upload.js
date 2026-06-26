@@ -2,43 +2,38 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Determine base directory (Vercel uses /tmp)
+// Directories
 const isVercel = !!process.env.VERCEL;
 const baseDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '../../public/uploads');
-
-// Subfolders
 const materialsDir = path.join(baseDir, 'materials');
 const profilesDir = path.join(baseDir, 'profiles');
+
+// Create folders
 [materialsDir, profilesDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Storage factory
+// Storage
 const storage = (dest) => multer.diskStorage({
   destination: (req, file, cb) => cb(null, dest),
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + unique + ext);
+    cb(null, file.fieldname + '-' + unique + path.extname(file.originalname));
   }
 });
 
-// Image filter (profile)
+// File filters
 const imageFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Only images'), false);
+  allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Only images allowed'), false);
 };
 
-// Material filter (broad)
 const materialFilter = (req, file, cb) => {
   const mimes = [
     'image/jpeg','image/png','image/gif','image/webp',
-    'application/pdf','application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'video/mp4','video/quicktime','video/x-msvideo','video/x-matroska',
     'audio/mpeg','audio/wav','audio/ogg',
     'application/zip','application/x-rar-compressed','text/plain'
@@ -48,7 +43,7 @@ const materialFilter = (req, file, cb) => {
   if (mimes.includes(file.mimetype) || exts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('File type not allowed'), false);
+    cb(new Error('File type not allowed for materials'), false);
   }
 };
 
@@ -56,20 +51,17 @@ const materialFilter = (req, file, cb) => {
 const profileUpload = multer({
   storage: storage(profilesDir),
   fileFilter: imageFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }      // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 const materialsUpload = multer({
   storage: storage(materialsDir),
   fileFilter: materialFilter,
-  limits: { fileSize: 100 * 1024 * 1024 }    // 100 MB
+  limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-// Explicit exports
+// ✅ CLEAR EXPORT – no aliases, just direct exports
 module.exports = {
   profileUpload,
-  materialsUpload,
-  upload: profileUpload,           // fallback
-  uploadProfile: profileUpload,
-  uploadMaterial: materialsUpload   // alias (optional)
+  materialsUpload
 };
