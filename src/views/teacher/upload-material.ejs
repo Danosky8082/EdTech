@@ -136,6 +136,11 @@
             padding: 12px 30px;
             font-size: 1.1rem;
         }
+
+        #uploadError {
+            display: none;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 
@@ -196,7 +201,9 @@
                             <h2 class="mb-4"><i class="fas fa-upload me-2"></i>Upload Material</h2>
 
                             <!-- Error display area -->
-                            <div id="uploadError" class="alert alert-danger" style="display: none;"></div>
+                            <div id="uploadError" class="alert alert-danger">
+                                <!-- Error message will be inserted here -->
+                            </div>
 
                             <form id="uploadForm" action="/teacher/materials/upload" method="POST"
                                 enctype="multipart/form-data">
@@ -335,6 +342,10 @@
 
             let selectedFile = null;
             let tags = [];
+            let isSubmitting = false;   // ✅ Prevents double submission
+
+            // Hide error initially
+            uploadError.style.display = 'none';
 
             // Drag and drop functionality
             dropZone.addEventListener('dragover', (e) => {
@@ -563,9 +574,14 @@
                 hiddenTags.value = tags.join(',');
             }
 
-            // Form submission with progress and improved error handling
+            // Form submission with double‑submit prevention
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+
+                // Prevent multiple submissions
+                if (isSubmitting) {
+                    return;
+                }
 
                 // Clear previous errors
                 uploadError.style.display = 'none';
@@ -588,6 +604,7 @@
                 }
 
                 // Disable upload button and show progress
+                isSubmitting = true;
                 uploadBtn.disabled = true;
                 uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Uploading...';
                 uploadProgress.style.display = 'block';
@@ -624,12 +641,12 @@
                                     return;
                                 }
                             } catch (jsonError) {
-                                // If response is not JSON (maybe redirect), assume success and redirect
+                                // If response is not JSON, assume it's a redirect (success)
                                 window.location.href = '/teacher/materials';
                                 return;
                             }
                         } else {
-                            // Non-200 status – try to extract error message from response
+                            // Non‑200 status – try to extract error message
                             let errorMsg = 'Server error (status ' + status + ')';
                             try {
                                 const errorJson = JSON.parse(responseText);
@@ -637,9 +654,11 @@
                                     errorMsg = errorJson.message;
                                 }
                             } catch (e) {
-                                // If not JSON, show the first few characters of the response
+                                // If not JSON, show a snippet of the HTML (to help debug)
                                 if (responseText) {
-                                    errorMsg = responseText.substring(0, 200);
+                                    // Strip HTML tags to get a readable message
+                                    const stripped = responseText.replace(/<[^>]*>/g, ' ').substring(0, 300);
+                                    errorMsg = stripped || 'Unknown server error';
                                 }
                             }
                             showError('Upload failed: ' + errorMsg);
@@ -670,6 +689,7 @@
             }
 
             function resetUploadForm() {
+                isSubmitting = false;
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i> Upload Material';
                 uploadProgress.style.display = 'none';
