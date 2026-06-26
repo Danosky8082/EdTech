@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
-const { upload } = require('../middleware/upload');
+// ✅ Import materialsUpload (supports documents, videos, etc.)
+const { materialsUpload } = require('../middleware/upload');
 const { isAuthenticated, isStudent, setSchoolContext } = require('../middleware/auth');
 
 // Apply auth and school context middleware to all routes
@@ -51,18 +52,18 @@ router.get('/assignments', studentController.viewAllAssignments);
 router.get('/assignments/:id/submit', studentController.getSubmissionPage);
 router.get('/assignments/:id/enhanced-submit', studentController.getEnhancedSubmissionPage);
 
-// Handle submissions
-router.post('/assignments/:id/submit', upload.single('submissionFile'), studentController.submitAssignmentFile);
+// ✅ Use materialsUpload instead of upload
+router.post('/assignments/:id/submit', materialsUpload.single('submissionFile'), studentController.submitAssignmentFile);
 router.post('/assignments/:id/submit-enhanced', studentController.submitEnhancedAssignment);
 
 // Legacy routes for backward compatibility
 router.get('/assignments/:assignmentId/submit-text', studentController.getEnhancedSubmitAssignment);
-router.post('/assignments/:assignmentId/submit-text', upload.none(), studentController.submitTextAssignment);
+router.post('/assignments/:assignmentId/submit-text', materialsUpload.none(), studentController.submitTextAssignment);
 router.post('/assignments/:assignmentId/submit-drawing', studentController.submitDrawingAssignment);
 
 // Original file upload submission (keep for backward compatibility)
 router.get('/assignments/:assignmentId/submit', studentController.getSubmitAssignment);
-router.post('/assignments/:assignmentId/submit', upload.single('submissionFile'), studentController.submitAssignment);
+router.post('/assignments/:assignmentId/submit', materialsUpload.single('submissionFile'), studentController.submitAssignment);
 
 // ========== EXAM ROUTES ==========
 router.get('/exams/:examId/take', studentController.takeExam);
