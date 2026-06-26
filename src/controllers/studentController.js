@@ -1954,24 +1954,21 @@ const updateNote = async (req, res) => {
   }
 };
 
-// Download material file - WITH DEBUGGING
+// Download material file – improved version
 const downloadMaterial = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const materialId = req.params.materialId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    
+
     console.log('📥 Download request for material:', materialId, 'by student:', studentId);
 
     if (!materialId || typeof materialId !== 'string' || materialId.trim() === '') {
-      console.log('❌ Invalid materialId:', materialId);
-      return res.status(400).render('error/400', { 
-        title: 'Bad Request',
-        message: 'Invalid material ID provided.'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid material ID' });
     }
 
+    // 1. Fetch material with access check
     const material = await prisma.material.findUnique({
       where: { id: materialId },
       include: {
@@ -1986,96 +1983,88 @@ const downloadMaterial = async (req, res) => {
     });
 
     if (!material) {
-      console.log('❌ Material not found in database');
-      return res.status(404).render('error/404', { title: 'Material Not Found' });
+      console.log('❌ Material not found');
+      return res.status(404).json({ success: false, message: 'Material not found' });
     }
 
-    console.log('✅ Material found:', {
-      id: material.id,
-      title: material.title,
-      fileUrl: material.fileUrl,
-      type: material.type
-    });
-
-    const hasAccess = material.isPublic || 
-                     (material.class && material.class.enrollments.length > 0);
+    // 2. Verify student has access
+    const hasAccess = material.isPublic ||
+                      (material.class && material.class.enrollments.length > 0);
 
     if (!hasAccess) {
-      console.log('❌ Student does not have access to this material');
-      return res.status(403).render('error/403', { title: 'Access Denied' });
+      console.log('❌ Access denied for student:', studentId);
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
+    // 3. If the fileUrl is a full URL (cloud storage), redirect to it
+    if (material.fileUrl && (material.fileUrl.startsWith('http://') || material.fileUrl.startsWith('https://'))) {
+      console.log('✅ Redirecting to cloud URL:', material.fileUrl);
+      // Track download (optional)
+      try {
+        await prisma.materialView.create({
+          data: { materialId: material.id, userId: studentId, viewedAt: new Date() }
+        });
+      } catch (e) { /* ignore */ }
+      return res.redirect(material.fileUrl);
+    }
+
+    // 4. Otherwise, try to serve the file from local storage
     const fs = require('fs');
     const path = require('path');
-    
-    console.log('🔍 Checking file path:', material.fileUrl);
-    
-    let filePath = material.fileUrl;
-    
-    if (filePath.startsWith('/uploads/')) {
-      const projectRoot = process.cwd();
-      const absolutePath = path.join(projectRoot, filePath);
-      console.log('📁 Trying absolute path from project root:', absolutePath);
-      
-      if (fs.existsSync(absolutePath)) {
-        filePath = absolutePath;
-      } else if (fs.existsSync(filePath)) {
-        console.log('📁 File exists at original path');
-      } else {
-        const publicPath = path.join(projectRoot, 'public', filePath);
-        console.log('📁 Trying public directory path:', publicPath);
-        
-        if (fs.existsSync(publicPath)) {
-          filePath = publicPath;
-        } else {
-          const fileName = path.basename(filePath);
-          const uploadsDir = path.join(projectRoot, 'uploads', 'materials', fileName);
-          console.log('📁 Trying uploads directory:', uploadsDir);
-          
-          if (fs.existsSync(uploadsDir)) {
-            filePath = uploadsDir;
-          } else {
-            console.log('❌ File not found at any of the checked paths');
-            return res.status(404).render('error/404', { 
-              title: 'File Not Found',
-              message: 'The requested file could not be found on the server.'
-            });
-          }
-        }
+
+    // Determine base upload directory (same as in upload.js)
+    const isVercel = !!process.env.VERCEL;
+    const baseDir = isVercel ? '/tmp/uploads' : path.join(process.cwd(), 'public/uploads');
+    const materialsDir = path.join(baseDir, 'materials');
+
+    // Get the filename from the stored fileUrl
+    const fileName = path.basename(material.fileUrl);
+    const possiblePaths = [
+      material.fileUrl,                                          // as stored
+      path.join(materialsDir, fileName),                         // /tmp/uploads/materials/filename
+      path.join(process.cwd(), 'public', material.fileUrl),      // public/uploads/...
+      path.join(process.cwd(), 'uploads', 'materials', fileName) // fallback
+    ];
+
+    let filePath = null;
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        filePath = p;
+        break;
       }
     }
-    
-    console.log('✅ Using file path:', filePath);
-    
-    if (!fs.existsSync(filePath)) {
-      console.log('❌ File not found at final path:', filePath);
-      return res.status(404).render('error/404', { 
-        title: 'File Not Found',
+
+    if (!filePath) {
+      console.log('❌ File not found at any of the checked paths:', possiblePaths);
+      return res.status(404).json({
+        success: false,
         message: 'The requested file could not be found on the server.'
       });
     }
 
-    const filename = path.basename(filePath);
+    console.log('✅ Serving file from:', filePath);
+
+    // 5. Send the file
     const fileExtension = path.extname(filePath);
     const originalFilename = material.title + fileExtension;
-    
     const contentType = getContentType(fileExtension);
-    
+
     res.setHeader('Content-Disposition', `attachment; filename="${originalFilename}"`);
     res.setHeader('Content-Type', contentType);
-    
-    console.log('✅ Streaming file:', filePath);
-    console.log('📤 Headers:', {
-      'Content-Disposition': `attachment; filename="${originalFilename}"`,
-      'Content-Type': contentType
-    });
-    
+
+    // Track download
+    try {
+      await prisma.materialView.create({
+        data: { materialId: material.id, userId: studentId, viewedAt: new Date() }
+      });
+    } catch (e) { /* ignore */ }
+
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
-    
+
   } catch (error) {
     console.error('❌ Download material error:', error);
-    res.status(500).render('error/500', { title: 'Download Error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
