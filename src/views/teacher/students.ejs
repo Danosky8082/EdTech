@@ -96,158 +96,168 @@
                             <% } %>
                 </div>
 
-                <div class="row">
-                    <!-- Left Sidebar with Profile -->
-                    <div class="col-md-3">
-                        <div class="profile-section text-center">
-                            <!-- ✅ USE PARTIAL FOR TEACHER AVATAR -->
-                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
-                                <h4>
-                                    <%= teacher.user.firstName %>
-                                        <%= teacher.user.lastName %>
-                                </h4>
-                                <p class="welcome-text">My Students</p>
-                                <span class="user-role">Teacher</span>
-                                <div class="mt-2">
-                                    <small><i class="fas fa-school me-1"></i>
-                                        <%= userSchool %>
-                                    </small>
-                                </div>
-                        </div>
+                <!-- Helper function to clean avatar URLs (same logic as user-avatar partial) -->
+                <% const cleanAvatarUrl=(avatar)=> {
+                    if (!avatar) return null;
+                    if (avatar.startsWith('/https:/')) return avatar.replace('/https:/', 'https://');
+                    if (avatar.startsWith('/http:/')) return avatar.replace('/http:/', 'http://');
+                    if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
+                    return '/' + avatar;
+                    };
+                    %>
 
-                        <!-- Quick Actions -->
-                        <div class="card dashboard-card mb-4">
-                            <div class="card-header">
-                                <h5>Quick Actions</h5>
+                    <div class="row">
+                        <!-- Left Sidebar with Profile -->
+                        <div class="col-md-3">
+                            <div class="profile-section text-center">
+                                <!-- ✅ USE PARTIAL FOR TEACHER AVATAR -->
+                                <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                    <h4>
+                                        <%= teacher.user.firstName %>
+                                            <%= teacher.user.lastName %>
+                                    </h4>
+                                    <p class="welcome-text">My Students</p>
+                                    <span class="user-role">Teacher</span>
+                                    <div class="mt-2">
+                                        <small><i class="fas fa-school me-1"></i>
+                                            <%= userSchool %>
+                                        </small>
+                                    </div>
                             </div>
-                            <div class="card-body">
-                                <a href="/teacher/classes" class="btn btn-outline-primary w-100 mb-2 action-btn">
-                                    <i class="fas fa-chalkboard"></i> My Classes
-                                </a>
-                                <a href="/teacher/students" class="btn btn-outline-secondary w-100 mb-2 action-btn">
-                                    <i class="fas fa-users"></i> My Students
-                                </a>
-                                <a href="/teacher/assignments" class="btn btn-outline-success w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Assignments
-                                </a>
-                                <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
-                                    <i class="fas fa-clipboard-list"></i> Exams
-                                </a>
-                            </div>
-                        </div>
 
-                        <!-- Statistics -->
-                        <div class="card dashboard-card mb-4">
-                            <div class="card-header">
-                                <h5>Statistics</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <small><strong>Total Students:</strong></small>
-                                    <span class="badge bg-primary float-end">
-                                        <%= students.length %>
-                                    </span>
+                            <!-- Quick Actions -->
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header">
+                                    <h5>Quick Actions</h5>
                                 </div>
-                                <div class="mb-2">
-                                    <small><strong>Total Classes:</strong></small>
-                                    <span class="badge bg-success float-end">
-                                        <%= classes.length %>
-                                    </span>
-                                </div>
-                                <div class="mb-2">
-                                    <small><strong>Assignments:</strong></small>
-                                    <span class="badge bg-info float-end">
-                                        <%= assignmentsCount %>
-                                    </span>
-                                </div>
-                                <div class="mb-2">
-                                    <small><strong>Exams:</strong></small>
-                                    <span class="badge bg-danger float-end">
-                                        <%= examsCount %>
-                                    </span>
+                                <div class="card-body">
+                                    <a href="/teacher/classes" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                        <i class="fas fa-chalkboard"></i> My Classes
+                                    </a>
+                                    <a href="/teacher/students" class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                        <i class="fas fa-users"></i> My Students
+                                    </a>
+                                    <a href="/teacher/assignments"
+                                        class="btn btn-outline-success w-100 mb-2 action-btn">
+                                        <i class="fas fa-tasks"></i> Assignments
+                                    </a>
+                                    <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
+                                        <i class="fas fa-clipboard-list"></i> Exams
+                                    </a>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Main Content -->
-                    <div class="col-md-9">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2><i class="fas fa-users me-2"></i>Student Management</h2>
+                            <!-- Statistics -->
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header">
+                                    <h5>Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small><strong>Total Students:</strong></small>
+                                        <span class="badge bg-primary float-end">
+                                            <%= students.length %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Total Classes:</strong></small>
+                                        <span class="badge bg-success float-end">
+                                            <%= classes.length %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Assignments:</strong></small>
+                                        <span class="badge bg-info float-end">
+                                            <%= assignmentsCount %>
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small><strong>Exams:</strong></small>
+                                        <span class="badge bg-danger float-end">
+                                            <%= examsCount %>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Students Table -->
-                        <div class="card">
-                            <div class="card-body">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>ID Number</th>
-                                            <th>Email</th>
-                                            <th>Classes</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <% if (students.length> 0) { %>
-                                            <% students.forEach(student=> { %>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <% if (student.user.avatar) { %>
-                                                                <img src="<%= student.user.avatar.startsWith('/') ? student.user.avatar : '/' + student.user.avatar %>"
-                                                                    class="rounded-circle me-2" width="40" height="40"
-                                                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                                                <% } else { %>
-                                                                    <img src="/images/default-profile.png"
+                        <!-- Main Content -->
+                        <div class="col-md-9">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h2><i class="fas fa-users me-2"></i>Student Management</h2>
+                            </div>
+
+                            <!-- Students Table -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>ID Number</th>
+                                                <th>Email</th>
+                                                <th>Classes</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% if (students.length> 0) { %>
+                                                <% students.forEach(student=> { %>
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <% const avatarSrc=cleanAvatarUrl(student.user.avatar)
+                                                                    || '/images/default-profile.png' ; %>
+                                                                    <img src="<%= avatarSrc %>"
                                                                         class="rounded-circle me-2" width="40"
-                                                                        height="40">
-                                                                    <% } %>
-                                                                        <div>
-                                                                            <strong>
-                                                                                <%= student.user.firstName %>
-                                                                                    <%= student.user.lastName %>
-                                                                            </strong>
-                                                                        </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <%= student.user.idNumber %>
-                                                    </td>
-                                                    <td>
-                                                        <%= student.user.email %>
-                                                    </td>
-                                                    <td>
-                                                        <% let studentClasses=[]; if (student.enrollments &&
-                                                            student.enrollments.length> 0) {
-                                                            studentClasses = student.enrollments.map(e => {
-                                                            return e.class && e.class.name ? e.class.name : 'Unknown';
-                                                            });
-                                                            }
-                                                            %>
-                                                            <%= studentClasses.join(', ') || ' No classes' %>
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary view-progress-btn"
-                                                            data-student-id="<%= student.id %>"
-                                                            data-student-name="<%= student.user.firstName %> <%= student.user.lastName %>">
-                                                            <i class="fas fa-chart-line me-1"></i> View Progress
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                <% }); %>
-                                                    <% } else { %>
-                                                        <tr>
-                                                            <td colspan="5" class="text-center">No students found.</td>
-                                                        </tr>
-                                                        <% } %>
-                                    </tbody>
-                                </table>
+                                                                        height="40"
+                                                                        onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                                                    <div>
+                                                                        <strong>
+                                                                            <%= student.user.firstName %>
+                                                                                <%= student.user.lastName %>
+                                                                        </strong>
+                                                                    </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <%= student.user.idNumber %>
+                                                        </td>
+                                                        <td>
+                                                            <%= student.user.email %>
+                                                        </td>
+                                                        <td>
+                                                            <% let studentClasses=[]; if (student.enrollments &&
+                                                                student.enrollments.length> 0) {
+                                                                studentClasses = student.enrollments.map(e => {
+                                                                return e.class && e.class.name ? e.class.name :
+                                                                'Unknown';
+                                                                });
+                                                                }
+                                                                %>
+                                                                <%= studentClasses.join(', ') || ' No classes' %>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-primary view-progress-btn"
+                                                                data-student-id="<%= student.id %>"
+                                                                data-student-name="<%= student.user.firstName %> <%= student.user.lastName %>">
+                                                                <i class="fas fa-chart-line me-1"></i> View Progress
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <% }); %>
+                                                        <% } else { %>
+                                                            <tr>
+                                                                <td colspan="5" class="text-center">No students found.
+                                                                </td>
+                                                            </tr>
+                                                            <% } %>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
