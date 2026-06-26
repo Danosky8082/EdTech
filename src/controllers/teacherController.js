@@ -440,60 +440,87 @@ exports.viewAssignments = async (req, res) => {
     const teacherId = req.session.user.teacherId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
+    const user = req.session.user; // <-- user object for the view
 
+    // 1. Fetch assignments with related data
     const assignments = await prisma.assignment.findMany({
-      where: {
-        teacherId: teacherId
-      },
+      where: { teacherId: teacherId },
       include: {
         class: true,
         submissions: {
           include: {
             student: {
-              include: {
-                user: true
-              }
+              include: { user: true }
             }
           }
         }
       },
-      orderBy: {
-        dueDate: 'asc'
-      }
+      orderBy: { dueDate: 'asc' }
     });
 
-    // ENHANCE submissions with proper score
+    // 2. Enhance submissions: ensure score is derived from grade if score is null
     const enhancedAssignments = assignments.map(assignment => ({
       ...assignment,
       submissions: assignment.submissions.map(submission => ({
         ...submission,
-        // Ensure score is derived from grade if score is null
         score: submission.score !== null ? submission.score : submission.grade
       }))
     }));
 
-    const classes = await prisma.class.findMany({
-      where: {
-        teacherId: teacherId
+    // 3. Pre-calculate statistics and categories
+    const now = new Date();
+    let totalSubmissions = 0;
+    let pendingGrading = 0;
+    const active = [];
+    const upcoming = [];
+    const completed = [];
+
+    for (const a of enhancedAssignments) {
+      // Count submissions and pending grading
+      if (a.submissions) {
+        totalSubmissions += a.submissions.length;
+        pendingGrading += a.submissions.filter(s => s.grade === null).length;
       }
+      // Categorize by due date and active flag
+      const due = new Date(a.dueDate);
+      if (due >= now && a.isActive !== false) {
+        active.push(a);
+      } else if (due > now && !a.isActive) {
+        upcoming.push(a);
+      } else {
+        completed.push(a);
+      }
+    }
+
+    // 4. Fetch classes (for sidebar or filters if needed)
+    const classes = await prisma.class.findMany({
+      where: { teacherId: teacherId }
     });
 
+    // 5. Render view with all data
     res.render('teacher/assignments', {
       title: 'Assignments',
-      assignments: enhancedAssignments,  // Use enhanced assignments
+      assignments: enhancedAssignments,        // full list (optional)
+      activeAssignments: active,              // for "Active" tab
+      upcomingAssignments: upcoming,          // for "Upcoming" tab
+      completedAssignments: completed,        // for "Completed" tab
+      totalAssignments: enhancedAssignments.length,
+      totalSubmissions: totalSubmissions,
+      pendingGrading: pendingGrading,
       classes: classes,
       userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
+      isSuperAdmin: isSuperAdmin,
+      user: user                              // <-- user object for the view
     });
+
   } catch (error) {
     console.error('❌ Get assignments error:', error);
-    res.status(500).render('error/500', { 
+    res.status(500).render('error/500', {
       title: 'Server Error',
-      message: 'Failed to load assignments: ' + error.message 
+      message: 'Failed to load assignments: ' + error.message
     });
   }
 };
-
 // Create assignment (FIXED)
 exports.createAssignment = async (req, res) => {
   try {
