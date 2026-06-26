@@ -363,547 +363,668 @@
             font-weight: 700;
             margin: 5px 0;
         }
+    :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --light-bg: #f8f9ff;
+            --card-shadow: 0 8px 30px rgba(67, 97, 238, 0.1);
+            --hover-shadow: 0 15px 35px rgba(67, 97, 238, 0.15);
+        }
+        * { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; font-weight: 600; }
+        body { background-color: #f8f9ff; color: #333; }
+        .profile-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #4cc9f0, #f72585);
+        }
+        .profile-img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 5px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(0,0,0,0.2); transition: transform 0.3s ease; }
+        .profile-img:hover { transform: scale(1.05); }
+        .dashboard-card { border: none; border-radius: 18px; box-shadow: var(--card-shadow); transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; overflow: hidden; }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: var(--hover-shadow); }
+        .dashboard-card .card-header { background: white; border-bottom: 2px solid #f0f2ff; padding: 18px 25px; font-weight: 600; color: var(--primary-color); }
+        .action-btn { border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; border: 2px solid #e9ecef; transition: all 0.3s ease; text-align: left; font-weight: 500; color: #495057; }
+        .action-btn:hover { border-color: var(--primary-color); background: linear-gradient(135deg, rgba(67,97,238,0.1) 0%, rgba(58,12,163,0.05) 100%); color: var(--primary-color); transform: translateX(5px); }
+        .action-btn i { width: 24px; margin-right: 10px; }
+        .assignment-card { border: none; border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: all 0.3s ease; height: 100%; background: white; border-left: 6px solid; }
+        .assignment-card:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(67,97,238,0.15); }
+        .assignment-card.pending { border-left-color: #ffbe0b; }
+        .assignment-card.submitted { border-left-color: #4cc9f0; }
+        .assignment-card.graded { border-left-color: #52b788; }
+        .assignment-card.overdue { border-left-color: #f72585; }
+        .status-badge { padding: 6px 15px; border-radius: 25px; font-size: 0.85rem; font-weight: 500; letter-spacing: 0.3px; }
+        .progress-circle { width: 70px; height: 70px; position: relative; margin: 0 auto; }
+        .progress-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .progress-circle-bg { fill: none; stroke: #e9ecef; stroke-width: 4; }
+        .progress-circle-progress { fill: none; stroke: var(--primary-color); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 188; stroke-dashoffset: calc(188 - (188 * var(--progress)) / 100); transition: stroke-dashoffset 1s ease; }
+        .progress-circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 1.2rem; color: var(--primary-color); }
+        .filter-tabs { background: white; border-radius: 15px; padding: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .filter-tabs .nav-link { border-radius: 12px; margin: 0 5px; padding: 10px 25px; font-weight: 500; color: #6c757d; transition: all 0.3s ease; border: 2px solid transparent; }
+        .filter-tabs .nav-link:hover { color: var(--primary-color); background: rgba(67,97,238,0.08); }
+        .filter-tabs .nav-link.active { background: var(--primary-color); color: white; border-color: var(--primary-color); box-shadow: 0 5px 15px rgba(67,97,238,0.3); }
+        .countdown-timer { font-family: 'Poppins', monospace; font-size: 1.1rem; font-weight: 600; padding: 8px 15px; border-radius: 10px; background: rgba(220,53,69,0.1); color: #dc3545; display: inline-flex; align-items: center; gap: 8px; }
+        .countdown-timer.urgent { background: rgba(220,53,69,0.15); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .search-bar { position: relative; max-width: 400px; }
+        .search-bar input { border-radius: 12px; padding: 12px 20px 12px 45px; border: 2px solid #e9ecef; background: white; transition: all 0.3s ease; }
+        .search-bar input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
+        .search-bar i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; }
+        .empty-state { padding: 60px 20px; text-align: center; }
+        .empty-state-icon { font-size: 4rem; color: #dee2e6; margin-bottom: 20px; }
+        @media (max-width: 768px) { .filter-tabs .nav-link { padding: 8px 15px; margin: 3px; font-size: 0.9rem; } .profile-section { padding: 20px; } .assignment-card { margin-bottom: 15px; } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
+        .custom-tooltip { position: relative; cursor: help; }
+        .custom-tooltip:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; white-space: nowrap; z-index: 1000; margin-bottom: 5px; }
+        .grade-display { background: linear-gradient(135deg, #52b788, #40916c); color: white; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
+        .grade-display .grade { font-size: 2.5rem; font-weight: 700; margin: 5px 0; }
+        .submission-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .submission-content img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .submission-file {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 15px;
+        }
     </style>
-</head>
-
-<body>
-    <%- include('../partials/navbar') %>
-
-        <div class="container mt-4">
-            <%- include('../partials/alerts') %>
-
-                <div class="alert alert-info mb-4 d-flex align-items-center">
-                    <i class="fas fa-school me-3 fs-4"></i>
-                    <div>
-                        <h5 class="mb-1">Currently Studying At</h5>
-                        <p class="mb-0"><strong>
-                                <%= userSchool %>
-                            </strong> - <%= classData.name %>
-                        </p>
+    </head>
+    
+    <body>
+        <%- include('../partials/navbar') %>
+    
+            <div class="container mt-4">
+                <%- include('../partials/alerts') %>
+    
+                    <div class="alert alert-info mb-4 d-flex align-items-center">
+                        <i class="fas fa-school me-3 fs-4"></i>
+                        <div>
+                            <h5 class="mb-1">Currently Studying At</h5>
+                            <p class="mb-0"><strong>
+                                    <%= userSchool %>
+                                </strong> - <%= classData.name %>
+                            </p>
+                        </div>
                     </div>
-                </div>
-
-                <div class="row">
-                    <!-- Left Sidebar with Profile -->
-                    <div class="col-lg-3 col-md-4">
-                        <div class="profile-section text-center">
-                            <!-- ✅ REPLACED with user-avatar partial -->
-                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
-                                <h4 class="mb-2">
-                                    <%= user.firstName %>
-                                        <%= user.lastName %>
-                                </h4>
-                                <span class="badge bg-light text-primary mb-3">Student</span>
-                                <p class="mb-3"><i class="fas fa-book-open me-2"></i>
-                                    <%= classData.name %>
-                                </p>
-                                <div class="d-flex justify-content-center gap-3">
-                                    <div class="text-center">
-                                        <div class="h5 mb-0">
-                                            <%= assignments.length %>
-                                        </div><small>Assignments</small>
+    
+                    <div class="row">
+                        <!-- Left Sidebar -->
+                        <div class="col-lg-3 col-md-4">
+                            <div class="profile-section text-center">
+                                <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
+                                    <h4 class="mb-2">
+                                        <%= user.firstName %>
+                                            <%= user.lastName %>
+                                    </h4>
+                                    <span class="badge bg-light text-primary mb-3">Student</span>
+                                    <p class="mb-3"><i class="fas fa-book-open me-2"></i>
+                                        <%= classData.name %>
+                                    </p>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <div class="text-center">
+                                            <div class="h5 mb-0">
+                                                <%= assignments.length %>
+                                            </div><small>Assignments</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="h5 mb-0">
+                                                <%= assignments.filter(a=> a.submissions && a.submissions.length > 0).length
+                                                    %>
+                                            </div><small>Submitted</small>
+                                        </div>
                                     </div>
-                                    <div class="text-center">
-                                        <div class="h5 mb-0">
-                                            <%= assignments.filter(a=> a.submissions && a.submissions.length > 0).length
-                                                %>
-                                        </div><small>Submitted</small>
-                                    </div>
+                            </div>
+    
+                            <div class="card dashboard-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Quick Actions</h5><i class="fas fa-bolt text-warning"></i>
                                 </div>
-                        </div>
-
-                        <div class="card dashboard-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Quick Actions</h5><i class="fas fa-bolt text-warning"></i>
+                                <div class="card-body">
+                                    <a href="/student/class/<%= classData.id %>/materials" class="btn action-btn"><i
+                                            class="fas fa-book"></i> Study Materials</a>
+                                    <a href="/student/class/<%= classData.id %>/assignments" class="btn action-btn"><i
+                                            class="fas fa-tasks"></i> All Assignments</a>
+                                    <a href="/student/class/<%= classData.id %>/exams" class="btn action-btn"><i
+                                            class="fas fa-clipboard-list"></i> Upcoming Exams</a>
+                                    <a href="/student/class/<%= classData.id %>/live-sessions" class="btn action-btn"><i
+                                            class="fas fa-video"></i> Live Classes</a>
+                                    <a href="/student/dashboard" class="btn action-btn"><i class="fas fa-home"></i>
+                                        Dashboard Home</a>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <a href="/student/class/<%= classData.id %>/materials" class="btn action-btn"><i
-                                        class="fas fa-book"></i> Study Materials</a>
-                                <a href="/student/class/<%= classData.id %>/assignments" class="btn action-btn"><i
-                                        class="fas fa-tasks"></i> All Assignments</a>
-                                <a href="/student/class/<%= classData.id %>/exams" class="btn action-btn"><i
-                                        class="fas fa-clipboard-list"></i> Upcoming Exams</a>
-                                <a href="/student/class/<%= classData.id %>/live-sessions" class="btn action-btn"><i
-                                        class="fas fa-video"></i> Live Classes</a>
-                                <a href="/student/dashboard" class="btn action-btn"><i class="fas fa-home"></i>
-                                    Dashboard Home</a>
-                            </div>
-                        </div>
-
-                        <!-- Progress Stats -->
-                        <div class="card dashboard-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">My Progress</h5><i class="fas fa-chart-line text-success"></i>
-                            </div>
-                            <div class="card-body">
-                                <% const totalAssignments=assignments.length; const
-                                    submittedAssignments=assignments.filter(a=> a.submissions && a.submissions.length >
-                                    0).length;
-                                    const pendingAssignments = totalAssignments - submittedAssignments;
-                                    const progress = totalAssignments > 0 ? Math.round((submittedAssignments /
-                                    totalAssignments) * 100) : 0;
-                                    %>
-
-                                    <div class="progress-circle mb-4">
-                                        <svg>
-                                            <circle class="progress-circle-bg" cx="35" cy="35" r="30"></circle>
-                                            <circle class="progress-circle-progress" cx="35" cy="35" r="30"
-                                                style="--progress: <%= progress %>"></circle>
-                                        </svg>
-                                        <div class="progress-circle-text">
-                                            <%= progress %>%
-                                        </div>
-                                    </div>
-
-                                    <div class="progress-stats">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>Completed</span>
-                                            <span class="badge bg-success">
-                                                <%= submittedAssignments %>/<%= totalAssignments %>
-                                            </span>
-                                        </div>
-                                        <div class="progress mb-3" style="height: 8px;">
-                                            <div class="progress-bar bg-success" style="width: <%= progress %>%"></div>
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>Pending</span>
-                                            <span class="badge bg-warning">
-                                                <%= pendingAssignments %>
-                                            </span>
-                                        </div>
-                                        <div class="progress mb-3" style="height: 8px;">
-                                            <div class="progress-bar bg-warning"
-                                                style="width: <%= totalAssignments > 0 ? (pendingAssignments/totalAssignments*100) : 0 %>%">
+    
+                            <!-- Progress Stats -->
+                            <div class="card dashboard-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">My Progress</h5><i class="fas fa-chart-line text-success"></i>
+                                </div>
+                                <div class="card-body">
+                                    <% const totalAssignments=assignments.length; const
+                                        submittedAssignments=assignments.filter(a=> a.submissions && a.submissions.length >
+                                        0).length; const pendingAssignments = totalAssignments - submittedAssignments; const
+                                        progress = totalAssignments > 0 ? Math.round((submittedAssignments /
+                                        totalAssignments) * 100) : 0; %>
+                                        <div class="progress-circle mb-4">
+                                            <svg>
+                                                <circle class="progress-circle-bg" cx="35" cy="35" r="30"></circle>
+                                                <circle class="progress-circle-progress" cx="35" cy="35" r="30"
+                                                    style="--progress: <%= progress %>"></circle>
+                                            </svg>
+                                            <div class="progress-circle-text">
+                                                <%= progress %>%
                                             </div>
                                         </div>
-
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>Upcoming Due</span>
-                                            <span class="badge bg-danger">
-                                                <%= assignments.filter(a=> new Date(a.dueDate) > new Date() &&
-                                                    (!a.submissions || a.submissions.length === 0)).length %>
-                                            </span>
+                                        <div class="progress-stats">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>Completed</span><span class="badge bg-success">
+                                                    <%= submittedAssignments %>/<%= totalAssignments %>
+                                                </span></div>
+                                            <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress-bar bg-success" style="width: <%= progress %>%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>Pending</span><span class="badge bg-warning">
+                                                    <%= pendingAssignments %>
+                                                </span></div>
+                                            <div class="progress mb-3" style="height: 8px;">
+                                                <div class="progress-bar bg-warning"
+                                                    style="width: <%= totalAssignments > 0 ? (pendingAssignments/totalAssignments*100) : 0 %>%">
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>Upcoming Due</span><span class="badge bg-danger">
+                                                    <%= assignments.filter(a=> new Date(a.dueDate) > new Date() &&
+                                                        (!a.submissions || a.submissions.length === 0)).length %>
+                                                </span></div>
                                         </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Main Content -->
+                        <div class="col-lg-9 col-md-8">
+                            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                                <div>
+                                    <h2 class="mb-1"><i class="fas fa-tasks me-2 text-primary"></i>Class Assignments</h2>
+                                    <p class="text-muted mb-0"><i class="fas fa-user-tie me-1"></i>
+                                        <%= classData.teacher.user.firstName %>
+                                            <%= classData.teacher.user.lastName %>
+                                    </p>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <div class="search-bar"><i class="fas fa-search"></i><input type="text"
+                                            class="form-control" placeholder="Search assignments..." id="searchAssignments">
                                     </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main Content -->
-                    <div class="col-lg-9 col-md-8">
-                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                            <div>
-                                <h2 class="mb-1"><i class="fas fa-tasks me-2 text-primary"></i>Class Assignments</h2>
-                                <p class="text-muted mb-0"><i class="fas fa-user-tie me-1"></i>
-                                    <%= classData.teacher.user.firstName %>
-                                        <%= classData.teacher.user.lastName %>
-                                </p>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <div class="search-bar">
-                                    <i class="fas fa-search"></i>
-                                    <input type="text" class="form-control" placeholder="Search assignments..."
-                                        id="searchAssignments">
+                                    <a href="/student/class/<%= classData.id %>"
+                                        class="btn btn-outline-primary d-flex align-items-center"><i
+                                            class="fas fa-arrow-left me-2"></i> Back to Class</a>
                                 </div>
-                                <a href="/student/class/<%= classData.id %>"
-                                    class="btn btn-outline-primary d-flex align-items-center"><i
-                                        class="fas fa-arrow-left me-2"></i> Back to Class</a>
                             </div>
-                        </div>
-
-                        <!-- Filter Tabs -->
-                        <div class="card mb-4 dashboard-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="mb-0">Filter Assignments</h5>
-                                    <span class="badge bg-light text-dark"><i class="fas fa-filter me-1"></i>
-                                        <%= assignments.length %> total
-                                    </span>
+    
+                            <!-- Filter Tabs -->
+                            <div class="card mb-4 dashboard-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Filter Assignments</h5>
+                                        <span class="badge bg-light text-dark"><i class="fas fa-filter me-1"></i>
+                                            <%= assignments.length %> total
+                                        </span>
+                                    </div>
+                                    <ul class="nav nav-pills filter-tabs" id="assignmentTabs">
+                                        <li class="nav-item"><button class="nav-link active" data-filter="all"><i
+                                                    class="fas fa-list me-2"></i>All</button></li>
+                                        <li class="nav-item"><button class="nav-link" data-filter="pending"><i
+                                                    class="fas fa-clock me-2"></i>Pending</button></li>
+                                        <li class="nav-item"><button class="nav-link" data-filter="submitted"><i
+                                                    class="fas fa-paper-plane me-2"></i>Submitted</button></li>
+                                        <li class="nav-item"><button class="nav-link" data-filter="graded"><i
+                                                    class="fas fa-star me-2"></i>Graded</button></li>
+                                        <li class="nav-item"><button class="nav-link" data-filter="overdue"><i
+                                                    class="fas fa-exclamation-circle me-2"></i>Overdue</button></li>
+                                    </ul>
                                 </div>
-                                <ul class="nav nav-pills filter-tabs" id="assignmentTabs">
-                                    <li class="nav-item"><button class="nav-link active" data-filter="all"><i
-                                                class="fas fa-list me-2"></i>All</button></li>
-                                    <li class="nav-item"><button class="nav-link" data-filter="pending"><i
-                                                class="fas fa-clock me-2"></i>Pending</button></li>
-                                    <li class="nav-item"><button class="nav-link" data-filter="submitted"><i
-                                                class="fas fa-paper-plane me-2"></i>Submitted</button></li>
-                                    <li class="nav-item"><button class="nav-link" data-filter="graded"><i
-                                                class="fas fa-star me-2"></i>Graded</button></li>
-                                    <li class="nav-item"><button class="nav-link" data-filter="overdue"><i
-                                                class="fas fa-exclamation-circle me-2"></i>Overdue</button></li>
-                                </ul>
                             </div>
-                        </div>
-
-                        <!-- Assignment Grid -->
-                        <div class="row" id="assignmentsGrid">
-                            <% if (assignments && assignments.length> 0) { %>
-                                <% assignments.forEach(assignment=> {
-                                    const now = new Date();
-                                    const dueDate = new Date(assignment.dueDate);
-                                    const isOverdue = dueDate < now; const isSubmitted=assignment.submissions &&
-                                        assignment.submissions.length> 0;
-                                        const isGraded = isSubmitted && assignment.submissions[0].grade !== null;
-                                        const timeRemaining = dueDate - now;
-                                        const daysRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
-
-                                        let status = 'pending';
-                                        let statusClass = 'pending';
-                                        let statusIcon = 'fa-clock';
-                                        let statusText = 'Pending';
-
-                                        if (isGraded) {
-                                        status = 'graded';
-                                        statusClass = 'graded';
-                                        statusIcon = 'fa-star';
-                                        statusText = 'Graded';
-                                        } else if (isSubmitted) {
-                                        status = 'submitted';
-                                        statusClass = 'submitted';
-                                        statusIcon = 'fa-check-circle';
-                                        statusText = 'Submitted';
-                                        } else if (isOverdue) {
-                                        status = 'overdue';
-                                        statusClass = 'overdue';
-                                        statusIcon = 'fa-exclamation-triangle';
-                                        statusText = 'Overdue';
-                                        } else if (daysRemaining <= 3) { status='pending' ; statusClass='pending' ;
-                                            statusIcon='fa-hourglass-half' ; statusText='Due Soon' ; } %>
-                                            <div class="col-xl-4 col-lg-6 mb-4 assignment-item"
-                                                data-status="<%= status %>" data-overdue="<%= isOverdue %>"
-                                                data-title="<%= assignment.title.toLowerCase() %>">
-                                                <div class="card assignment-card <%= statusClass %>">
-                                                    <div class="card-body">
-                                                        <div
-                                                            class="d-flex justify-content-between align-items-start mb-3">
-                                                            <div class="flex-grow-1">
-                                                                <h5 class="card-title mb-2 text-truncate">
-                                                                    <%= assignment.title %>
-                                                                </h5>
-                                                                <div class="d-flex align-items-center text-muted mb-2">
-                                                                    <i class="fas fa-calendar-alt me-2"></i>
-                                                                    <small>Due: <strong>
-                                                                            <%= dueDate.toLocaleDateString() %>
-                                                                        </strong> at <%= dueDate.toLocaleTimeString([],
-                                                                            {hour:'2-digit', minute:'2-digit'}) %>
-                                                                            </small>
+    
+                            <!-- Assignment Grid -->
+                            <div class="row" id="assignmentsGrid">
+                                <% if (assignments && assignments.length> 0) { %>
+                                    <% assignments.forEach(assignment=> {
+                                        const now = new Date();
+                                        const dueDate = new Date(assignment.dueDate);
+                                        const isOverdue = dueDate < now; const isSubmitted=assignment.submissions &&
+                                            assignment.submissions.length> 0;
+                                            const isGraded = isSubmitted && assignment.submissions[0].grade !== null;
+                                            const timeRemaining = dueDate - now;
+                                            const daysRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
+                                            let status = 'pending';
+                                            let statusClass = 'pending';
+                                            let statusIcon = 'fa-clock';
+                                            let statusText = 'Pending';
+                                            if (isGraded) { status = 'graded'; statusClass = 'graded'; statusIcon =
+                                            'fa-star'; statusText = 'Graded'; }
+                                            else if (isSubmitted) { status = 'submitted'; statusClass = 'submitted';
+                                            statusIcon = 'fa-check-circle'; statusText = 'Submitted'; }
+                                            else if (isOverdue) { status = 'overdue'; statusClass = 'overdue'; statusIcon =
+                                            'fa-exclamation-triangle'; statusText = 'Overdue'; }
+                                            else if (daysRemaining <= 3) { status='pending' ; statusClass='pending' ;
+                                                statusIcon='fa-hourglass-half' ; statusText='Due Soon' ; } %>
+                                                <div class="col-xl-4 col-lg-6 mb-4 assignment-item"
+                                                    data-status="<%= status %>" data-overdue="<%= isOverdue %>"
+                                                    data-title="<%= assignment.title.toLowerCase() %>">
+                                                    <div class="card assignment-card <%= statusClass %>">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-3">
+                                                                <div class="flex-grow-1">
+                                                                    <h5 class="card-title mb-2 text-truncate">
+                                                                        <%= assignment.title %>
+                                                                    </h5>
+                                                                    <div class="d-flex align-items-center text-muted mb-2">
+                                                                        <i class="fas fa-calendar-alt me-2"></i><small>Due:
+                                                                            <strong>
+                                                                                <%= dueDate.toLocaleDateString() %>
+                                                                            </strong> at <%= dueDate.toLocaleTimeString([],
+                                                                                {hour:'2-digit', minute:'2-digit'}) %>
+                                                                                </small></div>
                                                                 </div>
+                                                                <span class="badge bg-<%= statusClass %> status-badge"><i
+                                                                        class="fas <%= statusIcon %> me-1"></i>
+                                                                    <%= statusText %>
+                                                                </span>
                                                             </div>
-                                                            <span class="badge bg-<%= statusClass %> status-badge"><i
-                                                                    class="fas <%= statusIcon %> me-1"></i>
-                                                                <%= statusText %>
-                                                            </span>
-                                                        </div>
-
-                                                        <% if (assignment.description) { %>
-                                                            <p class="card-text mb-3 text-muted small">
-                                                                <%= assignment.description.substring(0, 100) %>
-                                                                    <%= assignment.description.length> 100 ? '...' : ''
-                                                                        %>
-                                                            </p>
-                                                            <% } %>
-
-                                                                <div
-                                                                    class="d-flex justify-content-between align-items-center mb-4">
-                                                                    <div class="text-center">
-                                                                        <div class="h4 mb-0">
-                                                                            <%= assignment.points || 100 %>
-                                                                        </div>
-                                                                        <small class="text-muted">Points</small>
-                                                                    </div>
-                                                                    <div class="text-center">
-                                                                        <div class="countdown-timer <%= daysRemaining <= 1 ? 'urgent' : '' %>"
-                                                                            data-due="<%= assignment.dueDate %>">
-                                                                            <i class="fas fa-clock"></i>
-                                                                            <span class="timer-text"></span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <% if (isSubmitted) { %>
+                                                            <% if (assignment.description) { %>
+                                                                <p class="card-text mb-3 text-muted small">
+                                                                    <%= assignment.description.substring(0, 100) %>
+                                                                        <%= assignment.description.length> 100 ? '...' : ''
+                                                                            %>
+                                                                </p>
+                                                                <% } %>
                                                                     <div
-                                                                        class="alert alert-<%= isGraded ? 'success' : 'info' %> mb-3">
-                                                                        <div class="d-flex align-items-center">
-                                                                            <i
-                                                                                class="fas <%= isGraded ? 'fa-check-circle' : 'fa-paper-plane' %> me-2"></i>
-                                                                            <div>
-                                                                                <strong>
-                                                                                    <%= isGraded ? 'Graded'
-                                                                                        : 'Submitted' %>
-                                                                                </strong>
-                                                                                <div class="small">
-                                                                                    <%= new
-                                                                                        Date(assignment.submissions[0].submittedAt).toLocaleDateString()
-                                                                                        %>
-                                                                                        <% if (isGraded) { %>
-                                                                                            • Grade: <strong>
-                                                                                                <%= assignment.submissions[0].grade
-                                                                                                    %>/<%=
-                                                                                                        assignment.points
-                                                                                                        || 100 %>
-                                                                                            </strong>
-                                                                                            <% } %>
+                                                                        class="d-flex justify-content-between align-items-center mb-4">
+                                                                        <div class="text-center">
+                                                                            <div class="h4 mb-0">
+                                                                                <%= assignment.points || 100 %>
+                                                                            </div><small class="text-muted">Points</small>
+                                                                        </div>
+                                                                        <div class="text-center">
+                                                                            <div class="countdown-timer <%= daysRemaining <= 1 ? 'urgent' : '' %>"
+                                                                                data-due="<%= assignment.dueDate %>"><i
+                                                                                    class="fas fa-clock"></i><span
+                                                                                    class="timer-text"></span></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <% if (isSubmitted) { %>
+                                                                        <div
+                                                                            class="alert alert-<%= isGraded ? 'success' : 'info' %> mb-3">
+                                                                            <div class="d-flex align-items-center"><i
+                                                                                    class="fas <%= isGraded ? 'fa-check-circle' : 'fa-paper-plane' %> me-2"></i>
+                                                                                <div><strong>
+                                                                                        <%= isGraded ? 'Graded'
+                                                                                            : 'Submitted' %>
+                                                                                    </strong>
+                                                                                    <div class="small">
+                                                                                        <%= new
+                                                                                            Date(assignment.submissions[0].submittedAt).toLocaleDateString()
+                                                                                            %>
+                                                                                            <% if (isGraded) { %> • Grade:
+                                                                                                <strong>
+                                                                                                    <%= assignment.submissions[0].grade
+                                                                                                        %>/<%=
+                                                                                                            assignment.points
+                                                                                                            || 100 %>
+                                                                                                </strong>
+                                                                                                <% } %>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <% } %>
-
-                                                                        <div
-                                                                            class="d-flex justify-content-between mt-auto">
-                                                                            <% if (!isSubmitted) { %>
-                                                                                <a href="/student/assignments/<%= assignment.id %>/submit-text"
-                                                                                    class="btn btn-primary btn-sm d-flex align-items-center">
-                                                                                    <i class="fas fa-upload me-2"></i>
-                                                                                    <%= isOverdue ? 'Submit Late'
-                                                                                        : 'Submit Now' %>
-                                                                                </a>
-                                                                                <% } else if (isGraded) { %>
-                                                                                    <button
-                                                                                        class="btn btn-success btn-sm view-grade"
-                                                                                        data-grade="<%= assignment.submissions[0].grade %>"
-                                                                                        data-feedback="<%= assignment.submissions[0].feedback || 'No feedback provided' %>"
-                                                                                        data-max="<%= assignment.points || 100 %>">
-                                                                                        <i class="fas fa-star me-2"></i>
-                                                                                        View Grade
-                                                                                    </button>
-                                                                                    <% } else { %>
-                                                                                        <span
-                                                                                            class="badge bg-info p-2"><i
-                                                                                                class="fas fa-hourglass-half me-1"></i>
-                                                                                            Awaiting Grade</span>
-                                                                                        <% } %>
-
-                                                                                            <% if (isSubmitted) { %>
-                                                                                                <button
-                                                                                                    class="btn btn-outline-secondary btn-sm view-submission"
-                                                                                                    data-submission="<%= JSON.stringify(assignment.submissions[0]) %>"
-                                                                                                    data-title="<%= assignment.title %>">
-                                                                                                    <i
-                                                                                                        class="fas fa-eye me-1"></i>
-                                                                                                    View
-                                                                                                </button>
-                                                                                                <% } %>
-                                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <% }); %>
-                                                <% } else { %>
-                                                    <div class="col-12">
-                                                        <div class="card empty-state">
-                                                            <div class="card-body">
-                                                                <i class="fas fa-tasks empty-state-icon"></i>
-                                                                <h4 class="mb-3">No Assignments Yet</h4>
-                                                                <p class="text-muted mb-4">Your teacher hasn't posted
-                                                                    any assignments for this class yet.</p>
-                                                                <div class="alert alert-info"><i
-                                                                        class="fas fa-info-circle me-2"></i> You'll see
-                                                                    assignments appear here when your teacher creates
-                                                                    them.</div>
-                                                            </div>
+                                                                        <% } %>
+                                                                            <div
+                                                                                class="d-flex justify-content-between mt-auto">
+                                                                                <% if (!isSubmitted) { %>
+                                                                                    <a href="/student/assignments/<%= assignment.id %>/submit-text"
+                                                                                        class="btn btn-primary btn-sm d-flex align-items-center"><i
+                                                                                            class="fas fa-upload me-2"></i>
+                                                                                        <%= isOverdue ? 'Submit Late'
+                                                                                            : 'Submit Now' %>
+                                                                                    </a>
+                                                                                    <% } else if (isGraded) { %>
+                                                                                        <button
+                                                                                            class="btn btn-success btn-sm view-grade"
+                                                                                            data-grade="<%= assignment.submissions[0].grade %>"
+                                                                                            data-feedback="<%= assignment.submissions[0].feedback || 'No feedback provided' %>"
+                                                                                            data-max="<%= assignment.points || 100 %>"><i
+                                                                                                class="fas fa-star me-2"></i>
+                                                                                            View Grade</button>
+                                                                                        <% } else { %>
+                                                                                            <span
+                                                                                                class="badge bg-info p-2"><i
+                                                                                                    class="fas fa-hourglass-half me-1"></i>
+                                                                                                Awaiting Grade</span>
+                                                                                            <% } %>
+                                                                                                <% if (isSubmitted) { %>
+                                                                                                    <button
+                                                                                                        class="btn btn-outline-secondary btn-sm view-submission"
+                                                                                                        data-submission='<%= JSON.stringify(assignment.submissions[0]) %>'
+                                                                                                        data-title="<%= assignment.title %>"><i
+                                                                                                            class="fas fa-eye me-1"></i>
+                                                                                                        View</button>
+                                                                                                    <% } %>
+                                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <% } %>
-                        </div>
-                    </div>
-                </div>
-        </div>
-
-        <!-- Grade Modal -->
-        <div class="modal fade" id="gradeModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-star text-warning me-2"></i>Assignment Grade</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="grade-display">
-                            <div class="grade" id="gradeScore"></div>
-                            <div id="gradePercentage"></div>
-                        </div>
-                        <div class="mt-4">
-                            <h6><i class="fas fa-comment me-2"></i>Teacher's Feedback</h6>
-                            <div class="p-3 bg-light rounded mt-2" id="gradeFeedback"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- View Submission Modal -->
-        <div class="modal fade" id="viewSubmissionModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i><span id="submissionTitle"></span>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-4">
-                            <h6>Submission Details</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-2"><i class="fas fa-calendar me-2 text-muted"></i><strong>Submitted
-                                            On:</strong> <span id="submissionDate"></span></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-2"><i
-                                            class="fas fa-clock me-2 text-muted"></i><strong>Status:</strong> <span
-                                            id="submissionStatus"></span></div>
-                                </div>
+                                                </div>
+                                                <% }); %>
+                                                    <% } else { %>
+                                                        <div class="col-12">
+                                                            <div class="card empty-state">
+                                                                <div class="card-body">
+                                                                    <i class="fas fa-tasks empty-state-icon"></i>
+                                                                    <h4 class="mb-3">No Assignments Yet</h4>
+                                                                    <p class="text-muted mb-4">Your teacher hasn't posted
+                                                                        any assignments for this class yet.</p>
+                                                                    <div class="alert alert-info"><i
+                                                                            class="fas fa-info-circle me-2"></i> You'll see
+                                                                        assignments appear here when your teacher creates
+                                                                        them.</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <% } %>
                             </div>
                         </div>
-                        <div id="submissionContent"></div>
-                        <div id="gradeSection" class="mt-4" style="display: none;">
-                            <h6><i class="fas fa-star text-warning me-2"></i>Grading</h6>
-                            <div class="alert alert-success">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div><strong>Grade:</strong> <span id="modalGrade" class="h5 ms-2"></span></div>
-                                    <div id="modalFeedback"></div>
-                                </div>
+                    </div>
+            </div>
+    
+            <!-- Grade Modal -->
+            <div class="modal fade" id="gradeModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-star text-warning me-2"></i>Assignment Grade</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="grade-display">
+                                <div class="grade" id="gradeScore"></div>
+                                <div id="gradePercentage"></div>
+                            </div>
+                            <div class="mt-4">
+                                <h6><i class="fas fa-comment me-2"></i>Teacher's Feedback</h6>
+                                <div class="p-3 bg-light rounded mt-2" id="gradeFeedback"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+    
+            <!-- View Submission Modal -->
+            <div class="modal fade" id="viewSubmissionModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i><span id="submissionTitle"></span>
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-4">
+                                <h6>Submission Details</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-2"><i class="fas fa-calendar me-2 text-muted"></i><strong>Submitted
+                                                On:</strong> <span id="submissionDate"></span></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-2"><i
+                                                class="fas fa-clock me-2 text-muted"></i><strong>Status:</strong> <span
+                                                id="submissionStatus"></span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="submissionContent"></div>
+                            <div id="gradeSection" class="mt-4" style="display: none;">
+                                <h6><i class="fas fa-star text-warning me-2"></i>Grading</h6>
+                                <div class="alert alert-success">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div><strong>Grade:</strong> <span id="modalGrade" class="h5 ms-2"></span></div>
+                                        <div id="modalFeedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    // ======== COUNTDOWN TIMER ========
+                    function initializeCountdown() {
+                        document.querySelectorAll('.countdown-timer').forEach(timer => {
+                            function updateTimer() {
+                                const dueDate = new Date(timer.dataset.due);
+                                const now = new Date();
+                                const diff = dueDate - now;
+                                if (diff <= 0) {
+                                    timer.querySelector('.timer-text').textContent = 'Due';
+                                    timer.classList.add('urgent');
+                                    return;
+                                }
+                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                let text = '';
+                                if (days > 0) { text = `${days}d ${hours}h`; if (days <= 3) timer.classList.add('urgent'); }
+                                else if (hours > 0) { text = `${hours}h ${minutes}m`; timer.classList.add('urgent'); }
+                                else { text = `${minutes}m`; timer.classList.add('urgent'); }
+                                timer.querySelector('.timer-text').textContent = text;
+                            }
+                            updateTimer();
+                            setInterval(updateTimer, 60000);
+                        });
+                    }
+                    initializeCountdown();
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                function initializeCountdown() {
-                    document.querySelectorAll('.countdown-timer').forEach(timer => {
-                        function updateTimer() {
-                            const dueDate = new Date(timer.dataset.due);
-                            const now = new Date();
-                            const diff = dueDate - now;
+                    // ======== FILTER & SEARCH ========
+                    const filterButtons = document.querySelectorAll('[data-filter]');
+                    const assignmentItems = document.querySelectorAll('.assignment-item');
+                    const searchInput = document.getElementById('searchAssignments');
 
-                            if (diff <= 0) {
-                                timer.querySelector('.timer-text').textContent = 'Due';
-                                timer.classList.add('urgent');
-                                return;
+                    function filterAssignments() {
+                        const activeFilter = document.querySelector('[data-filter].active').dataset.filter;
+                        const searchTerm = searchInput.value.toLowerCase();
+                        assignmentItems.forEach(item => {
+                            const matchesFilter = activeFilter === 'all' ||
+                                (activeFilter === 'overdue' ? item.dataset.overdue === 'true' :
+                                    item.dataset.status === activeFilter);
+                            const matchesSearch = item.dataset.title.includes(searchTerm) ||
+                                item.textContent.toLowerCase().includes(searchTerm);
+                            item.style.display = matchesFilter && matchesSearch ? 'block' : 'none';
+                        });
+                    }
+
+                    filterButtons.forEach(button => {
+                        button.addEventListener('click', function () {
+                            filterButtons.forEach(btn => btn.classList.remove('active'));
+                            this.classList.add('active');
+                            filterAssignments();
+                        });
+                    });
+                    searchInput.addEventListener('input', filterAssignments);
+
+                    // ======== VIEW GRADE MODAL ========
+                    document.querySelectorAll('.view-grade').forEach(button => {
+                        button.addEventListener('click', function () {
+                            const grade = this.dataset.grade;
+                            const max = this.dataset.max;
+                            const feedback = this.dataset.feedback;
+                            const percentage = Math.round((grade / max) * 100);
+                            document.getElementById('gradeScore').textContent = `${grade}/${max}`;
+                            document.getElementById('gradePercentage').textContent = `${percentage}%`;
+                            document.getElementById('gradeFeedback').textContent = feedback;
+                            new bootstrap.Modal(document.getElementById('gradeModal')).show();
+                        });
+                    });
+
+                    // ======== VIEW SUBMISSION MODAL – FIXED ========
+                    document.querySelectorAll('.view-submission').forEach(button => {
+                        button.addEventListener('click', function () {
+                            const submission = JSON.parse(this.dataset.submission);
+                            const title = this.dataset.title;
+
+                            document.getElementById('submissionTitle').textContent = title;
+                            document.getElementById('submissionDate').textContent = new Date(submission.submittedAt).toLocaleString();
+
+                            document.getElementById('submissionStatus').innerHTML =
+                                submission.grade !== null ?
+                                    `<span class="badge bg-success">Graded</span>` :
+                                    `<span class="badge bg-info">Submitted - Awaiting Grade</span>`;
+
+                            // --- Build submission content ---
+                            let contentHTML = '';
+
+                            // 1. If there is a file URL, show a download link
+                            if (submission.fileUrl) {
+                                contentHTML += `
+                                    <div class="submission-file">
+                                        <i class="fas fa-file-pdf fa-2x mb-2 text-primary"></i>
+                                        <p class="mb-2"><strong>File Submission</strong></p>
+                                        <a href="${submission.fileUrl}" class="btn btn-primary btn-sm" target="_blank">
+                                            <i class="fas fa-download me-2"></i> Download File
+                                        </a>
+                                    </div>
+                                `;
                             }
 
-                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            // 2. If there is text content
+                            if (submission.content) {
+                                let displayContent = submission.content;
+                                // If it's a drawing (image data URL), show the image
+                                if (submission.submissionType === 'drawing' && submission.content.startsWith('data:image')) {
+                                    contentHTML += `
+                                        <div class="submission-content text-center">
+                                            <p class="text-muted mb-2"><i class="fas fa-paint-brush me-1"></i> Drawing Submission</p>
+                                            <img src="${submission.content}" alt="Drawing" class="img-fluid">
+                                        </div>
+                                    `;
+                                } else {
+                                    // Plain text or JSON (if stored as JSON, we can parse)
+                                    try {
+                                        const parsed = JSON.parse(displayContent);
+                                        if (parsed.text) {
+                                            displayContent = parsed.text;
+                                        } else if (parsed.drawing) {
+                                            // If it has a drawing field, we could show it
+                                            contentHTML += `
+                                                <div class="submission-content text-center">
+                                                    <p class="text-muted mb-2"><i class="fas fa-paint-brush me-1"></i> Drawing Submission</p>
+                                                    <img src="${parsed.drawing}" alt="Drawing" class="img-fluid">
+                                                </div>
+                                            `;
+                                            // If also has text, show it below
+                                            if (parsed.text) {
+                                                contentHTML += `
+                                                    <div class="submission-content mt-3">
+                                                        <p class="text-muted mb-2"><i class="fas fa-align-left me-1"></i> Text Content</p>
+                                                        <pre>${parsed.text}</pre>
+                                                    </div>
+                                                `;
+                                            }
+                                        } else {
+                                            // It's a generic JSON, show as stringified
+                                            contentHTML += `<div class="submission-content"><pre>${JSON.stringify(parsed, null, 2)}</pre></div>`;
+                                        }
+                                    } catch (e) {
+                                        // Not JSON – plain text
+                                        contentHTML += `
+                                            <div class="submission-content">
+                                                <p class="text-muted mb-2"><i class="fas fa-align-left me-1"></i> Text Submission</p>
+                                                <pre>${displayContent}</pre>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            }
 
-                            let text = '';
-                            if (days > 0) {
-                                text = `${days}d ${hours}h`;
-                                if (days <= 3) timer.classList.add('urgent');
-                            } else if (hours > 0) {
-                                text = `${hours}h ${minutes}m`;
-                                timer.classList.add('urgent');
+                            // 3. If neither file nor content, show a message
+                            if (!contentHTML) {
+                                contentHTML = `
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-info-circle me-2"></i> No content was submitted for this assignment.
+                                    </div>
+                                `;
+                            }
+
+                            // Add word count if available
+                            if (submission.wordCount) {
+                                contentHTML += `
+                                    <div class="mt-3 text-muted small">
+                                        <i class="fas fa-file-alt me-1"></i> Word Count: ${submission.wordCount}
+                                    </div>
+                                `;
+                            }
+
+                            document.getElementById('submissionContent').innerHTML = contentHTML;
+
+                            // Grade section
+                            if (submission.grade !== null) {
+                                document.getElementById('gradeSection').style.display = 'block';
+                                document.getElementById('modalGrade').textContent =
+                                    `${submission.grade}/${this.closest('.assignment-item').querySelector('.h4').textContent}`;
+                                document.getElementById('modalFeedback').innerHTML = submission.feedback ?
+                                    `<div class="mt-2"><strong>Feedback:</strong> ${submission.feedback}</div>` :
+                                    '';
                             } else {
-                                text = `${minutes}m`;
-                                timer.classList.add('urgent');
+                                document.getElementById('gradeSection').style.display = 'none';
                             }
 
-                            timer.querySelector('.timer-text').textContent = text;
-                        }
-
-                        updateTimer();
-                        setInterval(updateTimer, 60000);
+                            new bootstrap.Modal(document.getElementById('viewSubmissionModal')).show();
+                        });
                     });
-                }
 
-                initializeCountdown();
-
-                const filterButtons = document.querySelectorAll('[data-filter]');
-                const assignmentItems = document.querySelectorAll('.assignment-item');
-                const searchInput = document.getElementById('searchAssignments');
-
-                function filterAssignments() {
-                    const activeFilter = document.querySelector('[data-filter].active').dataset.filter;
-                    const searchTerm = searchInput.value.toLowerCase();
-
+                    // ======== CARD HOVER EFFECT ========
                     assignmentItems.forEach(item => {
-                        const matchesFilter = activeFilter === 'all' ||
-                            (activeFilter === 'overdue' ? item.dataset.overdue === 'true' :
-                                item.dataset.status === activeFilter);
-                        const matchesSearch = item.dataset.title.includes(searchTerm) ||
-                            item.textContent.toLowerCase().includes(searchTerm);
-
-                        item.style.display = matchesFilter && matchesSearch ? 'block' : 'none';
+                        item.addEventListener('mouseenter', function () { this.style.transform = 'scale(1.02)'; });
+                        item.addEventListener('mouseleave', function () { this.style.transform = 'scale(1)'; });
                     });
-                }
 
-                filterButtons.forEach(button => {
-                    button.addEventListener('click', function () {
-                        filterButtons.forEach(btn => btn.classList.remove('active'));
-                        this.classList.add('active');
-                        filterAssignments();
+                    // ======== PROGRESS CIRCLE ========
+                    document.querySelectorAll('.progress-circle-progress').forEach(circle => {
+                        const progress = parseInt(circle.style.getPropertyValue('--progress'));
+                        circle.style.strokeDashoffset = `calc(188 - (188 * ${progress}) / 100)`;
                     });
                 });
-
-                searchInput.addEventListener('input', filterAssignments);
-
-                document.querySelectorAll('.view-grade').forEach(button => {
-                    button.addEventListener('click', function () {
-                        const grade = this.dataset.grade;
-                        const max = this.dataset.max;
-                        const feedback = this.dataset.feedback;
-                        const percentage = Math.round((grade / max) * 100);
-
-                        document.getElementById('gradeScore').textContent = `${grade}/${max}`;
-                        document.getElementById('gradePercentage').textContent = `${percentage}%`;
-                        document.getElementById('gradeFeedback').textContent = feedback;
-
-                        new bootstrap.Modal(document.getElementById('gradeModal')).show();
-                    });
-                });
-
-                document.querySelectorAll('.view-submission').forEach(button => {
-                    button.addEventListener('click', function () {
-                        const submission = JSON.parse(this.dataset.submission);
-                        const title = this.dataset.title;
-
-                        document.getElementById('submissionTitle').textContent = title;
-                        document.getElementById('submissionDate').textContent = new Date(submission.submittedAt).toLocaleString();
-
-                        document.getElementById('submissionStatus').innerHTML =
-                            submission.grade !== null ?
-                                `<span class="badge bg-success">Graded</span>` :
-                                `<span class="badge bg-info">Submitted - Awaiting Grade</span>`;
-
-                        document.getElementById('submissionContent').innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Submission content would be displayed here based on your implementation.
-                        </div>
-                    `;
-
-                        if (submission.grade !== null) {
-                            document.getElementById('gradeSection').style.display = 'block';
-                            document.getElementById('modalGrade').textContent =
-                                `${submission.grade}/${this.closest('.assignment-item').querySelector('.h4').textContent}`;
-                            document.getElementById('modalFeedback').innerHTML = submission.feedback ?
-                                `<div class="mt-2"><strong>Feedback:</strong> ${submission.feedback}</div>` :
-                                '';
-                        } else {
-                            document.getElementById('gradeSection').style.display = 'none';
-                        }
-
-                        new bootstrap.Modal(document.getElementById('viewSubmissionModal')).show();
-                    });
-                });
-
-                assignmentItems.forEach(item => {
-                    item.addEventListener('mouseenter', function () { this.style.transform = 'scale(1.02)'; });
-                    item.addEventListener('mouseleave', function () { this.style.transform = 'scale(1)'; });
-                });
-
-                document.querySelectorAll('.progress-circle-progress').forEach(circle => {
-                    const progress = parseInt(circle.style.getPropertyValue('--progress'));
-                    circle.style.strokeDashoffset = `calc(188 - (188 * ${progress}) / 100)`;
-                });
-            });
-        </script>
-</body>
-
-</html>
+            </script>
+    </body>
+    
+    </html>
