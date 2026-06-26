@@ -4,25 +4,1368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Materials - EdTech</title>
+    <title><%= title %> - EdTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #6b7280;
+            --gray-800: #1f2937;
+        }
+
+        body {
+            background: #f8fafc;
+        }
+
+        /* Profile section (matching dashboard) */
+        .profile-section {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-role {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            text-align: left;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .action-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .action-btn:hover {
+            transform: translateX(5px);
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Material Cards */
+        .material-card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            height: 100%;
+            background: white;
+        }
+
+        .material-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
+        }
+
+        .material-thumbnail {
+            height: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            position: relative;
+        }
+
+        .material-thumbnail i {
+            font-size: 3rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .thumbnail-label {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .type-document {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+        }
+
+        .type-video {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+        }
+
+        .type-presentation {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+        }
+
+        .type-textbook {
+            background: linear-gradient(135deg, #10b981, #34d399);
+        }
+
+        .type-other {
+            background: linear-gradient(135deg, #6b7280, #9ca3af);
+        }
+
+        .material-body {
+            padding: 16px 20px 20px;
+        }
+
+        .material-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .material-meta {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .material-meta i {
+            width: 18px;
+            text-align: center;
+        }
+
+        .material-tags .badge {
+            font-weight: 400;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            font-size: 0.7rem;
+        }
+
+        .material-actions .btn {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+
+        .view-count {
+            background: var(--gray-100);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--gray-600);
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box .form-control {
+            padding-left: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 12px;
+            color: var(--gray-600);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray-300);
+            margin-bottom: 16px;
+        }
+
+        /* Upload Modal styles */
+        .upload-preview {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--gray-100);
+        }
+
+        .upload-preview:hover,
+        .upload-preview.dragover {
+            border-color: var(--primary);
+            background: #eef2ff;
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tag-input {
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 8px 12px;
+            min-height: 44px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            background: white;
+        }
+
+        .tag {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .tag-remove:hover {
+            opacity: 1;
+        }
+
+        .tag-input input {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 120px;
+            background: transparent;
+            padding: 4px 0;
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 8px;
+            background: var(--gray-200);
+        }
+
+        .progress-bar {
+            border-radius: 8px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        #uploadError {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .material-thumbnail {
+                height: 100px;
+            }
+            .material-thumbnail i {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <%- include('../partials/navbar') %>
-        <div class="container mt-4">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Materials page – replace with full redesign later.
-            </div>
-            <h2>Teaching Materials</h2>
-            <p>Your materials will appear here.</p>
-            <a href="/teacher/materials/upload" class="btn btn-primary">
-                <i class="fas fa-upload me-2"></i> Upload New Material
-            </a>
-        </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
 
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <!-- School info banner -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-school me-2"></i>
+                    <strong>School:</strong>
+                    <%= userSchool || 'All Schools' %>
+                        <% if (isSuperAdmin) { %>
+                            <span class="badge bg-warning ms-2">Super Admin</span>
+                            <% } %>
+                </div>
+
+                <div class="row">
+                    <!-- ========== SIDEBAR ========== -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                            <h4>
+                                <%= user.firstName %>
+                                <%= user.lastName %>
+                            </h4>
+                            <p class="welcome-text">Teaching Materials</p>
+                            <span class="user-role">Teacher</span>
+                            <div class="mt-2">
+                                <small><i class="fas fa-school me-1"></i>
+                                    <%= userSchool %>
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/teacher/class-works" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Manage Class Works
+                                    <span class="badge new-feature-badge ms-2">New</span>
+                                </a>
+                                <a href="/teacher/live-sessions" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-video"></i> Live Sessions
+                                    <span class="badge new-feature-badge ms-2">New</span>
+                                </a>
+                                <a href="/teacher/assignments" class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks"></i> Create Assignment
+                                </a>
+                                <!-- Current page highlighted -->
+                                <a href="/teacher/materials" class="btn btn-outline-success w-100 mb-2 action-btn active">
+                                    <i class="fas fa-book"></i> Upload Material
+                                </a>
+                                <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
+                                    <i class="fas fa-clipboard-list"></i> Exams
+                                </a>
+                                <a href="/auth/change-password" class="btn btn-outline-warning w-100 action-btn">
+                                    <i class="fas fa-key"></i> Change Password
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Material Stats</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small><strong>Total Materials:</strong></small>
+                                    <span class="badge bg-primary float-end">
+                                        <%= materials ? materials.length : 0 %>
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small><strong>Public:</strong></small>
+                                    <span class="badge bg-success float-end">
+                                        <%= materials ? materials.filter(m => m.isPublic).length : 0 %>
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small><strong>Total Views:</strong></small>
+                                    <span class="badge bg-info float-end">
+                                        <% let totalViews = 0; if (materials) { materials.forEach(m => { totalViews += m._count ? m._count.views || 0 : 0; }); } %>
+                                        <%= totalViews %>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== MAIN CONTENT ========== -->
+                    <div class="col-md-9">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="fw-bold"><i class="fas fa-book me-2 text-primary"></i><%= title %></h2>
+                                <p class="text-muted mb-0">Manage and organize your teaching materials</p>
+                            </div>
+                            <div>
+                                <!-- Upload button triggers modal -->
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                    <i class="fas fa-upload me-1"></i> Upload Material
+                                </button>
+                                <button class="btn btn-outline-secondary ms-2" onclick="location.reload()">
+                                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="filter-section">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" class="form-control" id="searchInput"
+                                            placeholder="Search by title, description, or tags..."
+                                            value="<%= currentFilters.search || '' %>">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="typeFilter">
+                                        <option value="">All Types</option>
+                                        <% if (uniqueTypes) { uniqueTypes.forEach(t => { %>
+                                            <option value="<%= t %>" <%= currentFilters.type === t ? 'selected' : '' %>>
+                                                <%= t.charAt(0).toUpperCase() + t.slice(1) %>
+                                            </option>
+                                        <% }); } %>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="classFilter">
+                                        <option value="">All Classes</option>
+                                        <% if (classes) { classes.forEach(cls => { %>
+                                            <option value="<%= cls.id %>" <%= currentFilters.class === cls.id ? 'selected' : '' %>>
+                                                <%= cls.name %>
+                                            </option>
+                                        <% }); } %>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="activeFilters" class="mt-3" style="display: none;">
+                                <small class="text-muted me-2">Active filters:</small>
+                                <span id="filterTags"></span>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i> Clear All
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Materials Grid -->
+                        <div id="materialsGrid" class="row g-4">
+                            <% if (materials && materials.length) { %>
+                                <% materials.forEach(material => {
+                                    const iconClass = getMaterialIcon(material.type);
+                                    const uploadDate = new Date(material.createdAt).toLocaleDateString();
+                                    const viewCount = material._count ? material._count.views || 0 : 0;
+                                    const typeClass = material.type || 'other';
+                                %>
+                                <div class="col-md-6 col-xl-4">
+                                    <div class="material-card">
+                                        <div class="material-thumbnail type-<%= typeClass %>">
+                                            <i class="fas <%= iconClass %>"></i>
+                                            <span class="thumbnail-label"><%= typeClass.toUpperCase() %></span>
+                                            <% if (material.isPublic) { %>
+                                                <span class="badge bg-success position-absolute top-0 end-0 m-2">Public</span>
+                                            <% } %>
+                                        </div>
+                                        <div class="material-body">
+                                            <h5 class="material-title"><%= material.title %></h5>
+                                            <div class="material-meta">
+                                                <div><i class="fas fa-calendar-alt"></i> <%= uploadDate %></div>
+                                                <div><i class="fas fa-eye"></i> <%= viewCount %> views</div>
+                                                <% if (material.class) { %>
+                                                    <div><i class="fas fa-chalkboard"></i> <%= material.class.name %></div>
+                                                <% } %>
+                                            </div>
+                                            <% if (material.tags && material.tags.length) { %>
+                                                <div class="material-tags mb-2">
+                                                    <% material.tags.slice(0, 3).forEach(tag => { %>
+                                                        <span class="badge"><%= tag %></span>
+                                                    <% }) %>
+                                                </div>
+                                            <% } %>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="material-actions">
+                                                    <a href="<%= material.fileUrl %>" class="btn btn-sm btn-outline-primary" target="_blank" onclick="trackDownload('<%= material.id %>')">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    <button class="btn btn-sm btn-outline-info" onclick="previewMaterial('<%= material.id %>')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning" onclick="editMaterial('<%= material.id %>')">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMaterial('<%= material.id %>')">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
+                                                <span class="view-count"><i class="fas fa-eye me-1"></i><%= viewCount %></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="col-12">
+                                    <div class="empty-state">
+                                        <i class="fas fa-book-open"></i>
+                                        <h4>No Materials Found</h4>
+                                        <p class="text-muted">You haven't uploaded any teaching materials yet.</p>
+                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                            <i class="fas fa-upload me-1"></i> Upload Your First Material
+                                        </button>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <!-- ========== UPLOAD MODAL ========== -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i>Upload Material</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Error display -->
+                        <div id="uploadError" class="alert alert-danger"></div>
+
+                        <form id="uploadForm" action="/teacher/materials/upload" method="POST" enctype="multipart/form-data">
+                            <!-- File Upload -->
+                            <div class="form-section mb-3">
+                                <h6 class="fw-bold">1. Select File</h6>
+                                <div class="upload-preview" id="dropZone">
+                                    <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                    <h5>Drag & Drop your file here</h5>
+                                    <p class="text-muted">or click to browse</p>
+                                    <input type="file" name="materialFile" id="fileInput" class="d-none"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mp3,.txt">
+                                    <button type="button" class="btn btn-outline-primary mt-3" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                                        <i class="fas fa-folder-open me-2"></i> Browse Files
+                                    </button>
+                                </div>
+                                <div class="file-preview" id="filePreview"></div>
+                            </div>
+
+                            <!-- Material Details -->
+                            <div class="form-section">
+                                <h6 class="fw-bold">2. Material Details</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-12 mb-2">
+                                        <label class="form-label">Title *</label>
+                                        <input type="text" class="form-control" name="title" placeholder="Enter material title" required>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" name="description" rows="3" placeholder="Describe the material content..."></textarea>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Type *</label>
+                                        <select class="form-select" name="type" required>
+                                            <option value="">Select type...</option>
+                                            <option value="document">📄 Document</option>
+                                            <option value="video">🎬 Video</option>
+                                            <option value="presentation">📊 Presentation</option>
+                                            <option value="textbook">📚 Textbook</option>
+                                            <option value="other">📁 Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Category</label>
+                                        <input type="text" class="form-control" name="category" placeholder="e.g., Lecture Notes">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Class (Optional)</label>
+                                        <select class="form-select" name="classId">
+                                            <option value="">Select class...</option>
+                                            <% if (classes && classes.length) { %>
+                                                <% classes.forEach(cls => { %>
+                                                    <option value="<%= cls.id %>"><%= cls.name %></option>
+                                                <% }); %>
+                                            <% } %>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">Tags</label>
+                                        <div class="tag-input" id="tagContainer">
+                                            <input type="text" id="tagInput" placeholder="Type and press Enter...">
+                                        </div>
+                                        <input type="hidden" name="tags" id="hiddenTags">
+                                        <small class="text-muted">Press Enter to add a tag</small>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="isPublic" id="isPublic" checked>
+                                            <label class="form-check-label" for="isPublic">
+                                                Make this material public <span class="text-muted">(visible to students)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Progress -->
+                            <div class="mb-3" id="uploadProgress" style="display: none;">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Uploading...</span>
+                                    <span id="progressPercentage">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success" id="uploadBtn">
+                                    <i class="fas fa-upload me-2"></i> Upload Material
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== PREVIEW MODAL ========== -->
+        <div class="modal fade" id="previewModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewTitle">Material Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="previewContent"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="#" class="btn btn-primary" id="previewDownloadBtn" onclick="trackDownload()">
+                            <i class="fas fa-download me-1"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== DELETE CONFIRM MODAL ========== -->
+        <div class="modal fade" id="deleteMaterialModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this material?</p>
+                        <p class="text-danger"><strong>Warning:</strong> This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== EDIT MODAL ========== -->
+        <div class="modal fade" id="editMaterialModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Material</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="editMaterialContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // ============================================================
+            // HELPER FUNCTIONS
+            // ============================================================
+            function getMaterialIcon(type) {
+                const map = {
+                    'textbook': 'fa-book',
+                    'video': 'fa-video',
+                    'document': 'fa-file-pdf',
+                    'presentation': 'fa-presentation-screen',
+                    'other': 'fa-file'
+                };
+                return map[type] || 'fa-file';
+            }
+
+            // ============================================================
+            // MATERIAL ACTIONS (Preview, Edit, Delete)
+            // ============================================================
+            // Track download
+            function trackDownload(materialId) {
+                if (materialId) {
+                    fetch(`/api/materials/${materialId}/track-download`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).catch(e => console.error('Download tracking error:', e));
+                }
+            }
+
+            // Preview material
+            async function previewMaterial(materialId) {
+                try {
+                    const response = await fetch(`/teacher/api/materials/${materialId}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        const material = data.material;
+                        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                        const previewContent = document.getElementById('previewContent');
+                        const downloadBtn = document.getElementById('previewDownloadBtn');
+                        document.getElementById('previewTitle').textContent = material.title;
+                        downloadBtn.href = material.fileUrl;
+                        downloadBtn.setAttribute('onclick', `trackDownload('${material.id}')`);
+
+                        let html = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card"><div class="card-body">
+                                    <h6>Details</h6>
+                                    <ul class="list-unstyled">
+                                        <li><strong>Title:</strong> ${material.title}</li>
+                                        <li><strong>Type:</strong> ${material.type || 'N/A'}</li>
+                                        <li><strong>Category:</strong> ${material.category || 'N/A'}</li>
+                                        <li><strong>Class:</strong> ${material.class ? material.class.name : 'N/A'}</li>
+                                        <li><strong>Uploaded:</strong> ${new Date(material.createdAt).toLocaleDateString()}</li>
+                                        <li><strong>Visibility:</strong> ${material.isPublic ? 'Public' : 'Private'}</li>
+                                    </ul>
+                                    ${material.description ? `<p><strong>Description:</strong><br>${material.description}</p>` : ''}
+                                </div></div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card"><div class="card-body text-center">
+                                    <h6 class="mb-3">Preview</h6>
+                                    ${buildPreviewContent(material)}
+                                </div></div>
+                            </div>
+                        </div>`;
+                        previewContent.innerHTML = html;
+                        modal.show();
+                    } else {
+                        alert('Failed to load material: ' + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error loading preview: ' + e.message);
+                }
+            }
+
+            function buildPreviewContent(material) {
+                const ext = material.fileUrl ? material.fileUrl.split('.').pop().toLowerCase() : '';
+                if (material.type === 'video' || ['mp4', 'avi', 'mov'].includes(ext)) {
+                    return `<video controls style="max-width:100%; max-height:400px;" class="rounded"><source src="${material.fileUrl}" type="video/mp4"></video>
+                        <div class="mt-2"><a href="${material.fileUrl}" class="btn btn-sm btn-primary" download><i class="fas fa-download me-1"></i> Download Video</a></div>`;
+                } else if (ext === 'pdf') {
+                    return `<iframe src="${material.fileUrl}" style="width:100%; height:400px; border:1px solid #ddd; border-radius:5px;"></iframe>
+                        <div class="mt-2"><a href="${material.fileUrl}" class="btn btn-sm btn-primary" download><i class="fas fa-download me-1"></i> Download PDF</a></div>`;
+                } else if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                    return `<img src="${material.fileUrl}" style="max-width:100%; max-height:400px; border-radius:5px;" class="img-fluid">
+                        <div class="mt-2"><a href="${material.fileUrl}" class="btn btn-sm btn-primary" download><i class="fas fa-download me-1"></i> Download Image</a></div>`;
+                } else {
+                    return `<div class="alert alert-warning"><i class="fas fa-file me-2"></i>Preview not available</div>
+                        <a href="${material.fileUrl}" class="btn btn-primary" download><i class="fas fa-download me-1"></i> Download File</a>`;
+                }
+            }
+
+            // Edit material
+            async function editMaterial(materialId) {
+                try {
+                    const response = await fetch(`/teacher/api/materials/${materialId}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        const material = data.material;
+                        const modal = new bootstrap.Modal(document.getElementById('editMaterialModal'));
+                        const content = document.getElementById('editMaterialContent');
+                        let formHtml = `
+                        <form id="editMaterialForm" onsubmit="updateMaterial('${material.id}', event)">
+                            <div class="row g-2">
+                                <div class="col-md-12 mb-2">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" class="form-control" name="title" value="${material.title}" required>
+                                </div>
+                                <div class="col-md-12 mb-2">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" rows="3">${material.description || ''}</textarea>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" name="type" required>
+                                        <option value="document" ${material.type === 'document' ? 'selected' : ''}>Document</option>
+                                        <option value="video" ${material.type === 'video' ? 'selected' : ''}>Video</option>
+                                        <option value="presentation" ${material.type === 'presentation' ? 'selected' : ''}>Presentation</option>
+                                        <option value="textbook" ${material.type === 'textbook' ? 'selected' : ''}>Textbook</option>
+                                        <option value="other" ${material.type === 'other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">Category</label>
+                                    <input type="text" class="form-control" name="category" value="${material.category || ''}">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">Class</label>
+                                    <select class="form-select" name="classId">
+                                        <option value="">None</option>
+                                        <% if (classes) { classes.forEach(cls => { %>
+                                            <option value="<%= cls.id %>" ${material.classId === '<%= cls.id %>' ? 'selected' : ''}>
+                                                <%= cls.name %>
+                                            </option>
+                                        <% }); } %>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="isPublic" id="editIsPublic" ${material.isPublic ? 'checked' : ''}>
+                                        <label class="form-check-label" for="editIsPublic">Public</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>`;
+                        content.innerHTML = formHtml;
+                        modal.show();
+                    } else {
+                        alert('Failed to load material: ' + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error loading edit form: ' + e.message);
+                }
+            }
+
+            // Update material
+            async function updateMaterial(materialId, event) {
+                event.preventDefault();
+                const form = event.target;
+                const data = Object.fromEntries(new FormData(form).entries());
+                data.isPublic = data.isPublic === 'on';
+                try {
+                    const response = await fetch(`/teacher/api/materials/${materialId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert('Material updated successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error updating material: ' + e.message);
+                }
+            }
+
+            // Delete material
+            let materialToDelete = null;
+
+            function deleteMaterial(materialId) {
+                materialToDelete = materialId;
+                new bootstrap.Modal(document.getElementById('deleteMaterialModal')).show();
+            }
+            document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
+                if (!materialToDelete) return;
+                try {
+                    const response = await fetch(`/teacher/materials/${materialToDelete}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Deleted successfully');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error deleting material');
+                } finally {
+                    bootstrap.Modal.getInstance(document.getElementById('deleteMaterialModal')).hide();
+                    materialToDelete = null;
+                }
+            });
+
+            // ============================================================
+            // SEARCH & FILTER
+            // ============================================================
+            const searchInput = document.getElementById('searchInput');
+            const typeFilter = document.getElementById('typeFilter');
+            const classFilter = document.getElementById('classFilter');
+            const activeFiltersDiv = document.getElementById('activeFilters');
+            const filterTags = document.getElementById('filterTags');
+
+            function applyFilters() {
+                const params = new URLSearchParams();
+                const search = searchInput.value.trim();
+                const type = typeFilter.value;
+                const cls = classFilter.value;
+                if (search) params.set('search', search);
+                if (type) params.set('type', type);
+                if (cls) params.set('class', cls);
+                const query = params.toString();
+                window.location.href = '/teacher/materials' + (query ? '?' + query : '');
+            }
+
+            function updateFilterDisplay() {
+                const hasFilters = searchInput.value.trim() || typeFilter.value || classFilter.value;
+                if (hasFilters) {
+                    activeFiltersDiv.style.display = 'block';
+                    let tags = [];
+                    if (searchInput.value.trim()) tags.push(`Search: "${searchInput.value.trim()}"`);
+                    if (typeFilter.value) tags.push(`Type: ${typeFilter.options[typeFilter.selectedIndex].text}`);
+                    if (classFilter.value) tags.push(`Class: ${classFilter.options[classFilter.selectedIndex].text}`);
+                    filterTags.innerHTML = tags.map(t => `<span class="badge bg-primary me-1">${t}</span>`).join(' ');
+                } else {
+                    activeFiltersDiv.style.display = 'none';
+                }
+            }
+
+            let searchTimeout;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 400);
+            });
+            typeFilter.addEventListener('change', applyFilters);
+            classFilter.addEventListener('change', applyFilters);
+
+            function clearFilters() {
+                searchInput.value = '';
+                typeFilter.value = '';
+                classFilter.value = '';
+                applyFilters();
+            }
+
+            // Initial display of active filters
+            document.addEventListener('DOMContentLoaded', updateFilterDisplay);
+
+            // ============================================================
+            // UPLOAD MODAL LOGIC
+            // ============================================================
+            const fileInput = document.getElementById('fileInput');
+            const dropZone = document.getElementById('dropZone');
+            const filePreview = document.getElementById('filePreview');
+            const tagInput = document.getElementById('tagInput');
+            const tagContainer = document.getElementById('tagContainer');
+            const hiddenTags = document.getElementById('hiddenTags');
+            const uploadForm = document.getElementById('uploadForm');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadError = document.getElementById('uploadError');
+
+            let selectedFile = null;
+            let tags = [];
+            let isSubmitting = false;
+
+            // Hide error initially
+            uploadError.style.display = 'none';
+
+            // Drag & drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Clicking the drop zone also triggers file input (but we also have a button)
+            // To avoid double popup, we only let the button trigger it.
+            // We'll remove the click listener on dropZone.
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            function handleFileSelect(file) {
+                selectedFile = file;
+
+                // Validate file size (100MB limit)
+                const maxSize = 100 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert('File size exceeds 100MB limit.');
+                    fileInput.value = '';
+                    selectedFile = null;
+                    filePreview.style.display = 'none';
+                    return;
+                }
+
+                // Validate file type (basic check)
+                const allowedTypes = [
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'image/jpeg',
+                    'image/png',
+                    'image/gif',
+                    'video/mp4',
+                    'audio/mpeg',
+                    'text/plain',
+                    'application/zip',
+                    'application/x-rar-compressed'
+                ];
+                const extMatch = file.name.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|jpg|jpeg|png|gif|mp4|mp3|txt|zip|rar)$/i);
+                if (!allowedTypes.includes(file.type) && !extMatch) {
+                    alert('File type not supported.');
+                    fileInput.value = '';
+                    selectedFile = null;
+                    filePreview.style.display = 'none';
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const fileSize = formatFileSize(file.size);
+                    let previewHtml = '';
+
+                    if (file.type.startsWith('image/')) {
+                        previewHtml = `
+                        <img src="${e.target.result}" class="preview-image" alt="Preview">
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file-image"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • ${file.type}</p>
+                            </div>
+                        </div>
+                    `;
+                    } else if (file.type === 'application/pdf') {
+                        previewHtml = `
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • PDF Document</p>
+                            </div>
+                        </div>
+                    `;
+                    } else if (file.type.includes('word') || file.name.match(/\.docx?$/i)) {
+                        previewHtml = `
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file-word"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • Word Document</p>
+                            </div>
+                        </div>
+                    `;
+                    } else if (file.type.includes('powerpoint') || file.name.match(/\.pptx?$/i)) {
+                        previewHtml = `
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file-powerpoint"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • PowerPoint</p>
+                            </div>
+                        </div>
+                    `;
+                    } else if (file.type.startsWith('video/')) {
+                        previewHtml = `
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file-video"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • Video</p>
+                            </div>
+                        </div>
+                    `;
+                    } else {
+                        previewHtml = `
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fas fa-file"></i></div>
+                            <div class="file-details">
+                                <h6>${file.name}</h6>
+                                <p class="file-size">${fileSize} • ${file.type}</p>
+                            </div>
+                        </div>
+                    `;
+                    }
+
+                    filePreview.innerHTML = previewHtml;
+                    filePreview.style.display = 'block';
+
+                    // Auto-set type
+                    const typeSelect = document.querySelector('select[name="type"]');
+                    if (file.type.startsWith('image/')) typeSelect.value = 'document';
+                    else if (file.type.startsWith('video/')) typeSelect.value = 'video';
+                    else if (file.type.includes('powerpoint')) typeSelect.value = 'presentation';
+                    else if (file.type.includes('word') || file.type === 'application/pdf' || file.type === 'text/plain')
+                        typeSelect.value = 'document';
+
+                    // Auto-fill title
+                    const titleInput = document.querySelector('input[name="title"]');
+                    if (!titleInput.value) {
+                        titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+                    }
+                };
+
+                if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file.slice(0, 100));
+                }
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // Tag management
+            tagInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag(tagInput.value.trim());
+                    tagInput.value = '';
+                }
+            });
+
+            function addTag(tag) {
+                if (tag && !tags.includes(tag)) {
+                    tags.push(tag);
+                    updateTagDisplay();
+                    updateHiddenTags();
+                }
+            }
+
+            function removeTag(tag) {
+                tags = tags.filter(t => t !== tag);
+                updateTagDisplay();
+                updateHiddenTags();
+            }
+
+            function updateTagDisplay() {
+                tagContainer.innerHTML = '';
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'tag';
+                    tagElement.innerHTML = `
+                    ${tag}
+                    <span class="tag-remove" onclick="removeTag('${tag}')">
+                        <i class="fas fa-times"></i>
+                    </span>
+                `;
+                    tagContainer.insertBefore(tagElement, tagInput);
+                });
+                tagContainer.appendChild(tagInput);
+            }
+
+            function updateHiddenTags() {
+                hiddenTags.value = tags.join(',');
+            }
+
+            // Form submission with progress
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (isSubmitting) return;
+
+                uploadError.style.display = 'none';
+                uploadError.textContent = '';
+
+                const title = document.querySelector('input[name="title"]').value.trim();
+                const type = document.querySelector('select[name="type"]').value;
+                if (!title) {
+                    showError('Please enter a title.');
+                    return;
+                }
+                if (!type) {
+                    showError('Please select a material type.');
+                    return;
+                }
+                if (!selectedFile) {
+                    showError('Please select a file to upload.');
+                    return;
+                }
+
+                isSubmitting = true;
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Uploading...';
+                uploadProgress.style.display = 'block';
+
+                const formData = new FormData(uploadForm);
+
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percent + '%';
+                            progressPercentage.textContent = percent + '%';
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        const status = xhr.status;
+                        const responseText = xhr.responseText;
+                        if (status === 200) {
+                            try {
+                                const response = JSON.parse(responseText);
+                                if (response.success) {
+                                    // Close modal and reload
+                                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                                    location.reload();
+                                } else {
+                                    showError('Upload failed: ' + (response.message || 'Unknown error'));
+                                }
+                            } catch (jsonError) {
+                                // If not JSON, assume success (redirect)
+                                bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                                location.reload();
+                            }
+                        } else {
+                            let errorMsg = 'Server error (status ' + status + ')';
+                            try {
+                                const errorJson = JSON.parse(responseText);
+                                if (errorJson.message) errorMsg = errorJson.message;
+                            } catch (e) {
+                                if (responseText) {
+                                    const stripped = responseText.replace(/<[^>]*>/g, ' ').substring(0, 300);
+                                    errorMsg = stripped || 'Unknown server error';
+                                }
+                            }
+                            showError('Upload failed: ' + errorMsg);
+                        }
+                        resetUploadForm();
+                    });
+
+                    xhr.addEventListener('error', () => {
+                        showError('Network error. Please check your connection.');
+                        resetUploadForm();
+                    });
+
+                    xhr.open('POST', uploadForm.action);
+                    xhr.send(formData);
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    showError('Upload failed: ' + error.message);
+                    resetUploadForm();
+                }
+            });
+
+            function showError(message) {
+                uploadError.textContent = message;
+                uploadError.style.display = 'block';
+                uploadError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function resetUploadForm() {
+                isSubmitting = false;
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i> Upload Material';
+                uploadProgress.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+            }
+
+            // Reset modal when closed
+            document.getElementById('uploadModal').addEventListener('hidden.bs.modal', function () {
+                resetUploadForm();
+                selectedFile = null;
+                fileInput.value = '';
+                filePreview.style.display = 'none';
+                filePreview.innerHTML = '';
+                uploadError.style.display = 'none';
+                tags = [];
+                updateTagDisplay();
+                updateHiddenTags();
+            });
+        </script>
+    </body>
 </html>
