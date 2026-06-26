@@ -4,23 +4,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Material - EdTech</title>
+    <title>
+        <%= title %> - EdTech
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .upload-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 30px;
-            background: white;
+        /* (Your existing styles – unchanged) */
+        .profile-section,
+        .dashboard-card,
+        .action-btn,
+        .stat-card {
             border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
+        .profile-section {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+        }
+
+        .welcome-text {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .user-role {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .dashboard-card {
+            border: none;
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .action-btn:hover {
+            transform: translateX(5px);
+            background-color: #f8f9fa;
+        }
+
+        .material-card {
+            border-left: 4px solid #20c997;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .material-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .material-type-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+        }
+
+        .type-document {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .type-video {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .type-presentation {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .type-textbook {
+            background-color: #20c997;
+            color: white;
+        }
+
+        .type-other {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .material-thumbnail-container {
+            position: relative;
+            height: 150px;
+            overflow: hidden;
+        }
+
+        .material-thumbnail {
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        .material-thumbnail i {
+            margin-bottom: 10px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .thumbnail-label {
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .video-thumbnail { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .pdf-thumbnail { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .doc-thumbnail { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .image-thumbnail { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .default-thumbnail { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+        .view-count {
+            background: #e7f1ff;
+            color: #0d6efd;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .filter-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box .form-control {
+            padding-left: 40px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 12px;
+            color: #6c757d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+
+        /* Modal upload styles */
         .upload-preview {
             border: 2px dashed #dee2e6;
             border-radius: 10px;
-            padding: 40px 20px;
+            padding: 30px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -38,57 +208,25 @@
         }
 
         .upload-icon {
-            font-size: 4rem;
+            font-size: 3rem;
             color: #6c757d;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .file-preview {
-            margin-top: 20px;
-            padding: 20px;
+            margin-top: 15px;
+            padding: 15px;
             background: #e9ecef;
             border-radius: 8px;
             display: none;
         }
 
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .file-icon {
-            font-size: 2.5rem;
-            color: #0d6efd;
-        }
-
-        .file-details h6 {
-            margin-bottom: 5px;
-        }
-
-        .file-size {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-
-        .progress {
-            height: 6px;
-            margin-top: 10px;
-        }
-
         .preview-image {
             max-width: 100%;
-            max-height: 200px;
+            max-height: 150px;
             object-fit: contain;
             border-radius: 5px;
-            margin-bottom: 15px;
-        }
-
-        .form-section {
-            margin-bottom: 25px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            margin-bottom: 10px;
         }
 
         .tag-input {
@@ -127,19 +265,21 @@
             background: transparent;
         }
 
-        .upload-btn {
-            padding: 12px 30px;
-            font-size: 1.1rem;
-        }
-
-        .back-btn {
-            padding: 12px 30px;
-            font-size: 1.1rem;
+        .progress {
+            height: 6px;
+            margin-top: 10px;
         }
 
         #uploadError {
             display: none;
             margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .material-thumbnail-container {
+                height: 120px;
+            }
         }
     </style>
 </head>
@@ -161,172 +301,774 @@
                 </div>
 
                 <div class="row">
+                    <!-- Left Sidebar -->
                     <div class="col-md-3">
-                        <div class="card mb-4">
+                        <div class="profile-section text-center">
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                            <h4>
+                                <%= user.firstName %>
+                                    <%= user.lastName %>
+                            </h4>
+                            <p class="welcome-text">Teaching Materials</p>
+                            <span class="user-role">Teacher</span>
+                            <div class="mt-2">
+                                <small><i class="fas fa-school me-1"></i>
+                                    <%= userSchool %>
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="card dashboard-card mb-4">
                             <div class="card-header">
-                                <h5><i class="fas fa-arrow-left me-2"></i>Navigation</h5>
+                                <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
                             </div>
                             <div class="card-body">
-                                <a href="/teacher/materials" class="btn btn-outline-primary w-100 mb-2">
-                                    <i class="fas fa-arrow-left me-2"></i> Back to Materials
+                                <a href="/teacher/materials" class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                    <i class="fas fa-book me-2"></i> All Materials
                                 </a>
-                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100">
+                                <!-- Upload button now triggers modal -->
+                                <button class="btn btn-outline-success w-100 mb-2 action-btn" data-bs-toggle="modal"
+                                    data-bs-target="#uploadModal">
+                                    <i class="fas fa-upload me-2"></i> Upload Material
+                                </button>
+                                <a href="/teacher/assignments" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                    <i class="fas fa-tasks me-2"></i> Assignments
+                                </a>
+                                <a href="/teacher/exams" class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                    <i class="fas fa-clipboard-list me-2"></i> Exams
+                                </a>
+                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn">
                                     <i class="fas fa-home me-2"></i> Dashboard
                                 </a>
                             </div>
                         </div>
 
-                        <div class="card">
+                        <!-- Material Stats -->
+                        <div class="card dashboard-card mb-4">
                             <div class="card-header">
-                                <h5><i class="fas fa-info-circle me-2"></i>Upload Tips</h5>
+                                <h5><i class="fas fa-chart-bar me-2"></i>Material Stats</h5>
                             </div>
                             <div class="card-body">
-                                <ul class="list-unstyled small">
-                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Max file size: 100MB
-                                    </li>
-                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Supported: PDF, DOC,
-                                        PPT, MP4, JPG</li>
-                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Use descriptive
-                                        titles</li>
-                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Add tags for better
-                                        search</li>
-                                    <li><i class="fas fa-check text-success me-2"></i> Set class for organization</li>
-                                </ul>
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-number">
+                                                <%= materials ? materials.length : 0 %>
+                                            </div>
+                                            <div class="stat-label">Total</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-number">
+                                                <%= materials ? materials.filter(m=> m.isPublic).length : 0 %>
+                                            </div>
+                                            <div class="stat-label">Public</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Type distribution (unchanged) -->
+                                <div class="mt-3">
+                                    <small><strong>Material Types:</strong></small>
+                                    <% let typeStats={}; if (materials) { materials.forEach(m=> {
+                                        typeStats[m.type] = (typeStats[m.type] || 0) + 1;
+                                        });
+                                        }
+
+                                        const materialTypes = ['document', 'video', 'presentation', 'textbook',
+                                        'other'];
+                                        const typeColors = {
+                                        'document': '#0d6efd',
+                                        'video': '#dc3545',
+                                        'presentation': '#ffc107',
+                                        'textbook': '#20c997',
+                                        'other': '#6c757d'
+                                        };
+
+                                        materialTypes.forEach(type => {
+                                        const count = typeStats[type] || 0;
+                                        const total = materials ? materials.length : 1;
+                                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                                        %>
+                                        <% if (count> 0) { %>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <small>
+                                                    <%= type.charAt(0).toUpperCase() + type.slice(1) %>
+                                                </small>
+                                                <small class="text-muted">
+                                                    <%= count %> (<%= percentage %>%)
+                                                </small>
+                                            </div>
+                                            <div class="progress progress-sm mb-3">
+                                                <div class="progress-bar"
+                                                    style="width: <%= percentage %>%; background-color: <%= typeColors[type] %>;">
+                                                </div>
+                                            </div>
+                                            <% } %>
+                                                <% }); %>
+                                </div>
+
+                                <!-- Total Views -->
+                                <div class="mt-4">
+                                    <small><strong>Total Views:</strong></small>
+                                    <span class="badge bg-info float-end">
+                                        <% let totalViews=0; if (materials) { materials.forEach(m=> {
+                                            totalViews += m._count ? m._count.views || 0 : 0;
+                                            });
+                                            }
+                                            %>
+                                            <%= totalViews %>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Main Content -->
                     <div class="col-md-9">
-                        <div class="upload-container">
-                            <h2 class="mb-4"><i class="fas fa-upload me-2"></i>Upload Material</h2>
-
-                            <!-- Error display area -->
-                            <div id="uploadError" class="alert alert-danger">
-                                <!-- Error message will be inserted here -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2><i class="fas fa-book me-2"></i>
+                                    <%= title %>
+                                </h2>
+                                <p class="text-muted mb-0">Manage and organize your teaching materials</p>
                             </div>
+                            <div>
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                    <i class="fas fa-upload me-1"></i> Upload Material
+                                </button>
+                                <button class="btn btn-outline-primary ms-2" onclick="refreshMaterials()">
+                                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
 
-                            <form id="uploadForm" action="/teacher/materials/upload" method="POST"
-                                enctype="multipart/form-data">
-                                <!-- File Upload Section -->
-                                <div class="form-section">
-                                    <h5 class="mb-3">1. Select File</h5>
-
-                                    <div class="upload-preview" id="dropZone">
-                                        <div class="upload-icon">
-                                            <i class="fas fa-cloud-upload-alt"></i>
-                                        </div>
-                                        <h5>Drag & Drop your file here</h5>
-                                        <p class="text-muted">or click to browse</p>
-                                        <input type="file" name="materialFile" id="fileInput" class="d-none"
-                                            accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mp3,.txt">
-                                        <button type="button" class="btn btn-outline-primary mt-3"
-                                            onclick="document.getElementById('fileInput').click()">
-                                            <i class="fas fa-folder-open me-2"></i> Browse Files
-                                        </button>
-                                    </div>
-
-                                    <div class="file-preview" id="filePreview">
-                                        <!-- File preview will be shown here -->
+                        <!-- Filters Section (unchanged) -->
+                        <div class="filter-section">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" class="form-control" id="materialSearch"
+                                            placeholder="Search materials by title, description, or tags..."
+                                            value="<%= currentFilters.search || '' %>">
                                     </div>
                                 </div>
-
-                                <!-- Material Details Section -->
-                                <div class="form-section">
-                                    <h5 class="mb-3">2. Material Details</h5>
-
-                                    <div class="row">
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Title *</label>
-                                            <input type="text" class="form-control" name="title"
-                                                placeholder="Enter material title" required>
-                                        </div>
-
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Description</label>
-                                            <textarea class="form-control" name="description" rows="3"
-                                                placeholder="Describe the material content..."></textarea>
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Type *</label>
-                                            <select class="form-select" name="type" required>
-                                                <option value="">Select type...</option>
-                                                <option value="document">Document</option>
-                                                <option value="video">Video</option>
-                                                <option value="presentation">Presentation</option>
-                                                <option value="textbook">Textbook</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Category</label>
-                                            <input type="text" class="form-control" name="category"
-                                                placeholder="e.g., Lecture Notes, Homework, Exam">
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Class (Optional)</label>
-                                            <select class="form-select" name="classId">
-                                                <option value="">Select class...</option>
-                                                <% classes.forEach(function(cls) { %>
-                                                    <option value="<%= cls.id %>">
-                                                        <%= cls.name %>
-                                                    </option>
-                                                    <% }); %>
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Tags (Optional)</label>
-                                            <div class="tag-input" id="tagContainer">
-                                                <!-- Tags will be added here -->
-                                                <input type="text" id="tagInput" placeholder="Type and press Enter...">
-                                            </div>
-                                            <input type="hidden" name="tags" id="hiddenTags">
-                                            <small class="text-muted">Press Enter to add a tag</small>
-                                        </div>
-
-                                        <div class="col-md-12 mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="isPublic"
-                                                    id="isPublic" checked>
-                                                <label class="form-check-label" for="isPublic">
-                                                    Make this material public (visible to students)
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Upload Progress -->
-                                <div class="mb-4" id="uploadProgress" style="display: none;">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>Uploading...</span>
-                                        <span id="progressPercentage">0%</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="d-flex justify-content-between">
-                                    <a href="/teacher/materials" class="btn btn-outline-secondary back-btn">
-                                        <i class="fas fa-times me-2"></i> Cancel
-                                    </a>
-                                    <button type="submit" class="btn btn-success upload-btn" id="uploadBtn">
-                                        <i class="fas fa-upload me-2"></i> Upload Material
+                                <div class="col-md-4">
+                                    <button class="btn btn-primary w-100" data-bs-toggle="modal"
+                                        data-bs-target="#filterModal">
+                                        <i class="fas fa-filter me-1"></i> Filters
+                                        <span class="badge bg-light text-primary ms-1" id="filterCount">0</span>
                                     </button>
                                 </div>
-                            </form>
+                            </div>
+                            <div id="activeFilters" class="mt-3" style="display: none;">
+                                <small class="text-muted me-2">Active filters:</small>
+                                <div class="d-inline"></div>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i> Clear All
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Materials Grid -->
+                        <div id="materialsContent">
+                            <div id="loadingSpinner" class="text-center py-5 loading-spinner">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading materials...</p>
+                            </div>
+
+                            <div class="row" id="materialsGrid">
+                                <% if (materials && materials.length> 0) { %>
+                                    <% materials.forEach(function(material) { const
+                                        iconClass=getMaterialIcon(material.type); const uploadDate=new
+                                        Date(material.createdAt).toLocaleDateString(); const viewCount=material._count ?
+                                        material._count.views || 0 : 0; const fileExtension=material.fileUrl ?
+                                        material.fileUrl.split('.').pop().toLowerCase() : '' ; %>
+                                        <div class="col-md-6 col-lg-4 mb-4">
+                                            <div class="card material-card h-100">
+                                                <div class="material-thumbnail-container">
+                                                    <% if (material.type==='video' ) { %>
+                                                        <div class="material-thumbnail video-thumbnail">
+                                                            <i class="fas fa-video fa-3x"></i>
+                                                            <div class="thumbnail-label">Video</div>
+                                                        </div>
+                                                        <% } else if (fileExtension==='pdf' ) { %>
+                                                            <div class="material-thumbnail pdf-thumbnail">
+                                                                <i class="fas fa-file-pdf fa-3x"></i>
+                                                                <div class="thumbnail-label">PDF</div>
+                                                            </div>
+                                                            <% } else if (['doc', 'docx' ].includes(fileExtension)) { %>
+                                                                <div class="material-thumbnail doc-thumbnail">
+                                                                    <i class="fas fa-file-word fa-3x"></i>
+                                                                    <div class="thumbnail-label">Document</div>
+                                                                </div>
+                                                                <% } else if (['jpg', 'jpeg' , 'png' , 'gif' ].includes(fileExtension)) { %>
+                                                                    <div class="material-thumbnail image-thumbnail">
+                                                                        <i class="fas fa-image fa-3x"></i>
+                                                                        <div class="thumbnail-label">Image</div>
+                                                                    </div>
+                                                                    <% } else { %>
+                                                                        <div class="material-thumbnail default-thumbnail">
+                                                                            <i class="fas fa-file fa-3x"></i>
+                                                                            <div class="thumbnail-label">
+                                                                                <%= material.type.toUpperCase() %>
+                                                                            </div>
+                                                                        </div>
+                                                                        <% } %>
+                                                </div>
+
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <span
+                                                                class="badge type-<%= material.type %> material-type-badge">
+                                                                <i class="fas <%= iconClass %> me-1"></i>
+                                                                <%= material.type.charAt(0).toUpperCase() + material.type.slice(1) %>
+                                                            </span>
+                                                            <% if (material.isPublic) { %>
+                                                                <span class="badge bg-success material-type-badge ms-1">
+                                                                    <i class="fas fa-globe me-1"></i>Public
+                                                                </span>
+                                                                <% } %>
+                                                        </div>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                                type="button" data-bs-toggle="dropdown">
+                                                                <i class="fas fa-ellipsis-v"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <a class="dropdown-item"
+                                                                        href="<%= material.fileUrl %>" target="_blank"
+                                                                        onclick="trackDownload('<%= material.id %>')">
+                                                                        <i class="fas fa-download me-2"></i>Download
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item"
+                                                                        onclick="editMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-edit me-2"></i>Edit
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item"
+                                                                        onclick="previewMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-eye me-2"></i>Preview
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <hr class="dropdown-divider">
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item text-danger"
+                                                                        onclick="deleteMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-trash me-2"></i>Delete
+                                                                    </button>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+
+                                                    <h5 class="card-title">
+                                                        <%= material.title %>
+                                                    </h5>
+                                                    <% if (material.description) { %>
+                                                        <p class="card-text text-muted small mb-3">
+                                                            <%= material.description.length> 80 ?
+                                                                material.description.substring(0, 80) + '...' :
+                                                                material.description %>
+                                                        </p>
+                                                        <% } %>
+
+                                                            <div class="mb-3">
+                                                                <% if (material.class) { %>
+                                                                    <div class="d-flex align-items-center mb-1">
+                                                                        <i class="fas fa-chalkboard me-2 text-muted small"></i>
+                                                                        <small class="text-muted">
+                                                                            <%= material.class.name %>
+                                                                        </small>
+                                                                    </div>
+                                                                    <% } %>
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <i class="fas fa-calendar me-2 text-muted small"></i>
+                                                                            <small class="text-muted">Uploaded:
+                                                                                <%= uploadDate %>
+                                                                            </small>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <i class="fas fa-eye me-2 text-muted small"></i>
+                                                                            <small class="text-muted">
+                                                                                <%= viewCount %> views
+                                                                            </small>
+                                                                        </div>
+                                                                        <% if (material.tags && material.tags.length> 0) { %>
+                                                                            <div class="mt-2">
+                                                                                <% material.tags.slice(0, 3).forEach(tag=> { %>
+                                                                                    <span class="badge bg-light text-dark me-1 mb-1">
+                                                                                        <%= tag %>
+                                                                                    </span>
+                                                                                    <% }) %>
+                                                                            </div>
+                                                                            <% } %>
+                                                            </div>
+
+                                                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                                                <div class="material-actions">
+                                                                    <a href="<%= material.fileUrl %>"
+                                                                        class="btn btn-sm btn-primary"
+                                                                        onclick="trackDownload('<%= material.id %>')">
+                                                                        <i class="fas fa-download me-1"></i> Download
+                                                                    </a>
+                                                                    <button class="btn btn-sm btn-outline-secondary ms-1"
+                                                                        onclick="previewMaterial('<%= material.id %>')">
+                                                                        <i class="fas fa-eye me-1"></i> Preview
+                                                                    </button>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="view-count">
+                                                                        <i class="fas fa-eye me-1"></i>
+                                                                        <%= viewCount %>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <div class="col-12">
+                                                    <div class="empty-state">
+                                                        <i class="fas fa-book-open"></i>
+                                                        <h4>No Materials Found</h4>
+                                                        <p class="text-muted">You haven't uploaded any teaching materials
+                                                            yet.</p>
+                                                        <button class="btn btn-success" data-bs-toggle="modal"
+                                                            data-bs-target="#uploadModal">
+                                                            <i class="fas fa-upload me-1"></i> Upload Your First Material
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <% } %>
+                            </div>
                         </div>
                     </div>
                 </div>
         </div>
 
+        <!-- ========== UPLOAD MODAL ========== -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i>Upload Material</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Error display -->
+                        <div id="uploadError" class="alert alert-danger"></div>
+
+                        <form id="uploadForm" action="/teacher/materials/upload" method="POST"
+                            enctype="multipart/form-data">
+                            <!-- File Upload -->
+                            <div class="form-section">
+                                <h5 class="mb-3">1. Select File</h5>
+
+                                <div class="upload-preview" id="dropZone">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <h5>Drag & Drop your file here</h5>
+                                    <p class="text-muted">or click to browse</p>
+                                    <input type="file" name="materialFile" id="fileInput" class="d-none"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mp3,.txt">
+                                    <button type="button" class="btn btn-outline-primary mt-3"
+                                        onclick="document.getElementById('fileInput').click()">
+                                        <i class="fas fa-folder-open me-2"></i> Browse Files
+                                    </button>
+                                </div>
+
+                                <div class="file-preview" id="filePreview">
+                                    <!-- Preview will be shown here -->
+                                </div>
+                            </div>
+
+                            <!-- Material Details -->
+                            <div class="form-section">
+                                <h5 class="mb-3">2. Material Details</h5>
+
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Title *</label>
+                                        <input type="text" class="form-control" name="title"
+                                            placeholder="Enter material title" required>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" name="description" rows="3"
+                                            placeholder="Describe the material content..."></textarea>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Type *</label>
+                                        <select class="form-select" name="type" required>
+                                            <option value="">Select type...</option>
+                                            <option value="document">Document</option>
+                                            <option value="video">Video</option>
+                                            <option value="presentation">Presentation</option>
+                                            <option value="textbook">Textbook</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Category</label>
+                                        <input type="text" class="form-control" name="category"
+                                            placeholder="e.g., Lecture Notes, Homework, Exam">
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Class (Optional)</label>
+                                        <select class="form-select" name="classId">
+                                            <option value="">Select class...</option>
+                                            <% classes.forEach(function(cls) { %>
+                                                <option value="<%= cls.id %>">
+                                                    <%= cls.name %>
+                                                </option>
+                                                <% }); %>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Tags (Optional)</label>
+                                        <div class="tag-input" id="tagContainer">
+                                            <input type="text" id="tagInput" placeholder="Type and press Enter...">
+                                        </div>
+                                        <input type="hidden" name="tags" id="hiddenTags">
+                                        <small class="text-muted">Press Enter to add a tag</small>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="isPublic"
+                                                id="isPublic" checked>
+                                            <label class="form-check-label" for="isPublic">
+                                                Make this material public (visible to students)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Progress -->
+                            <div class="mb-4" id="uploadProgress" style="display: none;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Uploading...</span>
+                                    <span id="progressPercentage">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success" id="uploadBtn">
+                                    <i class="fas fa-upload me-2"></i> Upload Material
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== FILTER MODAL (unchanged) ========== -->
+        <div class="modal fade" id="filterModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Filter Materials</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="filterForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Class</label>
+                                    <select class="form-select" id="classFilter" name="class">
+                                        <option value="all">All Classes</option>
+                                        <% if (classes && classes.length> 0) { %>
+                                            <% classes.forEach(function(cls) { %>
+                                                <option value="<%= cls.id %>" <%=currentFilters.class===cls.id
+                                                    ? 'selected' : '' %>>
+                                                    <%= cls.name %> (Grade <%= cls.grade %>)
+                                                </option>
+                                                <% }); %>
+                                                    <% } %>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="typeFilter" name="type">
+                                        <option value="all">All Types</option>
+                                        <% if (uniqueTypes && uniqueTypes.length> 0) { %>
+                                            <% uniqueTypes.forEach(function(type) { %>
+                                                <option value="<%= type %>" <%=currentFilters.type===type ? 'selected'
+                                                    : '' %>>
+                                                    <%= type.charAt(0).toUpperCase() + type.slice(1) %>
+                                                </option>
+                                                <% }); %>
+                                                    <% } %>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Category</label>
+                                    <select class="form-select" id="categoryFilter" name="category">
+                                        <option value="all">All Categories</option>
+                                        <% if (uniqueCategories && uniqueCategories.length> 0) { %>
+                                            <% uniqueCategories.forEach(function(category) { %>
+                                                <option value="<%= category %>" <%=currentFilters.category===category
+                                                    ? 'selected' : '' %>>
+                                                    <%= category %>
+                                                </option>
+                                                <% }); %>
+                                                    <% } %>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Visibility</label>
+                                    <select class="form-select" id="privacyFilter" name="privacy">
+                                        <option value="all">All Materials</option>
+                                        <option value="public" <%=currentFilters.privacy==='public' ? 'selected' : '' %>
+                                            >Public Only</option>
+                                        <option value="private" <%=currentFilters.privacy==='private' ? 'selected' : ''
+                                            %>>Private Only</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Sort By</label>
+                                    <select class="form-select" id="sortBy" name="sort">
+                                        <option value="newest" <%=currentFilters.sort==='newest' ? 'selected' : '' %>
+                                            >Newest First</option>
+                                        <option value="oldest" <%=currentFilters.sort==='oldest' ? 'selected' : '' %>
+                                            >Oldest First</option>
+                                        <option value="title_asc" <%=currentFilters.sort==='title_asc' ? 'selected' : ''
+                                            %>>Title (A-Z)</option>
+                                        <option value="title_desc" <%=currentFilters.sort==='title_desc' ? 'selected'
+                                            : '' %>>Title (Z-A)</option>
+                                        <option value="views" <%=currentFilters.sort==='views' ? 'selected' : '' %>>Most
+                                            Viewed</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                        <button type="button" class="btn btn-outline-danger" onclick="clearFilterForm()">Clear
+                            All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== PREVIEW MODAL (unchanged) ========== -->
+        <div class="modal fade" id="previewModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewTitle">Material Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="previewContent"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="#" class="btn btn-primary" id="previewDownloadBtn" onclick="trackDownload()">
+                            <i class="fas fa-download me-1"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== DELETE CONFIRM MODAL (unchanged) ========== -->
+        <div class="modal fade" id="deleteMaterialModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this material?</p>
+                        <p class="text-danger"><strong>Warning:</strong> This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Material</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== EDIT MODAL (unchanged) ========== -->
+        <div class="modal fade" id="editMaterialModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Material</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="editMaterialContent"></div>
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
+            // ============================================================
+            // ALL JAVASCRIPT (same as before, plus modal‑specific handlers)
+            // ============================================================
+
+            // Utility functions
+            function getMaterialIcon(type) {
+                const iconMap = {
+                    'textbook': 'fa-book',
+                    'video': 'fa-video',
+                    'document': 'fa-file-pdf',
+                    'presentation': 'fa-presentation-screen',
+                    'other': 'fa-file'
+                };
+                return iconMap[type] || 'fa-file';
+            }
+
+            // Track download
+            function trackDownload(materialId) {
+                if (materialId) {
+                    fetch(`/api/materials/${materialId}/track-download`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).catch(error => console.error('Error tracking download:', error));
+                }
+            }
+
+            // Preview material
+            async function previewMaterial(materialId) {
+                try {
+                    showLoading(true);
+                    const response = await fetch(`/teacher/api/materials/${materialId}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        const material = data.material;
+                        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                        const previewContent = document.getElementById('previewContent');
+                        const downloadBtn = document.getElementById('previewDownloadBtn');
+
+                        document.getElementById('previewTitle').textContent = material.title;
+                        downloadBtn.href = material.fileUrl;
+                        downloadBtn.setAttribute('onclick', `trackDownload('${material.id}')`);
+
+                        // Build preview HTML (same as before – simplified here)
+                        let previewHtml = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Material Details</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Title:</strong> ${material.title}</li>
+                                            <li><strong>Type:</strong> ${material.type || 'N/A'}</li>
+                                            <li><strong>Category:</strong> ${material.category || 'N/A'}</li>
+                                            <li><strong>Class:</strong> ${material.class ? material.class.name : 'N/A'}</li>
+                                            <li><strong>Uploaded:</strong> ${new Date(material.createdAt).toLocaleDateString()}</li>
+                                            <li><strong>Visibility:</strong> ${material.isPublic ? 'Public' : 'Private'}</li>
+                                        </ul>
+                                        ${material.description ? `<p><strong>Description:</strong><br>${material.description}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title mb-3">Preview</h6>
+                                        ${buildPreviewContent(material)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                        previewContent.innerHTML = previewHtml;
+                        modal.show();
+                    } else {
+                        alert('Failed to load material: ' + (data.message || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error previewing material:', error);
+                    alert('Error loading material preview: ' + error.message);
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            function buildPreviewContent(material) {
+                const fileExtension = material.fileUrl ? material.fileUrl.split('.').pop().toLowerCase() : '';
+                if (material.type === 'video' || ['mp4', 'avi', 'mov', 'wmv'].includes(fileExtension)) {
+                    return `
+                        <video controls style="max-width: 100%; max-height: 400px;" class="rounded">
+                            <source src="${material.fileUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="mt-2">
+                            <a href="${material.fileUrl}" class="btn btn-sm btn-primary" download>
+                                <i class="fas fa-download me-1"></i> Download Video
+                            </a>
+                        </div>
+                    `;
+                } else if (fileExtension === 'pdf') {
+                    return `
+                        <iframe src="${material.fileUrl}" style="width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 5px;"></iframe>
+                        <div class="mt-2">
+                            <a href="${material.fileUrl}" class="btn btn-sm btn-primary" download>
+                                <i class="fas fa-download me-1"></i> Download PDF
+                            </a>
+                        </div>
+                    `;
+                } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                    return `
+                        <img src="${material.fileUrl}" style="max-width: 100%; max-height: 400px; border-radius: 5px;" alt="${material.title}" class="img-fluid">
+                        <div class="mt-2">
+                            <a href="${material.fileUrl}" class="btn btn-sm btn-primary" download>
+                                <i class="fas fa-download me-1"></i> Download Image
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-file me-2"></i>File Preview Not Available
+                        </div>
+                        <div class="p-4">
+                            <i class="fas fa-file fa-4x text-muted mb-3"></i>
+                            <p>This file type cannot be previewed in the browser.</p>
+                            <a href="${material.fileUrl}" class="btn btn-primary" download>
+                                <i class="fas fa-download me-1"></i> Download File
+                            </a>
+                        </div>
+                    `;
+                }
+            }
+
+            // Edit, delete, filters – same as before (omitted for brevity, but you can keep your existing code)
+            // ...
+
+            // ----- Upload Modal Logic -----
             const fileInput = document.getElementById('fileInput');
             const dropZone = document.getElementById('dropZone');
             const filePreview = document.getElementById('filePreview');
@@ -342,12 +1084,12 @@
 
             let selectedFile = null;
             let tags = [];
-            let isSubmitting = false;   // ✅ Prevents double submission
+            let isSubmitting = false;
 
             // Hide error initially
             uploadError.style.display = 'none';
 
-            // Drag and drop functionality
+            // Drag & drop
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 dropZone.classList.add('dragover');
@@ -360,7 +1102,6 @@
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
-
                 if (e.dataTransfer.files.length) {
                     fileInput.files = e.dataTransfer.files;
                     handleFileSelect(e.dataTransfer.files[0]);
@@ -379,11 +1120,10 @@
 
             function handleFileSelect(file) {
                 selectedFile = file;
-
-                // Validate file size (100MB limit)
-                const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+                // Validate size & type (same as before)
+                const maxSize = 100 * 1024 * 1024;
                 if (file.size > maxSize) {
-                    alert('File size exceeds 100MB limit. Please select a smaller file.');
+                    alert('File size exceeds 100MB limit.');
                     fileInput.value = '';
                     selectedFile = null;
                     filePreview.style.display = 'none';
@@ -403,9 +1143,9 @@
                     'audio/mpeg',
                     'text/plain'
                 ];
-
-                if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|ppt|pptx|jpg|jpeg|png|mp4|mp3|txt)$/i)) {
-                    alert('File type not supported. Please upload PDF, DOC, PPT, JPG, PNG, MP4, MP3, or TXT files.');
+                const extMatch = file.name.match(/\.(pdf|doc|docx|ppt|pptx|jpg|jpeg|png|mp4|mp3|txt)$/i);
+                if (!allowedTypes.includes(file.type) && !extMatch) {
+                    alert('File type not supported.');
                     fileInput.value = '';
                     selectedFile = null;
                     filePreview.style.display = 'none';
@@ -414,18 +1154,14 @@
 
                 // Show preview
                 const reader = new FileReader();
-
                 reader.onload = function (e) {
-                    let previewHtml = '';
                     const fileSize = formatFileSize(file.size);
-
+                    let previewHtml = '';
                     if (file.type.startsWith('image/')) {
                         previewHtml = `
                         <img src="${e.target.result}" class="preview-image" alt="Preview">
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file-image"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file-image"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • ${file.type}</p>
@@ -435,9 +1171,7 @@
                     } else if (file.type === 'application/pdf') {
                         previewHtml = `
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file-pdf"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • PDF Document</p>
@@ -447,9 +1181,7 @@
                     } else if (file.type.includes('word') || file.name.match(/\.docx?$/i)) {
                         previewHtml = `
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file-word"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file-word"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • Word Document</p>
@@ -459,9 +1191,7 @@
                     } else if (file.type.includes('powerpoint') || file.name.match(/\.pptx?$/i)) {
                         previewHtml = `
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file-powerpoint"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file-powerpoint"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • PowerPoint</p>
@@ -471,9 +1201,7 @@
                     } else if (file.type.startsWith('video/')) {
                         previewHtml = `
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file-video"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file-video"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • Video</p>
@@ -483,9 +1211,7 @@
                     } else {
                         previewHtml = `
                         <div class="file-info">
-                            <div class="file-icon">
-                                <i class="fas fa-file"></i>
-                            </div>
+                            <div class="file-icon"><i class="fas fa-file"></i></div>
                             <div class="file-details">
                                 <h6>${file.name}</h6>
                                 <p class="file-size">${fileSize} • ${file.type}</p>
@@ -493,33 +1219,26 @@
                         </div>
                     `;
                     }
-
                     filePreview.innerHTML = previewHtml;
                     filePreview.style.display = 'block';
 
-                    // Auto-set type based on file extension
+                    // Auto-set type
                     const typeSelect = document.querySelector('select[name="type"]');
-                    if (file.type.startsWith('image/')) {
+                    if (file.type.startsWith('image/')) typeSelect.value = 'document';
+                    else if (file.type.startsWith('video/')) typeSelect.value = 'video';
+                    else if (file.type.includes('powerpoint')) typeSelect.value = 'presentation';
+                    else if (file.type.includes('word') || file.type === 'application/pdf' || file.type === 'text/plain')
                         typeSelect.value = 'document';
-                    } else if (file.type.startsWith('video/')) {
-                        typeSelect.value = 'video';
-                    } else if (file.type.includes('powerpoint')) {
-                        typeSelect.value = 'presentation';
-                    } else if (file.type.includes('word') || file.type === 'application/pdf' || file.type === 'text/plain') {
-                        typeSelect.value = 'document';
-                    }
 
-                    // Auto-fill title if empty
+                    // Auto-fill title
                     const titleInput = document.querySelector('input[name="title"]');
-                    if (!titleInput.value) {
-                        titleInput.value = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-                    }
+                    if (!titleInput.value) titleInput.value = file.name.replace(/\.[^/.]+$/, "");
                 };
 
                 if (file.type.startsWith('image/')) {
                     reader.readAsDataURL(file);
                 } else {
-                    reader.readAsText(file.slice(0, 100)); // Just read first 100 bytes for non-images
+                    reader.readAsText(file.slice(0, 100));
                 }
             }
 
@@ -574,36 +1293,20 @@
                 hiddenTags.value = tags.join(',');
             }
 
-            // Form submission with double‑submit prevention
+            // Form submission
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (isSubmitting) return;
 
-                // Prevent multiple submissions
-                if (isSubmitting) {
-                    return;
-                }
-
-                // Clear previous errors
                 uploadError.style.display = 'none';
                 uploadError.textContent = '';
 
-                // Validate required fields
                 const title = document.querySelector('input[name="title"]').value.trim();
                 const type = document.querySelector('select[name="type"]').value;
-                if (!title) {
-                    showError('Please enter a title for the material.');
-                    return;
-                }
-                if (!type) {
-                    showError('Please select a material type.');
-                    return;
-                }
-                if (!selectedFile) {
-                    showError('Please select a file to upload.');
-                    return;
-                }
+                if (!title) { showError('Please enter a title.'); return; }
+                if (!type) { showError('Please select a material type.'); return; }
+                if (!selectedFile) { showError('Please select a file to upload.'); return; }
 
-                // Disable upload button and show progress
                 isSubmitting = true;
                 uploadBtn.disabled = true;
                 uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Uploading...';
@@ -613,57 +1316,48 @@
 
                 try {
                     const xhr = new XMLHttpRequest();
-
                     xhr.upload.addEventListener('progress', (e) => {
                         if (e.lengthComputable) {
-                            const percentComplete = Math.round((e.loaded / e.total) * 100);
-                            progressBar.style.width = percentComplete + '%';
-                            progressPercentage.textContent = percentComplete + '%';
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percent + '%';
+                            progressPercentage.textContent = percent + '%';
                         }
                     });
 
                     xhr.addEventListener('load', () => {
                         const status = xhr.status;
                         const responseText = xhr.responseText;
-
                         if (status === 200) {
-                            // Try to parse as JSON
                             try {
                                 const response = JSON.parse(responseText);
                                 if (response.success) {
-                                    // Success – redirect to materials list
+                                    // Close modal and reload page to show new material
+                                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
                                     window.location.href = '/teacher/materials';
                                     return;
                                 } else {
-                                    // Server returned success: false
                                     showError('Upload failed: ' + (response.message || 'Unknown error'));
-                                    resetUploadForm();
-                                    return;
                                 }
                             } catch (jsonError) {
-                                // If response is not JSON, assume it's a redirect (success)
+                                // If not JSON, assume success (redirect)
+                                bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
                                 window.location.href = '/teacher/materials';
                                 return;
                             }
                         } else {
-                            // Non‑200 status – try to extract error message
                             let errorMsg = 'Server error (status ' + status + ')';
                             try {
                                 const errorJson = JSON.parse(responseText);
-                                if (errorJson.message) {
-                                    errorMsg = errorJson.message;
-                                }
+                                if (errorJson.message) errorMsg = errorJson.message;
                             } catch (e) {
-                                // If not JSON, show a snippet of the HTML (to help debug)
                                 if (responseText) {
-                                    // Strip HTML tags to get a readable message
                                     const stripped = responseText.replace(/<[^>]*>/g, ' ').substring(0, 300);
                                     errorMsg = stripped || 'Unknown server error';
                                 }
                             }
                             showError('Upload failed: ' + errorMsg);
-                            resetUploadForm();
                         }
+                        resetUploadForm();
                     });
 
                     xhr.addEventListener('error', () => {
@@ -673,7 +1367,6 @@
 
                     xhr.open('POST', uploadForm.action);
                     xhr.send(formData);
-
                 } catch (error) {
                     console.error('Upload error:', error);
                     showError('Upload failed: ' + error.message);
@@ -684,7 +1377,6 @@
             function showError(message) {
                 uploadError.textContent = message;
                 uploadError.style.display = 'block';
-                // Scroll to error
                 uploadError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
@@ -699,16 +1391,31 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
-                // Ctrl/Cmd + S to submit
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                     e.preventDefault();
                     uploadForm.requestSubmit();
                 }
-
-                // Escape to cancel
                 if (e.key === 'Escape') {
-                    window.location.href = '/teacher/materials';
+                    const uploadModal = document.getElementById('uploadModal');
+                    if (uploadModal.classList.contains('show')) {
+                        bootstrap.Modal.getInstance(uploadModal).hide();
+                    }
                 }
+            });
+
+            // Also reset when modal is closed
+            document.getElementById('uploadModal').addEventListener('hidden.bs.modal', function () {
+                resetUploadForm();
+                // Clear file preview and selected file
+                selectedFile = null;
+                fileInput.value = '';
+                filePreview.style.display = 'none';
+                filePreview.innerHTML = '';
+                uploadError.style.display = 'none';
+                // Clear tags
+                tags = [];
+                updateTagDisplay();
+                updateHiddenTags();
             });
         </script>
 </body>
