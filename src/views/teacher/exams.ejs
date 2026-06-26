@@ -89,25 +89,20 @@
                                     <!-- Left Sidebar with Profile -->
                                     <div class="col-md-3">
                                         <div class="profile-section text-center">
-                                            <% if (user.avatar) { %>
-                                                <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>"
-                                                    alt="Teacher Profile" class="profile-img mb-3 avatar-img"
-                                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                                <% } else { %>
-                                                    <img src="/images/default-profile.png" alt="Teacher Profile"
-                                                        class="profile-img mb-3">
-                                                    <% } %>
-                                                        <h4>
-                                                            <%= user.firstName %>
-                                                                <%= user.lastName %>
-                                                        </h4>
-                                                        <p class="welcome-text">Exams & Assessments</p>
-                                                        <span class="user-role">Teacher</span>
-                                                        <div class="mt-2">
-                                                            <small><i class="fas fa-school me-1"></i>
-                                                                <%= userSchool %>
-                                                            </small>
-                                                        </div>
+                                            <!-- FIX: Use partial for user avatar -->
+                                            <%- include('../partials/user-avatar', {
+                                                localClass: 'profile-img mb-3 avatar-img' }) %>
+                                                <h4>
+                                                    <%= user.firstName %>
+                                                        <%= user.lastName %>
+                                                </h4>
+                                                <p class="welcome-text">Exams & Assessments</p>
+                                                <span class="user-role">Teacher</span>
+                                                <div class="mt-2">
+                                                    <small><i class="fas fa-school me-1"></i>
+                                                        <%= userSchool %>
+                                                    </small>
+                                                </div>
                                         </div>
 
                                         <div class="card dashboard-card mb-4">

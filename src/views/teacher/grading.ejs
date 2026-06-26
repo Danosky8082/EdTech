@@ -78,24 +78,19 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                        <% if (user.avatar) { %>
-                            <img src="<%= user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar %>" alt="Teacher Profile"
-                                class="profile-img mb-3 avatar-img"
-                                onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Profile'">
-                            <% } else { %>
-                                <img src="https://via.placeholder.com/150?text=Profile" alt="Teacher Profile" class="profile-img mb-3">
-                                <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">Grading Center</p>
-                                        <span class="user-role">Teacher</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- FIX: Use partial for user avatar -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Grading Center</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <div class="card dashboard-card mb-4">
@@ -545,7 +540,7 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-           // Handle grade submission
+            // Handle grade submission
             document.querySelectorAll('.grade-form').forEach(form => {
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
@@ -602,14 +597,14 @@
                         });
                 });
             });
-                // Regrade submission function
-                function regradeSubmission(submissionId) {
-                    fetch(`/teacher/api/grading/${submissionId}/details`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                const modalBody = document.getElementById('regradeModalBody');
-                                modalBody.innerHTML = `
+            // Regrade submission function
+            function regradeSubmission(submissionId) {
+                fetch(`/teacher/api/grading/${submissionId}/details`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const modalBody = document.getElementById('regradeModalBody');
+                            modalBody.innerHTML = `
                 <form id="regradeForm" data-submission-id="${submissionId}">
                     <div class="mb-3">
                         <label class="form-label">New Grade (out of ${data.submission.assignment.points || 100})</label>
@@ -641,51 +636,51 @@
                 </form>
             `;
 
-                                // Handle regrade form submission
-                                document.getElementById('regradeForm').addEventListener('submit', function (e) {
-                                    e.preventDefault();
+                            // Handle regrade form submission
+                            document.getElementById('regradeForm').addEventListener('submit', function (e) {
+                                e.preventDefault();
 
-                                    const formData = new FormData(this);
-                                    const updateData = {
-                                        score: parseFloat(formData.get('score')), // Will be converted to 'grade' on server
-                                        feedback: formData.get('feedback')
-                                    };
+                                const formData = new FormData(this);
+                                const updateData = {
+                                    score: parseFloat(formData.get('score')), // Will be converted to 'grade' on server
+                                    feedback: formData.get('feedback')
+                                };
 
-                                    console.log('Updating grade with:', updateData);
+                                console.log('Updating grade with:', updateData);
 
-                                    fetch(`/teacher/api/grading/${submissionId}/update`, {
-                                        method: 'PUT',
-                                        headers: {
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify(updateData)
+                                fetch(`/teacher/api/grading/${submissionId}/update`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(updateData)
+                                })
+                                    .then(response => response.json())
+                                    .then(result => {
+                                        if (result.success) {
+                                            alert('Grade updated successfully!');
+                                            location.reload();
+                                        } else {
+                                            alert('Error: ' + result.message);
+                                        }
                                     })
-                                        .then(response => response.json())
-                                        .then(result => {
-                                            if (result.success) {
-                                                alert('Grade updated successfully!');
-                                                location.reload();
-                                            } else {
-                                                alert('Error: ' + result.message);
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error:', error);
-                                            alert('Error updating grade: ' + error.message);
-                                        });
-                                });
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        alert('Error updating grade: ' + error.message);
+                                    });
+                            });
 
-                                const modal = new bootstrap.Modal(document.getElementById('regradeModal'));
-                                modal.show();
-                            } else {
-                                alert('Error loading submission details: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Error loading submission details: ' + error.message);
-                        });
-                }
+                            const modal = new bootstrap.Modal(document.getElementById('regradeModal'));
+                            modal.show();
+                        } else {
+                            alert('Error loading submission details: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error loading submission details: ' + error.message);
+                    });
+            }
 
             // Tab switching
             const urlParams = new URLSearchParams(window.location.search);
