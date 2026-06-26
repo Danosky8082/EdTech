@@ -2,139 +2,72 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// ============================================================
-// 1. DETERMINE UPLOAD DIRECTORY (Vercel / local)
-// ============================================================
+// Determine base directory (Vercel /tmp or local)
 const isVercel = !!process.env.VERCEL;
-const baseUploadDir = isVercel
-  ? '/tmp/uploads'
-  : path.join(__dirname, '../../public/uploads');
+const baseDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '../../public/uploads');
 
-const materialsDir = path.join(baseUploadDir, 'materials');
-const profilesDir = path.join(baseUploadDir, 'profiles');
+// Subfolders
+const materialsDir = path.join(baseDir, 'materials');
+const profilesDir = path.join(baseDir, 'profiles');
 
-// Ensure directories exist
-const ensureDir = (dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`✅ Created upload directory: ${dir}`);
-  }
-};
-ensureDir(materialsDir);
-ensureDir(profilesDir);
+// Create folders if they don't exist
+[materialsDir, profilesDir].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
 
-// ============================================================
-// 2. STORAGE CONFIGURATIONS
-// ============================================================
-const createStorage = (destination) => multer.diskStorage({
-  destination: (req, file, cb) => cb(null, destination),
+// Storage factory
+const storage = (dest) => multer.diskStorage({
+  destination: (req, file, cb) => cb(null, dest),
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + unique + ext);
   }
 });
 
-const profileStorage = createStorage(profilesDir);
-const materialsStorage = createStorage(materialsDir);
-
-// ============================================================
-// 3. FILE FILTERS
-// ============================================================
-
-// --- Profile: images only ---
-const imageFileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed for profile pictures.'), false);
-  }
+// --- File filters ---
+const imageFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Only images allowed'), false);
 };
 
-// --- Materials: broad filter (documents, videos, presentations, images, audio, archives) ---
-const materialsFileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    // Images
+const materialFilter = (req, file, cb) => {
+  const mimes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    // Documents
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    // Presentations
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // Videos
+    'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
-    // Audio
     'audio/mpeg', 'audio/wav', 'audio/ogg',
-    // Archives
-    'application/zip', 'application/x-rar-compressed'
+    'application/zip', 'application/x-rar-compressed', 'text/plain'
   ];
-
-  const allowedExtensions = [
-    '.jpg', '.jpeg', '.png', '.gif', '.webp',
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt',
-    '.ppt', '.pptx',
-    '.mp4', '.avi', '.mov', '.mkv',
-    '.mp3', '.wav', '.ogg',
-    '.zip', '.rar'
-  ];
-
+  const exts = ['.jpg','.jpeg','.png','.gif','.webp','.pdf','.doc','.docx','.xls','.xlsx','.txt','.ppt','.pptx','.mp4','.avi','.mov','.mkv','.mp3','.wav','.ogg','.zip','.rar'];
   const ext = path.extname(file.originalname).toLowerCase();
-  const mimeType = file.mimetype;
-
-  if (allowedMimes.includes(mimeType) || allowedExtensions.includes(ext)) {
+  if (mimes.includes(file.mimetype) || exts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('File type not allowed. Please upload images, documents, videos, presentations, audio, or archives.'), false);
+    cb(new Error('File type not allowed'), false);
   }
 };
 
-// ============================================================
-// 4. MULTER INSTANCES
-// ============================================================
-
-// Profile upload (avatar) – images only, max 5MB
+// --- Multer instances ---
 const profileUpload = multer({
-  storage: profileStorage,
-  fileFilter: imageFileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  storage: storage(profilesDir),
+  fileFilter: imageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// Materials upload – broad file types, max 100MB
 const materialsUpload = multer({
-  storage: materialsStorage,
-  fileFilter: materialsFileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+  storage: storage(materialsDir),
+  fileFilter: materialFilter,
+  limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-// Generic single-file uploader (if you need it elsewhere)
-const uploadSingle = (fieldName) => multer({
-  storage: materialsStorage,
-  fileFilter: materialsFileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 }
-}).single(fieldName);
-
-// ============================================================
-// 5. EXPORTS
-// ============================================================
+// --- Exports ---
 module.exports = {
-  // Profile upload (field name: 'avatar')
   profileUpload,
-  uploadProfile: profileUpload,    // alias
-
-  // Materials upload (field name: 'materialFile')
+  uploadProfile: profileUpload,   // alias
   materialsUpload,
-  uploadMaterial: materialsUpload, // alias (for backward compatibility)
-
-  // Generic single file uploader (field name passed)
-  uploadSingle,
-
-  // Keep 'upload' for backward compatibility (points to profileUpload by default)
-  // but better to use explicit exports above.
-  upload: profileUpload   // fallback
+  uploadMaterial: materialsUpload, // alias (backward compatibility)
+  upload: profileUpload             // fallback (keep)
 };
