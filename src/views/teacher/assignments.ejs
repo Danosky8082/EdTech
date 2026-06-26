@@ -232,66 +232,69 @@
                                 <div class="row">
                                     <% if (activeAssignments.length> 0) { %>
                                         <% for (var i=0; i < activeAssignments.length; i++) { var
-                                            a=activeAssignments[i]; %>
-                                            <div class="col-md-6 col-xl-4 mb-4">
-                                                <div class="card assignment-card h-100">
-                                                    <div class="card-body">
-                                                        <div
-                                                            class="d-flex justify-content-between align-items-start mb-2">
-                                                            <span class="badge status-active status-badge">Active</span>
-                                                            <div>
-                                                                <button class="btn btn-sm btn-outline-secondary me-1"
-                                                                    onclick="editAssignment('<%= a.id %>')"><i
-                                                                        class="fas fa-edit"></i></button>
-                                                                <button class="btn btn-sm btn-outline-danger"
-                                                                    onclick="deleteAssignment('<%= a.id %>')"><i
-                                                                        class="fas fa-trash-alt"></i></button>
+                                            a=activeAssignments[i]; var subCount=(a.submissions) ? a.submissions.length
+                                            : 0; var gradedCount=0; if (a.submissions && a.submissions.length> 0) { for
+                                            (var j = 0; j < a.submissions.length; j++) { if (a.submissions[j].grade
+                                                !==null) gradedCount++; } } %>
+                                                <div class="col-md-6 col-xl-4 mb-4">
+                                                    <div class="card assignment-card h-100">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-2">
+                                                                <span
+                                                                    class="badge status-active status-badge">Active</span>
+                                                                <div>
+                                                                    <button
+                                                                        class="btn btn-sm btn-outline-secondary me-1"
+                                                                        onclick="editAssignment('<%= a.id %>')"><i
+                                                                            class="fas fa-edit"></i></button>
+                                                                    <button class="btn btn-sm btn-outline-danger"
+                                                                        onclick="deleteAssignment('<%= a.id %>')"><i
+                                                                            class="fas fa-trash-alt"></i></button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <h5 class="card-title">
-                                                            <%= a.title %>
-                                                        </h5>
-                                                        <p class="card-text text-muted small">
-                                                            <%= a.description ? a.description.substring(0, 80) +
-                                                                (a.description.length> 80 ? '...' : '') : 'No
-                                                                description' %>
-                                                        </p>
-                                                        <div class="mb-2">
-                                                            <small class="text-muted"><i
-                                                                    class="fas fa-calendar me-1"></i> Due: <%= new
-                                                                    Date(a.dueDate).toLocaleDateString() %></small>
-                                                            <% if (a.class) { %>
-                                                                <br><small class="text-muted"><i
-                                                                        class="fas fa-chalkboard me-1"></i> Class: <%=
-                                                                        a.class.name %></small>
-                                                                <% } %>
-                                                        </div>
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <span class="badge bg-info">
-                                                                    <%= a.submissions ? a.submissions.length : 0 %>
-                                                                        submissions
-                                                                </span>
-                                                                <% if (a.submissions && a.submissions.length> 0) { var
-                                                                    graded = a.submissions.filter(function(s) { return
-                                                                    s.grade !== null; }).length; %>
-                                                                    <span class="badge bg-success">
-                                                                        <%= graded %> graded
-                                                                    </span>
+                                                            <h5 class="card-title">
+                                                                <%= a.title %>
+                                                            </h5>
+                                                            <p class="card-text text-muted small">
+                                                                <%= a.description ? a.description.substring(0, 80) +
+                                                                    (a.description.length> 80 ? '...' : '') : 'No
+                                                                    description' %>
+                                                            </p>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted"><i
+                                                                        class="fas fa-calendar me-1"></i> Due: <%= new
+                                                                        Date(a.dueDate).toLocaleDateString() %></small>
+                                                                <% if (a.class) { %>
+                                                                    <br><small class="text-muted"><i
+                                                                            class="fas fa-chalkboard me-1"></i> Class:
+                                                                        <%= a.class.name %></small>
                                                                     <% } %>
                                                             </div>
-                                                            <a href="/teacher/grading?assignment=<%= a.id %>"
-                                                                class="btn btn-sm btn-outline-primary">View</a>
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <span class="badge bg-info">
+                                                                        <%= subCount %> submissions
+                                                                    </span>
+                                                                    <% if (subCount> 0) { %>
+                                                                        <span class="badge bg-success">
+                                                                            <%= gradedCount %> graded
+                                                                        </span>
+                                                                        <% } %>
+                                                                </div>
+                                                                <a href="/teacher/grading?assignment=<%= a.id %>"
+                                                                    class="btn btn-sm btn-outline-primary">View</a>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <% } %>
-                                                <% } else { %>
-                                                    <div class="col-12">
-                                                        <p class="text-muted">No active assignments.</p>
-                                                    </div>
-                                                    <% } %>
+                                                <% } %>
+                                                    <% } else { %>
+                                                        <div class="col-12">
+                                                            <p class="text-muted">No active assignments.</p>
+                                                        </div>
+                                                        <% } %>
                                 </div>
                             </div>
 
@@ -360,68 +363,72 @@
                                         <% for (var i=0; i < completedAssignments.length; i++) { var
                                             a=completedAssignments[i]; var isOverdue=new Date(a.dueDate) < new Date();
                                             var statusClass=isOverdue ? 'status-overdue' : 'status-completed' ; var
-                                            statusText=isOverdue ? 'Overdue' : 'Completed' ; %>
-                                            <div class="col-md-6 col-xl-4 mb-4">
-                                                <div class="card assignment-card h-100">
-                                                    <div class="card-body">
-                                                        <div
-                                                            class="d-flex justify-content-between align-items-start mb-2">
-                                                            <span class="badge <%= statusClass %> status-badge">
-                                                                <%= statusText %>
-                                                            </span>
-                                                            <div>
-                                                                <button class="btn btn-sm btn-outline-secondary me-1"
-                                                                    onclick="editAssignment('<%= a.id %>')"><i
-                                                                        class="fas fa-edit"></i></button>
-                                                                <button class="btn btn-sm btn-outline-danger"
-                                                                    onclick="deleteAssignment('<%= a.id %>')"><i
-                                                                        class="fas fa-trash-alt"></i></button>
-                                                            </div>
-                                                        </div>
-                                                        <h5 class="card-title">
-                                                            <%= a.title %>
-                                                        </h5>
-                                                        <p class="card-text text-muted small">
-                                                            <%= a.description ? a.description.substring(0, 80) +
-                                                                (a.description.length> 80 ? '...' : '') : 'No
-                                                                description' %>
-                                                        </p>
-                                                        <div class="mb-2">
-                                                            <small class="text-muted"><i
-                                                                    class="fas fa-calendar me-1"></i> Due: <%= new
-                                                                    Date(a.dueDate).toLocaleDateString() %></small>
-                                                            <% if (a.class) { %>
-                                                                <br><small class="text-muted"><i
-                                                                        class="fas fa-chalkboard me-1"></i> Class: <%=
-                                                                        a.class.name %></small>
-                                                                <% } %>
-                                                        </div>
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <span class="badge bg-info">
-                                                                    <%= a.submissions ? a.submissions.length : 0 %>
-                                                                        submissions
+                                            statusText=isOverdue ? 'Overdue' : 'Completed' ; var
+                                            subCount=(a.submissions) ? a.submissions.length : 0; var gradedCount=0; if
+                                            (a.submissions && a.submissions.length> 0) { for (var j = 0; j <
+                                                a.submissions.length; j++) { if (a.submissions[j].grade !==null)
+                                                gradedCount++; } } %>
+                                                <div class="col-md-6 col-xl-4 mb-4">
+                                                    <div class="card assignment-card h-100">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-2">
+                                                                <span class="badge <%= statusClass %> status-badge">
+                                                                    <%= statusText %>
                                                                 </span>
-                                                                <% if (a.submissions && a.submissions.length> 0) { var
-                                                                    graded = a.submissions.filter(function(s) { return
-                                                                    s.grade !== null; }).length; %>
-                                                                    <span class="badge bg-success">
-                                                                        <%= graded %> graded
-                                                                    </span>
+                                                                <div>
+                                                                    <button
+                                                                        class="btn btn-sm btn-outline-secondary me-1"
+                                                                        onclick="editAssignment('<%= a.id %>')"><i
+                                                                            class="fas fa-edit"></i></button>
+                                                                    <button class="btn btn-sm btn-outline-danger"
+                                                                        onclick="deleteAssignment('<%= a.id %>')"><i
+                                                                            class="fas fa-trash-alt"></i></button>
+                                                                </div>
+                                                            </div>
+                                                            <h5 class="card-title">
+                                                                <%= a.title %>
+                                                            </h5>
+                                                            <p class="card-text text-muted small">
+                                                                <%= a.description ? a.description.substring(0, 80) +
+                                                                    (a.description.length> 80 ? '...' : '') : 'No
+                                                                    description' %>
+                                                            </p>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted"><i
+                                                                        class="fas fa-calendar me-1"></i> Due: <%= new
+                                                                        Date(a.dueDate).toLocaleDateString() %></small>
+                                                                <% if (a.class) { %>
+                                                                    <br><small class="text-muted"><i
+                                                                            class="fas fa-chalkboard me-1"></i> Class:
+                                                                        <%= a.class.name %></small>
                                                                     <% } %>
                                                             </div>
-                                                            <a href="/teacher/grading?assignment=<%= a.id %>"
-                                                                class="btn btn-sm btn-outline-primary">View</a>
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <span class="badge bg-info">
+                                                                        <%= subCount %> submissions
+                                                                    </span>
+                                                                    <% if (subCount> 0) { %>
+                                                                        <span class="badge bg-success">
+                                                                            <%= gradedCount %> graded
+                                                                        </span>
+                                                                        <% } %>
+                                                                </div>
+                                                                <a href="/teacher/grading?assignment=<%= a.id %>"
+                                                                    class="btn btn-sm btn-outline-primary">View</a>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <% } %>
-                                                <% } else { %>
-                                                    <div class="col-12">
-                                                        <p class="text-muted">No completed or overdue assignments.</p>
-                                                    </div>
-                                                    <% } %>
+                                                <% } %>
+                                                    <% } else { %>
+                                                        <div class="col-12">
+                                                            <p class="text-muted">No completed or overdue assignments.
+                                                            </p>
+                                                        </div>
+                                                        <% } %>
                                 </div>
                             </div>
                         </div>
@@ -429,7 +436,7 @@
                 </div>
         </div>
 
-        <!-- Delete Modal -->
+        <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteAssignmentModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -451,7 +458,7 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            let assignmentToDelete = null;
+            var assignmentToDelete = null;
 
             function editAssignment(assignmentId) {
                 window.location.href = '/teacher/assignments/view/' + assignmentId;
@@ -459,7 +466,7 @@
 
             function deleteAssignment(assignmentId) {
                 assignmentToDelete = assignmentId;
-                const modal = new bootstrap.Modal(document.getElementById('deleteAssignmentModal'));
+                var modal = new bootstrap.Modal(document.getElementById('deleteAssignmentModal'));
                 modal.show();
             }
 
@@ -469,8 +476,8 @@
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' }
                     })
-                        .then(response => response.json())
-                        .then(data => {
+                        .then(function (response) { return response.json(); })
+                        .then(function (data) {
                             if (data.success) {
                                 alert('Assignment deleted successfully');
                                 location.reload();
@@ -478,12 +485,12 @@
                                 alert('Error deleting assignment: ' + data.message);
                             }
                         })
-                        .catch(error => {
+                        .catch(function (error) {
                             console.error('Error:', error);
                             alert('Error deleting assignment');
                         });
 
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAssignmentModal'));
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('deleteAssignmentModal'));
                     modal.hide();
                 }
             });
@@ -491,16 +498,19 @@
             // Tab persistence
             document.getElementById('assignmentTabs').addEventListener('click', function (e) {
                 if (e.target.tagName === 'BUTTON') {
-                    const tabId = e.target.getAttribute('data-bs-target');
+                    var tabId = e.target.getAttribute('data-bs-target');
                     history.pushState(null, '', '/teacher/assignments' + (tabId === '#completed' ? '?tab=completed' : ''));
                 }
             });
 
             document.addEventListener('DOMContentLoaded', function () {
-                const params = new URLSearchParams(window.location.search);
+                var params = new URLSearchParams(window.location.search);
                 if (params.get('tab') === 'completed') {
-                    const btn = document.getElementById('completed-tab');
-                    if (btn) new bootstrap.Tab(btn).show();
+                    var btn = document.getElementById('completed-tab');
+                    if (btn) {
+                        var tab = new bootstrap.Tab(btn);
+                        tab.show();
+                    }
                 }
             });
         </script>
