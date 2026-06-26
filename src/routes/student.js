@@ -81,4 +81,9 @@ router.post('/notifications/mark-all-read', studentController.markAllNotificatio
 router.get('/progress', studentController.viewProgress);
 router.get('/analytics', studentController.viewAnalytics);
 
+router.get('/debug/material/:id', async (req, res) => {
+  const material = await prisma.material.findUnique({ where: { id: req.params.id } });
+  res.json({ fileUrl: material?.fileUrl, full: material });
+});
+
 module.exports = router;

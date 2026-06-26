@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - EdTech</title>
+    <title>
+        <%= title %> - EdTech
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -352,6 +354,7 @@
             .material-thumbnail {
                 height: 100px;
             }
+
             .material-thumbnail i {
                 font-size: 2rem;
             }
@@ -380,17 +383,17 @@
                     <div class="col-md-3">
                         <div class="profile-section text-center">
                             <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
-                            <h4>
-                                <%= user.firstName %>
-                                <%= user.lastName %>
-                            </h4>
-                            <p class="welcome-text">Teaching Materials</p>
-                            <span class="user-role">Teacher</span>
-                            <div class="mt-2">
-                                <small><i class="fas fa-school me-1"></i>
-                                    <%= userSchool %>
-                                </small>
-                            </div>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Teaching Materials</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <div class="card dashboard-card mb-4">
@@ -410,7 +413,8 @@
                                     <i class="fas fa-tasks"></i> Create Assignment
                                 </a>
                                 <!-- Current page highlighted -->
-                                <a href="/teacher/materials" class="btn btn-outline-success w-100 mb-2 action-btn active">
+                                <a href="/teacher/materials"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn active">
                                     <i class="fas fa-book"></i> Upload Material
                                 </a>
                                 <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
@@ -436,14 +440,15 @@
                                 <div class="mb-2">
                                     <small><strong>Public:</strong></small>
                                     <span class="badge bg-success float-end">
-                                        <%= materials ? materials.filter(m => m.isPublic).length : 0 %>
+                                        <%= materials ? materials.filter(m=> m.isPublic).length : 0 %>
                                     </span>
                                 </div>
                                 <div class="mb-2">
                                     <small><strong>Total Views:</strong></small>
                                     <span class="badge bg-info float-end">
-                                        <% let totalViews = 0; if (materials) { materials.forEach(m => { totalViews += m._count ? m._count.views || 0 : 0; }); } %>
-                                        <%= totalViews %>
+                                        <% let totalViews=0; if (materials) { materials.forEach(m=> { totalViews +=
+                                            m._count ? m._count.views || 0 : 0; }); } %>
+                                            <%= totalViews %>
                                     </span>
                                 </div>
                             </div>
@@ -454,7 +459,9 @@
                     <div class="col-md-9">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                             <div>
-                                <h2 class="fw-bold"><i class="fas fa-book me-2 text-primary"></i><%= title %></h2>
+                                <h2 class="fw-bold"><i class="fas fa-book me-2 text-primary"></i>
+                                    <%= title %>
+                                </h2>
                                 <p class="text-muted mb-0">Manage and organize your teaching materials</p>
                             </div>
                             <div>
@@ -482,21 +489,22 @@
                                 <div class="col-md-3">
                                     <select class="form-select" id="typeFilter">
                                         <option value="">All Types</option>
-                                        <% if (uniqueTypes) { uniqueTypes.forEach(t => { %>
-                                            <option value="<%= t %>" <%= currentFilters.type === t ? 'selected' : '' %>>
+                                        <% if (uniqueTypes) { uniqueTypes.forEach(t=> { %>
+                                            <option value="<%= t %>" <%=currentFilters.type===t ? 'selected' : '' %>>
                                                 <%= t.charAt(0).toUpperCase() + t.slice(1) %>
                                             </option>
-                                        <% }); } %>
+                                            <% }); } %>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <select class="form-select" id="classFilter">
                                         <option value="">All Classes</option>
-                                        <% if (classes) { classes.forEach(cls => { %>
-                                            <option value="<%= cls.id %>" <%= currentFilters.class === cls.id ? 'selected' : '' %>>
+                                        <% if (classes) { classes.forEach(cls=> { %>
+                                            <option value="<%= cls.id %>" <%=currentFilters.class===cls.id ? 'selected'
+                                                : '' %>>
                                                 <%= cls.name %>
                                             </option>
-                                        <% }); } %>
+                                            <% }); } %>
                                     </select>
                                 </div>
                             </div>
@@ -512,70 +520,93 @@
                         <!-- Materials Grid -->
                         <div id="materialsGrid" class="row g-4">
                             <% if (materials && materials.length) { %>
-                                <% materials.forEach(material => {
+                                <% materials.forEach(material=> {
                                     const iconClass = getMaterialIcon(material.type);
                                     const uploadDate = new Date(material.createdAt).toLocaleDateString();
                                     const viewCount = material._count ? material._count.views || 0 : 0;
                                     const typeClass = material.type || 'other';
-                                %>
-                                <div class="col-md-6 col-xl-4">
-                                    <div class="material-card">
-                                        <div class="material-thumbnail type-<%= typeClass %>">
-                                            <i class="fas <%= iconClass %>"></i>
-                                            <span class="thumbnail-label"><%= typeClass.toUpperCase() %></span>
-                                            <% if (material.isPublic) { %>
-                                                <span class="badge bg-success position-absolute top-0 end-0 m-2">Public</span>
-                                            <% } %>
-                                        </div>
-                                        <div class="material-body">
-                                            <h5 class="material-title"><%= material.title %></h5>
-                                            <div class="material-meta">
-                                                <div><i class="fas fa-calendar-alt"></i> <%= uploadDate %></div>
-                                                <div><i class="fas fa-eye"></i> <%= viewCount %> views</div>
-                                                <% if (material.class) { %>
-                                                    <div><i class="fas fa-chalkboard"></i> <%= material.class.name %></div>
-                                                <% } %>
+                                    %>
+                                    <div class="col-md-6 col-xl-4">
+                                        <div class="material-card">
+                                            <div class="material-thumbnail type-<%= typeClass %>">
+                                                <i class="fas <%= iconClass %>"></i>
+                                                <span class="thumbnail-label">
+                                                    <%= typeClass.toUpperCase() %>
+                                                </span>
+                                                <% if (material.isPublic) { %>
+                                                    <span
+                                                        class="badge bg-success position-absolute top-0 end-0 m-2">Public</span>
+                                                    <% } %>
                                             </div>
-                                            <% if (material.tags && material.tags.length) { %>
-                                                <div class="material-tags mb-2">
-                                                    <% material.tags.slice(0, 3).forEach(tag => { %>
-                                                        <span class="badge"><%= tag %></span>
-                                                    <% }) %>
+                                            <div class="material-body">
+                                                <h5 class="material-title">
+                                                    <%= material.title %>
+                                                </h5>
+                                                <div class="material-meta">
+                                                    <div><i class="fas fa-calendar-alt"></i>
+                                                        <%= uploadDate %>
+                                                    </div>
+                                                    <div><i class="fas fa-eye"></i>
+                                                        <%= viewCount %> views
+                                                    </div>
+                                                    <% if (material.class) { %>
+                                                        <div><i class="fas fa-chalkboard"></i>
+                                                            <%= material.class.name %>
+                                                        </div>
+                                                        <% } %>
                                                 </div>
-                                            <% } %>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div class="material-actions">
-                                                    <a href="<%= material.fileUrl %>" class="btn btn-sm btn-outline-primary" target="_blank" onclick="trackDownload('<%= material.id %>')">
-                                                        <i class="fas fa-download"></i>
-                                                    </a>
-                                                    <button class="btn btn-sm btn-outline-info" onclick="previewMaterial('<%= material.id %>')">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-warning" onclick="editMaterial('<%= material.id %>')">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMaterial('<%= material.id %>')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </div>
-                                                <span class="view-count"><i class="fas fa-eye me-1"></i><%= viewCount %></span>
+                                                <% if (material.tags && material.tags.length) { %>
+                                                    <div class="material-tags mb-2">
+                                                        <% material.tags.slice(0, 3).forEach(tag=> { %>
+                                                            <span class="badge">
+                                                                <%= tag %>
+                                                            </span>
+                                                            <% }) %>
+                                                    </div>
+                                                    <% } %>
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div class="material-actions">
+                                                                <a href="<%= material.fileUrl %>"
+                                                                    class="btn btn-sm btn-outline-primary"
+                                                                    target="_blank"
+                                                                    onclick="trackDownload('<%= material.id %>')">
+                                                                    <i class="fas fa-download"></i>
+                                                                </a>
+                                                                <button class="btn btn-sm btn-outline-info"
+                                                                    onclick="previewMaterial('<%= material.id %>')">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-warning"
+                                                                    onclick="editMaterial('<%= material.id %>')">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-danger"
+                                                                    onclick="deleteMaterial('<%= material.id %>')">
+                                                                    <i class="fas fa-trash-alt"></i>
+                                                                </button>
+                                                            </div>
+                                                            <span class="view-count"><i class="fas fa-eye me-1"></i>
+                                                                <%= viewCount %>
+                                                            </span>
+                                                        </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <% }); %>
-                            <% } else { %>
-                                <div class="col-12">
-                                    <div class="empty-state">
-                                        <i class="fas fa-book-open"></i>
-                                        <h4>No Materials Found</h4>
-                                        <p class="text-muted">You haven't uploaded any teaching materials yet.</p>
-                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                                            <i class="fas fa-upload me-1"></i> Upload Your First Material
-                                        </button>
-                                    </div>
-                                </div>
-                            <% } %>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <div class="col-12">
+                                                <div class="empty-state">
+                                                    <i class="fas fa-book-open"></i>
+                                                    <h4>No Materials Found</h4>
+                                                    <p class="text-muted">You haven't uploaded any teaching materials
+                                                        yet.</p>
+                                                    <button class="btn btn-success" data-bs-toggle="modal"
+                                                        data-bs-target="#uploadModal">
+                                                        <i class="fas fa-upload me-1"></i> Upload Your First Material
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <% } %>
                         </div>
                     </div>
                 </div>
@@ -586,14 +617,16 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i>Upload Material</h5>
+                        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i>Upload Material
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <!-- Error display -->
                         <div id="uploadError" class="alert alert-danger"></div>
 
-                        <form id="uploadForm" action="/teacher/materials/upload" method="POST" enctype="multipart/form-data">
+                        <form id="uploadForm" action="/teacher/materials/upload" method="POST"
+                            enctype="multipart/form-data">
                             <!-- File Upload -->
                             <div class="form-section mb-3">
                                 <h6 class="fw-bold">1. Select File</h6>
@@ -603,7 +636,8 @@
                                     <p class="text-muted">or click to browse</p>
                                     <input type="file" name="materialFile" id="fileInput" class="d-none"
                                         accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mp3,.txt">
-                                    <button type="button" class="btn btn-outline-primary mt-3" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                                    <button type="button" class="btn btn-outline-primary mt-3"
+                                        onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
                                         <i class="fas fa-folder-open me-2"></i> Browse Files
                                     </button>
                                 </div>
@@ -616,11 +650,13 @@
                                 <div class="row g-2">
                                     <div class="col-md-12 mb-2">
                                         <label class="form-label">Title *</label>
-                                        <input type="text" class="form-control" name="title" placeholder="Enter material title" required>
+                                        <input type="text" class="form-control" name="title"
+                                            placeholder="Enter material title" required>
                                     </div>
                                     <div class="col-md-12 mb-2">
                                         <label class="form-label">Description</label>
-                                        <textarea class="form-control" name="description" rows="3" placeholder="Describe the material content..."></textarea>
+                                        <textarea class="form-control" name="description" rows="3"
+                                            placeholder="Describe the material content..."></textarea>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Type *</label>
@@ -635,17 +671,20 @@
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Category</label>
-                                        <input type="text" class="form-control" name="category" placeholder="e.g., Lecture Notes">
+                                        <input type="text" class="form-control" name="category"
+                                            placeholder="e.g., Lecture Notes">
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">Class (Optional)</label>
                                         <select class="form-select" name="classId">
                                             <option value="">Select class...</option>
                                             <% if (classes && classes.length) { %>
-                                                <% classes.forEach(cls => { %>
-                                                    <option value="<%= cls.id %>"><%= cls.name %></option>
-                                                <% }); %>
-                                            <% } %>
+                                                <% classes.forEach(cls=> { %>
+                                                    <option value="<%= cls.id %>">
+                                                        <%= cls.name %>
+                                                    </option>
+                                                    <% }); %>
+                                                        <% } %>
                                         </select>
                                     </div>
                                     <div class="col-md-6 mb-2">
@@ -658,9 +697,11 @@
                                     </div>
                                     <div class="col-md-12 mb-2">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="isPublic" id="isPublic" checked>
+                                            <input class="form-check-input" type="checkbox" name="isPublic"
+                                                id="isPublic" checked>
                                             <label class="form-check-label" for="isPublic">
-                                                Make this material public <span class="text-muted">(visible to students)</span>
+                                                Make this material public <span class="text-muted">(visible to
+                                                    students)</span>
                                             </label>
                                         </div>
                                     </div>
@@ -1367,5 +1408,6 @@
                 updateHiddenTags();
             });
         </script>
-    </body>
+</body>
+
 </html>

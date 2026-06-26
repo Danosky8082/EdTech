@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - EdTech</title>
+    <title>
+        <%= title %> - EdTech
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,6 +18,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
+
         .profile-img {
             width: 100px;
             height: 100px;
@@ -24,6 +27,7 @@
             border: 4px solid white;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
         .user-role {
             background-color: rgba(255, 255, 255, 0.2);
             padding: 4px 12px;
@@ -32,21 +36,25 @@
             display: inline-block;
             margin-top: 5px;
         }
+
         .dashboard-card {
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s ease;
             height: 100%;
         }
+
         .dashboard-card:hover {
             transform: translateY(-5px);
         }
+
         .card-header {
             border-top-left-radius: 10px !important;
             border-top-right-radius: 10px !important;
             background-color: #f8f9fa;
             font-weight: 600;
         }
+
         .action-btn {
             transition: all 0.3s ease;
             border-radius: 8px;
@@ -56,23 +64,55 @@
             display: flex;
             align-items: center;
         }
-        .action-btn i { margin-right: 10px; font-size: 1.2rem; }
-        .action-btn:hover { transform: translateX(5px); }
+
+        .action-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .action-btn:hover {
+            transform: translateX(5px);
+        }
+
         .assignment-card {
             border-left: 4px solid #0dcaf0;
             transition: all 0.3s ease;
             height: 100%;
         }
+
         .assignment-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         }
-        .status-badge { font-size: 0.75rem; padding: 4px 10px; }
-        .status-upcoming { background-color: #6c757d; color: white; }
-        .status-active { background-color: #0d6efd; color: white; }
-        .status-overdue { background-color: #dc3545; color: white; }
-        .status-completed { background-color: #198754; color: white; }
-        .grading-progress { height: 6px; }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+        }
+
+        .status-upcoming {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .status-active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .status-overdue {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .status-completed {
+            background-color: #198754;
+            color: white;
+        }
+
+        .grading-progress {
+            height: 6px;
+        }
     </style>
 </head>
 
@@ -96,51 +136,74 @@
                     <div class="col-md-3">
                         <div class="profile-section text-center">
                             <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
-                                <h4><%= user.firstName %> <%= user.lastName %></h4>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
                                 <p class="welcome-text">Assignments</p>
                                 <span class="user-role">Teacher</span>
                                 <div class="mt-2">
-                                    <small><i class="fas fa-school me-1"></i> <%= userSchool %></small>
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
                                 </div>
                         </div>
 
                         <div class="card dashboard-card mb-4">
-                            <div class="card-header"><h5>Quick Actions</h5></div>
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
                             <div class="card-body">
-                                <a href="/teacher/assignments" class="btn btn-outline-primary w-100 mb-2 action-btn"><i class="fas fa-tasks"></i> All Assignments</a>
-                                <a href="/teacher/assignments/create" class="btn btn-outline-success w-100 mb-2 action-btn"><i class="fas fa-plus"></i> Create Assignment</a>
-                                <a href="/teacher/grading" class="btn btn-outline-warning w-100 mb-2 action-btn"><i class="fas fa-graduation-cap"></i> Grading</a>
-                                <a href="/teacher/students" class="btn btn-outline-info w-100 mb-2 action-btn"><i class="fas fa-users"></i> Students</a>
-                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn"><i class="fas fa-home"></i> Dashboard</a>
+                                <a href="/teacher/assignments" class="btn btn-outline-primary w-100 mb-2 action-btn"><i
+                                        class="fas fa-tasks"></i> All Assignments</a>
+                                <a href="/teacher/assignments/create"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn"><i class="fas fa-plus"></i>
+                                    Create Assignment</a>
+                                <a href="/teacher/grading" class="btn btn-outline-warning w-100 mb-2 action-btn"><i
+                                        class="fas fa-graduation-cap"></i> Grading</a>
+                                <a href="/teacher/students" class="btn btn-outline-info w-100 mb-2 action-btn"><i
+                                        class="fas fa-users"></i> Students</a>
+                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn"><i
+                                        class="fas fa-home"></i> Dashboard</a>
                             </div>
                         </div>
 
                         <div class="card dashboard-card mb-4">
-                            <div class="card-header"><h5>Assignment Stats</h5></div>
+                            <div class="card-header">
+                                <h5>Assignment Stats</h5>
+                            </div>
                             <div class="card-body">
-                                <% 
-                                    let totalAssignments = 0, pendingGrading = 0, totalSubmissions = 0;
-                                    if (assignments) {
-                                        totalAssignments = assignments.length;
-                                        assignments.forEach(a => {
-                                            totalSubmissions += (a.submissions ? a.submissions.length : 0);
-                                            if (a.submissions) {
-                                                a.submissions.forEach(s => { if (s.grade === null) pendingGrading++; });
-                                            }
-                                        });
+                                <% let totalAssignments=0, pendingGrading=0, totalSubmissions=0; if (assignments) {
+                                    totalAssignments=assignments.length; assignments.forEach(a=> {
+                                    totalSubmissions += (a.submissions ? a.submissions.length : 0);
+                                    if (a.submissions) {
+                                    a.submissions.forEach(s => { if (s.grade === null) pendingGrading++; });
                                     }
-                                %>
-                                <div class="mb-2"><small><strong>Total Assignments:</strong></small><span class="badge bg-primary float-end"><%= totalAssignments %></span></div>
-                                <div class="mb-2"><small><strong>Total Submissions:</strong></small><span class="badge bg-info float-end"><%= totalSubmissions %></span></div>
-                                <div class="mb-2"><small><strong>Pending Grading:</strong></small><span class="badge bg-warning float-end"><%= pendingGrading %></span></div>
-                                <% if (totalSubmissions > 0) { %>
-                                    <div class="mb-2">
-                                        <small><strong>Grading Progress:</strong></small>
-                                        <div class="progress grading-progress mt-1">
-                                            <div class="progress-bar bg-success" style="width: <%= ((totalSubmissions - pendingGrading) / totalSubmissions * 100) %>%"></div>
+                                    });
+                                    }
+                                    %>
+                                    <div class="mb-2"><small><strong>Total Assignments:</strong></small><span
+                                            class="badge bg-primary float-end">
+                                            <%= totalAssignments %>
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Total Submissions:</strong></small><span
+                                            class="badge bg-info float-end">
+                                            <%= totalSubmissions %>
+                                        </span></div>
+                                    <div class="mb-2"><small><strong>Pending Grading:</strong></small><span
+                                            class="badge bg-warning float-end">
+                                            <%= pendingGrading %>
+                                        </span></div>
+                                    <% if (totalSubmissions> 0) { %>
+                                        <div class="mb-2">
+                                            <small><strong>Grading Progress:</strong></small>
+                                            <div class="progress grading-progress mt-1">
+                                                <div class="progress-bar bg-success"
+                                                    style="width: <%= ((totalSubmissions - pendingGrading) / totalSubmissions * 100) %>%">
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
+                                        <% } %>
                             </div>
                         </div>
                     </div>
@@ -148,23 +211,30 @@
                     <!-- Main Content -->
                     <div class="col-md-9">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2><i class="fas fa-tasks me-2"></i><%= title %></h2>
+                            <h2><i class="fas fa-tasks me-2"></i>
+                                <%= title %>
+                            </h2>
                             <div>
-                                <a href="/teacher/assignments/create" class="btn btn-success"><i class="fas fa-plus me-1"></i> Create Assignment</a>
-                                <a href="/teacher/grading" class="btn btn-warning ms-2"><i class="fas fa-graduation-cap me-1"></i> Grading</a>
+                                <a href="/teacher/assignments/create" class="btn btn-success"><i
+                                        class="fas fa-plus me-1"></i> Create Assignment</a>
+                                <a href="/teacher/grading" class="btn btn-warning ms-2"><i
+                                        class="fas fa-graduation-cap me-1"></i> Grading</a>
                             </div>
                         </div>
 
                         <!-- Tabs -->
                         <ul class="nav nav-tabs mb-4" id="assignmentTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button">Active</button>
+                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab"
+                                    data-bs-target="#active" type="button">Active</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button">Upcoming</button>
+                                <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab"
+                                    data-bs-target="#upcoming" type="button">Upcoming</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button">Completed / Overdue</button>
+                                <button class="nav-link" id="completed-tab" data-bs-toggle="tab"
+                                    data-bs-target="#completed" type="button">Completed / Overdue</button>
                             </li>
                         </ul>
 
@@ -172,155 +242,215 @@
                             <!-- Active Assignments -->
                             <div class="tab-pane fade show active" id="active" role="tabpanel">
                                 <div class="row">
-                                    <% 
-                                        const now = new Date();
-                                        let activeAssignments = [];
-                                        if (assignments) {
-                                            activeAssignments = assignments.filter(a => {
-                                                const due = new Date(a.dueDate);
-                                                return due >= now && a.isActive !== false;
-                                            });
+                                    <% const now=new Date(); let activeAssignments=[]; if (assignments) {
+                                        activeAssignments=assignments.filter(a=> {
+                                        const due = new Date(a.dueDate);
+                                        return due >= now && a.isActive !== false;
+                                        });
                                         }
                                         if (activeAssignments.length > 0) {
-                                            activeAssignments.forEach(assignment => {
-                                                const submissionCount = assignment.submissions ? assignment.submissions.length : 0;
-                                                const gradedCount = assignment.submissions ? assignment.submissions.filter(s => s.grade !== null).length : 0;
-                                    %>
-                                    <div class="col-md-6 col-xl-4 mb-4">
-                                        <div class="card assignment-card h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <span class="badge status-active status-badge">Active</span>
-                                                    <div>
-                                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editAssignment('<%= assignment.id %>')"><i class="fas fa-edit"></i></button>
-                                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAssignment('<%= assignment.id %>')"><i class="fas fa-trash-alt"></i></button>
+                                        activeAssignments.forEach(assignment => {
+                                        const submissionCount = assignment.submissions ? assignment.submissions.length :
+                                        0;
+                                        const gradedCount = assignment.submissions ? assignment.submissions.filter(s =>
+                                        s.grade !== null).length : 0;
+                                        %>
+                                        <div class="col-md-6 col-xl-4 mb-4">
+                                            <div class="card assignment-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <span class="badge status-active status-badge">Active</span>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                                                onclick="editAssignment('<%= assignment.id %>')"><i
+                                                                    class="fas fa-edit"></i></button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteAssignment('<%= assignment.id %>')"><i
+                                                                    class="fas fa-trash-alt"></i></button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <h5 class="card-title"><%= assignment.title %></h5>
-                                                <p class="card-text text-muted small"><%= assignment.description ? assignment.description.substring(0, 80) + (assignment.description.length > 80 ? '...' : '') : 'No description' %></p>
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fas fa-calendar me-1"></i> Due: <%= new Date(assignment.dueDate).toLocaleDateString() %></small>
-                                                    <% if (assignment.class) { %>
-                                                        <br><small class="text-muted"><i class="fas fa-chalkboard me-1"></i> Class: <%= assignment.class.name %></small>
-                                                    <% } %>
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="badge bg-info"><%= submissionCount %> submissions</span>
-                                                        <% if (submissionCount > 0) { %>
-                                                            <span class="badge bg-success"><%= gradedCount %> graded</span>
-                                                        <% } %>
+                                                    <h5 class="card-title">
+                                                        <%= assignment.title %>
+                                                    </h5>
+                                                    <p class="card-text text-muted small">
+                                                        <%= assignment.description ? assignment.description.substring(0,
+                                                            80) + (assignment.description.length> 80 ? '...' : '') : 'No
+                                                            description' %>
+                                                    </p>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted"><i class="fas fa-calendar me-1"></i>
+                                                            Due: <%= new Date(assignment.dueDate).toLocaleDateString()
+                                                                %></small>
+                                                        <% if (assignment.class) { %>
+                                                            <br><small class="text-muted"><i
+                                                                    class="fas fa-chalkboard me-1"></i> Class: <%=
+                                                                    assignment.class.name %></small>
+                                                            <% } %>
                                                     </div>
-                                                    <a href="/teacher/grading?assignment=<%= assignment.id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span class="badge bg-info">
+                                                                <%= submissionCount %> submissions
+                                                            </span>
+                                                            <% if (submissionCount> 0) { %>
+                                                                <span class="badge bg-success">
+                                                                    <%= gradedCount %> graded
+                                                                </span>
+                                                                <% } %>
+                                                        </div>
+                                                        <a href="/teacher/grading?assignment=<%= assignment.id %>"
+                                                            class="btn btn-sm btn-outline-primary">View</a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <% }); } else { %>
-                                    <div class="col-12"><p class="text-muted">No active assignments.</p></div>
-                                    <% } %>
+                                        <% }); } else { %>
+                                            <div class="col-12">
+                                                <p class="text-muted">No active assignments.</p>
+                                            </div>
+                                            <% } %>
                                 </div>
                             </div>
 
                             <!-- Upcoming Assignments -->
                             <div class="tab-pane fade" id="upcoming" role="tabpanel">
                                 <div class="row">
-                                    <% 
-                                        let upcomingAssignments = [];
-                                        if (assignments) {
-                                            upcomingAssignments = assignments.filter(a => {
-                                                const due = new Date(a.dueDate);
-                                                return due > now && !a.isActive;
-                                            });
+                                    <% let upcomingAssignments=[]; if (assignments) {
+                                        upcomingAssignments=assignments.filter(a=> {
+                                        const due = new Date(a.dueDate);
+                                        return due > now && !a.isActive;
+                                        });
                                         }
                                         if (upcomingAssignments.length > 0) {
-                                            upcomingAssignments.forEach(assignment => {
-                                    %>
-                                    <div class="col-md-6 col-xl-4 mb-4">
-                                        <div class="card assignment-card h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <span class="badge status-upcoming status-badge">Upcoming</span>
-                                                    <div>
-                                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editAssignment('<%= assignment.id %>')"><i class="fas fa-edit"></i></button>
-                                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAssignment('<%= assignment.id %>')"><i class="fas fa-trash-alt"></i></button>
+                                        upcomingAssignments.forEach(assignment => {
+                                        %>
+                                        <div class="col-md-6 col-xl-4 mb-4">
+                                            <div class="card assignment-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <span class="badge status-upcoming status-badge">Upcoming</span>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                                                onclick="editAssignment('<%= assignment.id %>')"><i
+                                                                    class="fas fa-edit"></i></button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteAssignment('<%= assignment.id %>')"><i
+                                                                    class="fas fa-trash-alt"></i></button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <h5 class="card-title"><%= assignment.title %></h5>
-                                                <p class="card-text text-muted small"><%= assignment.description ? assignment.description.substring(0, 80) + (assignment.description.length > 80 ? '...' : '') : 'No description' %></p>
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fas fa-calendar me-1"></i> Due: <%= new Date(assignment.dueDate).toLocaleDateString() %></small>
-                                                    <% if (assignment.class) { %>
-                                                        <br><small class="text-muted"><i class="fas fa-chalkboard me-1"></i> Class: <%= assignment.class.name %></small>
-                                                    <% } %>
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="badge bg-secondary">0 submissions</span>
+                                                    <h5 class="card-title">
+                                                        <%= assignment.title %>
+                                                    </h5>
+                                                    <p class="card-text text-muted small">
+                                                        <%= assignment.description ? assignment.description.substring(0,
+                                                            80) + (assignment.description.length> 80 ? '...' : '') : 'No
+                                                            description' %>
+                                                    </p>
+                                                    <div class="mb-2">
+                                                        <small class="text-muted"><i class="fas fa-calendar me-1"></i>
+                                                            Due: <%= new Date(assignment.dueDate).toLocaleDateString()
+                                                                %></small>
+                                                        <% if (assignment.class) { %>
+                                                            <br><small class="text-muted"><i
+                                                                    class="fas fa-chalkboard me-1"></i> Class: <%=
+                                                                    assignment.class.name %></small>
+                                                            <% } %>
                                                     </div>
-                                                    <a href="/teacher/grading?assignment=<%= assignment.id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span class="badge bg-secondary">0 submissions</span>
+                                                        </div>
+                                                        <a href="/teacher/grading?assignment=<%= assignment.id %>"
+                                                            class="btn btn-sm btn-outline-primary">View</a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <% }); } else { %>
-                                    <div class="col-12"><p class="text-muted">No upcoming assignments.</p></div>
-                                    <% } %>
+                                        <% }); } else { %>
+                                            <div class="col-12">
+                                                <p class="text-muted">No upcoming assignments.</p>
+                                            </div>
+                                            <% } %>
                                 </div>
                             </div>
 
                             <!-- Completed / Overdue -->
                             <div class="tab-pane fade" id="completed" role="tabpanel">
                                 <div class="row">
-                                    <% 
-                                        let completedAssignments = [];
-                                        if (assignments) {
-                                            completedAssignments = assignments.filter(a => {
-                                                const due = new Date(a.dueDate);
-                                                return due < now || a.isActive === false;
-                                            });
-                                        }
-                                        if (completedAssignments.length > 0) {
+                                    <% let completedAssignments=[]; if (assignments) {
+                                        completedAssignments=assignments.filter(a=> {
+                                        const due = new Date(a.dueDate);
+                                        return due < now || a.isActive===false; }); } if (completedAssignments.length>
+                                            0) {
                                             completedAssignments.forEach(assignment => {
-                                                const isOverdue = new Date(assignment.dueDate) < now;
-                                                const statusClass = isOverdue ? 'status-overdue' : 'status-completed';
-                                                const statusText = isOverdue ? 'Overdue' : 'Completed';
-                                                const submissionCount = assignment.submissions ? assignment.submissions.length : 0;
-                                                const gradedCount = assignment.submissions ? assignment.submissions.filter(s => s.grade !== null).length : 0;
-                                    %>
-                                    <div class="col-md-6 col-xl-4 mb-4">
-                                        <div class="card assignment-card h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <span class="badge <%= statusClass %> status-badge"><%= statusText %></span>
-                                                    <div>
-                                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editAssignment('<%= assignment.id %>')"><i class="fas fa-edit"></i></button>
-                                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAssignment('<%= assignment.id %>')"><i class="fas fa-trash-alt"></i></button>
+                                            const isOverdue = new Date(assignment.dueDate) < now; const
+                                                statusClass=isOverdue ? 'status-overdue' : 'status-completed' ; const
+                                                statusText=isOverdue ? 'Overdue' : 'Completed' ; const
+                                                submissionCount=assignment.submissions ? assignment.submissions.length :
+                                                0; const gradedCount=assignment.submissions ?
+                                                assignment.submissions.filter(s=> s.grade !== null).length : 0;
+                                                %>
+                                                <div class="col-md-6 col-xl-4 mb-4">
+                                                    <div class="card assignment-card h-100">
+                                                        <div class="card-body">
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-start mb-2">
+                                                                <span class="badge <%= statusClass %> status-badge">
+                                                                    <%= statusText %>
+                                                                </span>
+                                                                <div>
+                                                                    <button
+                                                                        class="btn btn-sm btn-outline-secondary me-1"
+                                                                        onclick="editAssignment('<%= assignment.id %>')"><i
+                                                                            class="fas fa-edit"></i></button>
+                                                                    <button class="btn btn-sm btn-outline-danger"
+                                                                        onclick="deleteAssignment('<%= assignment.id %>')"><i
+                                                                            class="fas fa-trash-alt"></i></button>
+                                                                </div>
+                                                            </div>
+                                                            <h5 class="card-title">
+                                                                <%= assignment.title %>
+                                                            </h5>
+                                                            <p class="card-text text-muted small">
+                                                                <%= assignment.description ?
+                                                                    assignment.description.substring(0, 80) +
+                                                                    (assignment.description.length> 80 ? '...' : '') :
+                                                                    'No description' %>
+                                                            </p>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted"><i
+                                                                        class="fas fa-calendar me-1"></i> Due: <%= new
+                                                                        Date(assignment.dueDate).toLocaleDateString() %>
+                                                                        </small>
+                                                                <% if (assignment.class) { %>
+                                                                    <br><small class="text-muted"><i
+                                                                            class="fas fa-chalkboard me-1"></i> Class:
+                                                                        <%= assignment.class.name %></small>
+                                                                    <% } %>
+                                                            </div>
+                                                            <div
+                                                                class="d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <span class="badge bg-info">
+                                                                        <%= submissionCount %> submissions
+                                                                    </span>
+                                                                    <% if (submissionCount> 0) { %>
+                                                                        <span class="badge bg-success">
+                                                                            <%= gradedCount %> graded
+                                                                        </span>
+                                                                        <% } %>
+                                                                </div>
+                                                                <a href="/teacher/grading?assignment=<%= assignment.id %>"
+                                                                    class="btn btn-sm btn-outline-primary">View</a>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <h5 class="card-title"><%= assignment.title %></h5>
-                                                <p class="card-text text-muted small"><%= assignment.description ? assignment.description.substring(0, 80) + (assignment.description.length > 80 ? '...' : '') : 'No description' %></p>
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fas fa-calendar me-1"></i> Due: <%= new Date(assignment.dueDate).toLocaleDateString() %></small>
-                                                    <% if (assignment.class) { %>
-                                                        <br><small class="text-muted"><i class="fas fa-chalkboard me-1"></i> Class: <%= assignment.class.name %></small>
+                                                <% }); } else { %>
+                                                    <div class="col-12">
+                                                        <p class="text-muted">No completed or overdue assignments.</p>
+                                                    </div>
                                                     <% } %>
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="badge bg-info"><%= submissionCount %> submissions</span>
-                                                        <% if (submissionCount > 0) { %>
-                                                            <span class="badge bg-success"><%= gradedCount %> graded</span>
-                                                        <% } %>
-                                                    </div>
-                                                    <a href="/teacher/grading?assignment=<%= assignment.id %>" class="btn btn-sm btn-outline-primary">View</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <% }); } else { %>
-                                    <div class="col-12"><p class="text-muted">No completed or overdue assignments.</p></div>
-                                    <% } %>
                                 </div>
                             </div>
                         </div>
@@ -408,5 +538,6 @@
                 }
             });
         </script>
-    </body>
+</body>
+
 </html>

@@ -1946,7 +1946,7 @@ exports.uploadMaterial = async (req, res) => {
     console.log('✅ File size:', req.file.size, 'bytes');
 
     // Construct file URL - use relative path from public folder
-    const fileUrl = `/uploads/materials/${req.file.filename}`;
+    const fileUrl = `/uploads/materials/${req.file.filename}`; 
     console.log('📝 File URL to store:', fileUrl);
 
     // Parse classId

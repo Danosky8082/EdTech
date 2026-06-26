@@ -1954,7 +1954,7 @@ const updateNote = async (req, res) => {
   }
 };
 
-// Download material file – fixed version
+// Download material file – fixed version with correct materials subfolder
 const downloadMaterial = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -2019,40 +2019,43 @@ const downloadMaterial = async (req, res) => {
       path.join(process.cwd(), 'public/uploads'),
       path.join(process.cwd(), 'uploads'),
       path.join(process.cwd(), 'public'),
-      path.join(process.cwd(), '..', 'uploads'),
-    ].filter(Boolean); // remove null
+      path.join(process.cwd()),
+    ].filter(Boolean);
 
     // Try different ways to construct the file path
-    const possiblePaths = [];
-
-    // If fileUrl is a relative path like 'materials/filename.pdf' or 'filename.pdf'
     const fileName = path.basename(material.fileUrl); // just the filename
     const dirName = path.dirname(material.fileUrl);   // e.g., 'materials' or '.'
 
-    // Option 1: Use the fileUrl as given (if it's already a full path)
+    const possiblePaths = [];
+
+    // 1. Use the fileUrl as given (if it's already a full path)
     possiblePaths.push(material.fileUrl);
 
-    // Option 2: Try /tmp/uploads/materials/filename (Vercel)
+    // 2. Try /tmp/uploads/materials/filename (Vercel)
     if (isVercel) {
       possiblePaths.push(path.join('/tmp/uploads', 'materials', fileName));
     }
 
-    // Option 3: Try each baseDir + the original fileUrl
+    // 3. Try each baseDir + the original fileUrl
     baseDirs.forEach(base => {
       possiblePaths.push(path.join(base, material.fileUrl));
     });
 
-    // Option 4: Try baseDir + materials + filename
+    // 4. Try baseDir + materials + filename
     baseDirs.forEach(base => {
       possiblePaths.push(path.join(base, 'materials', fileName));
     });
 
-    // Option 5: Try just the file in the base dir
+    // 5. Try just the file in the base dir
     baseDirs.forEach(base => {
       possiblePaths.push(path.join(base, fileName));
     });
 
-    // Remove duplicates and keep only existing files
+    // 6. Try relative to the current working directory (extra fallback)
+    possiblePaths.push(path.join(process.cwd(), 'uploads', 'materials', fileName));
+    possiblePaths.push(path.join(process.cwd(), 'public', 'uploads', 'materials', fileName));
+
+    // Remove duplicates
     const uniquePaths = [...new Set(possiblePaths)];
     let filePath = null;
 
