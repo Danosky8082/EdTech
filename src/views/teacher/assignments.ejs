@@ -131,13 +131,12 @@
                             <% } %>
                 </div>
 
-                <!-- ===== Pre-calculate stats ===== -->
-                <% let totalAssignments=0; let totalSubmissions=0; let pendingGrading=0; const now=new Date(); if
-                    (assignments) { totalAssignments=assignments.length; for (let i=0; i < assignments.length; i++) {
-                    const a=assignments[i]; if (a.submissions) { totalSubmissions +=a.submissions.length; for (let j=0;
-                    j < a.submissions.length; j++) { if (a.submissions[j].grade===null) pendingGrading++; } } } } //
-                    Split assignments into categories const active=[]; const upcoming=[]; const completed=[]; if
-                    (assignments) { for (let i=0; i < assignments.length; i++) { const a=assignments[i]; const due=new
+                <!-- ===== EJS LOGIC – SAFE BLOCK ===== -->
+                <% var totalAssignments=0; var totalSubmissions=0; var pendingGrading=0; var now=new Date(); var
+                    active=[]; var upcoming=[]; var completed=[]; if (typeof assignments !=='undefined' && assignments)
+                    { totalAssignments=assignments.length; for (var i=0; i < assignments.length; i++) { var
+                    a=assignments[i]; if (a.submissions) { totalSubmissions +=a.submissions.length; for (var j=0; j <
+                    a.submissions.length; j++) { if (a.submissions[j].grade===null) pendingGrading++; } } var due=new
                     Date(a.dueDate); if (due>= now && a.isActive !== false) {
                     active.push(a);
                     } else if (due > now && !a.isActive) {
@@ -235,20 +234,15 @@
 
                             <!-- Tabs -->
                             <ul class="nav nav-tabs mb-4" id="assignmentTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="active-tab" data-bs-toggle="tab"
-                                        data-bs-target="#active" type="button">Active (<%= active.length %>)</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab"
+                                <li class="nav-item"><button class="nav-link active" id="active-tab"
+                                        data-bs-toggle="tab" data-bs-target="#active" type="button">Active (<%=
+                                            active.length %>)</button></li>
+                                <li class="nav-item"><button class="nav-link" id="upcoming-tab" data-bs-toggle="tab"
                                         data-bs-target="#upcoming" type="button">Upcoming (<%= upcoming.length %>
-                                            )</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="completed-tab" data-bs-toggle="tab"
+                                            )</button></li>
+                                <li class="nav-item"><button class="nav-link" id="completed-tab" data-bs-toggle="tab"
                                         data-bs-target="#completed" type="button">Completed / Overdue (<%=
-                                            completed.length %>)</button>
-                                </li>
+                                            completed.length %>)</button></li>
                             </ul>
 
                             <div class="tab-content" id="assignmentTabContent">
@@ -256,10 +250,10 @@
                                 <div class="tab-pane fade show active" id="active" role="tabpanel">
                                     <div class="row">
                                         <% if (active.length> 0) { %>
-                                            <% for (let i=0; i < active.length; i++) { const a=active[i]; const
-                                                subCount=a.submissions ? a.submissions.length : 0; const
-                                                gradedCount=a.submissions ? a.submissions.filter(s=> s.grade !==
-                                                null).length : 0; %>
+                                            <% for (var i=0; i < active.length; i++) { var a=active[i]; var
+                                                subCount=a.submissions ? a.submissions.length : 0; var
+                                                gradedCount=a.submissions ? a.submissions.filter(function(s) { return
+                                                s.grade !==null; }).length : 0; %>
                                                 <div class="col-md-6 col-xl-4 mb-4">
                                                     <div class="card assignment-card h-100">
                                                         <div class="card-body">
@@ -326,7 +320,7 @@
                                 <div class="tab-pane fade" id="upcoming" role="tabpanel">
                                     <div class="row">
                                         <% if (upcoming.length> 0) { %>
-                                            <% for (let i=0; i < upcoming.length; i++) { const a=upcoming[i]; %>
+                                            <% for (var i=0; i < upcoming.length; i++) { var a=upcoming[i]; %>
                                                 <div class="col-md-6 col-xl-4 mb-4">
                                                     <div class="card assignment-card h-100">
                                                         <div class="card-body">
@@ -387,12 +381,13 @@
                                 <div class="tab-pane fade" id="completed" role="tabpanel">
                                     <div class="row">
                                         <% if (completed.length> 0) { %>
-                                            <% for (let i=0; i < completed.length; i++) { const a=completed[i]; const
-                                                isOverdue=new Date(a.dueDate) < now; const statusClass=isOverdue
-                                                ? 'status-overdue' : 'status-completed' ; const statusText=isOverdue
-                                                ? 'Overdue' : 'Completed' ; const subCount=a.submissions ?
-                                                a.submissions.length : 0; const gradedCount=a.submissions ?
-                                                a.submissions.filter(s=> s.grade !== null).length : 0; %>
+                                            <% for (var i=0; i < completed.length; i++) { var a=completed[i]; var
+                                                isOverdue=new Date(a.dueDate) < now; var statusClass=isOverdue
+                                                ? 'status-overdue' : 'status-completed' ; var statusText=isOverdue
+                                                ? 'Overdue' : 'Completed' ; var subCount=a.submissions ?
+                                                a.submissions.length : 0; var gradedCount=a.submissions ?
+                                                a.submissions.filter(function(s) { return s.grade !==null; }).length :
+                                                0; %>
                                                 <div class="col-md-6 col-xl-4 mb-4">
                                                     <div class="card assignment-card h-100">
                                                         <div class="card-body">
