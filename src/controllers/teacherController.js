@@ -440,7 +440,7 @@ exports.viewAssignments = async (req, res) => {
     const teacherId = req.session.user.teacherId;
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    const user = req.session.user; // <-- user object for the view
+    const user = req.session.user;
 
     // 1. Fetch assignments with related data
     const assignments = await prisma.assignment.findMany({
@@ -476,12 +476,10 @@ exports.viewAssignments = async (req, res) => {
     const completed = [];
 
     for (const a of enhancedAssignments) {
-      // Count submissions and pending grading
       if (a.submissions) {
         totalSubmissions += a.submissions.length;
         pendingGrading += a.submissions.filter(s => s.grade === null).length;
       }
-      // Categorize by due date and active flag
       const due = new Date(a.dueDate);
       if (due >= now && a.isActive !== false) {
         active.push(a);
@@ -492,25 +490,26 @@ exports.viewAssignments = async (req, res) => {
       }
     }
 
-    // 4. Fetch classes (for sidebar or filters if needed)
+    // 4. Fetch classes (optional – for sidebar or filters if needed)
     const classes = await prisma.class.findMany({
       where: { teacherId: teacherId }
     });
 
-    // 5. Render view with all data
-    res.render('teacher/assignments', {
+    // 5. Render the clean new view
+    res.render('teacher/assignments-new', {
       title: 'Assignments',
-      assignments: enhancedAssignments,        // full list (optional)
-      activeAssignments: active,              // for "Active" tab
-      upcomingAssignments: upcoming,          // for "Upcoming" tab
-      completedAssignments: completed,        // for "Completed" tab
+      // Full list (if needed, but you can also use the individual arrays)
+      assignments: enhancedAssignments,
+      activeAssignments: active,
+      upcomingAssignments: upcoming,
+      completedAssignments: completed,
       totalAssignments: enhancedAssignments.length,
       totalSubmissions: totalSubmissions,
       pendingGrading: pendingGrading,
-      classes: classes,
+      classes: classes,         // optional
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
-      user: user                              // <-- user object for the view
+      user: user
     });
 
   } catch (error) {
@@ -521,6 +520,7 @@ exports.viewAssignments = async (req, res) => {
     });
   }
 };
+
 // Create assignment (FIXED)
 exports.createAssignment = async (req, res) => {
   try {
