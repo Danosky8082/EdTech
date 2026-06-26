@@ -1954,13 +1954,11 @@ const updateNote = async (req, res) => {
   }
 };
 
-// Download material file – improved version
+// Download material file – fixed version
 const downloadMaterial = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const materialId = req.params.materialId;
-    const userSchool = req.userSchool;
-    const isSuperAdmin = req.isSuperAdmin;
 
     console.log('📥 Download request for material:', materialId, 'by student:', studentId);
 
@@ -1996,6 +1994,8 @@ const downloadMaterial = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
+    console.log('🔍 Stored fileUrl:', material.fileUrl);
+
     // 3. If the fileUrl is a full URL (cloud storage), redirect to it
     if (material.fileUrl && (material.fileUrl.startsWith('http://') || material.fileUrl.startsWith('https://'))) {
       console.log('✅ Redirecting to cloud URL:', material.fileUrl);
@@ -2012,33 +2012,64 @@ const downloadMaterial = async (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    // Determine base upload directory (same as in upload.js)
+    // Determine possible base directories (common locations)
     const isVercel = !!process.env.VERCEL;
-    const baseDir = isVercel ? '/tmp/uploads' : path.join(process.cwd(), 'public/uploads');
-    const materialsDir = path.join(baseDir, 'materials');
+    const baseDirs = [
+      isVercel ? '/tmp/uploads' : null,
+      path.join(process.cwd(), 'public/uploads'),
+      path.join(process.cwd(), 'uploads'),
+      path.join(process.cwd(), 'public'),
+      path.join(process.cwd(), '..', 'uploads'),
+    ].filter(Boolean); // remove null
 
-    // Get the filename from the stored fileUrl
-    const fileName = path.basename(material.fileUrl);
-    const possiblePaths = [
-      material.fileUrl,                                          // as stored
-      path.join(materialsDir, fileName),                         // /tmp/uploads/materials/filename
-      path.join(process.cwd(), 'public', material.fileUrl),      // public/uploads/...
-      path.join(process.cwd(), 'uploads', 'materials', fileName) // fallback
-    ];
+    // Try different ways to construct the file path
+    const possiblePaths = [];
 
-    let filePath = null;
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        filePath = p;
-        break;
-      }
+    // If fileUrl is a relative path like 'materials/filename.pdf' or 'filename.pdf'
+    const fileName = path.basename(material.fileUrl); // just the filename
+    const dirName = path.dirname(material.fileUrl);   // e.g., 'materials' or '.'
+
+    // Option 1: Use the fileUrl as given (if it's already a full path)
+    possiblePaths.push(material.fileUrl);
+
+    // Option 2: Try /tmp/uploads/materials/filename (Vercel)
+    if (isVercel) {
+      possiblePaths.push(path.join('/tmp/uploads', 'materials', fileName));
     }
 
+    // Option 3: Try each baseDir + the original fileUrl
+    baseDirs.forEach(base => {
+      possiblePaths.push(path.join(base, material.fileUrl));
+    });
+
+    // Option 4: Try baseDir + materials + filename
+    baseDirs.forEach(base => {
+      possiblePaths.push(path.join(base, 'materials', fileName));
+    });
+
+    // Option 5: Try just the file in the base dir
+    baseDirs.forEach(base => {
+      possiblePaths.push(path.join(base, fileName));
+    });
+
+    // Remove duplicates and keep only existing files
+    const uniquePaths = [...new Set(possiblePaths)];
+    let filePath = null;
+
+    console.log('🔍 Checking paths:');
+    uniquePaths.forEach(p => {
+      const exists = fs.existsSync(p);
+      console.log(`  - ${p} : ${exists ? '✅ EXISTS' : '❌ not found'}`);
+      if (exists && !filePath) filePath = p;
+    });
+
     if (!filePath) {
-      console.log('❌ File not found at any of the checked paths:', possiblePaths);
+      console.log('❌ File not found at any checked location.');
       return res.status(404).json({
         success: false,
-        message: 'The requested file could not be found on the server.'
+        message: 'The requested file could not be found on the server.',
+        // In development, include the last checked path for debugging
+        ...(process.env.NODE_ENV === 'development' && { debug: uniquePaths.slice(-5) })
       });
     }
 
