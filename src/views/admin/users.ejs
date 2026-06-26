@@ -1582,6 +1582,21 @@
                         showParentInfo(studentId, studentName);
                     });
                 });
+
+                // ============================================================
+                // FIX: Clean up modal backdrop when parent modal is hidden
+                // ============================================================
+                const parentModalEl = document.getElementById('parentModal');
+                if (parentModalEl) {
+                    parentModalEl.addEventListener('hidden.bs.modal', function () {
+                        // Remove any lingering backdrop elements
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                        // Restore body scroll and padding
+                        document.body.classList.remove('modal-open');
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+                    });
+                }
             });
 
             function initializeSearch() {
