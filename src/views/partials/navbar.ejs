@@ -429,7 +429,7 @@
                                     <% } %>
             </ul>
 
-            <!-- Notification Bell (unchanged) -->
+            <!-- Notification Bell -->
             <div class="notification-wrapper">
                 <div class="dropdown">
                     <button class="notification-bell" id="notificationDropdown" title="Notifications">
@@ -508,19 +508,16 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ------ Bootstrap dropdown fallback ------
     document.addEventListener('DOMContentLoaded', function () {
-        // User dropdown
+        // --- Dropdown toggles (manual fallback) ---
         var userToggle = document.getElementById('userDropdown');
         var userMenu = document.getElementById('userDropdownMenu');
         if (userToggle && userMenu) {
             userToggle.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                // Toggle the 'show' class manually
                 userMenu.classList.toggle('show');
             });
-            // Close when clicking outside
             document.addEventListener('click', function (e) {
                 if (!userToggle.contains(e.target) && !userMenu.contains(e.target)) {
                     userMenu.classList.remove('show');
@@ -528,7 +525,6 @@
             });
         }
 
-        // Notification dropdown
         var notifToggle = document.getElementById('notificationDropdown');
         var notifMenu = document.getElementById('notificationDropdownMenu');
         if (notifToggle && notifMenu) {
@@ -543,15 +539,77 @@
                 }
             });
         }
-    });
 
-    // Placeholder functions for notification actions
-    function markNotificationAsRead(id) {
-        console.log('Mark notification as read:', id);
-        // implement API call here
-    }
-    function markAllNotificationsAsRead() {
-        console.log('Mark all as read');
-        // implement API call here
-    }
+        // --- Mark single notification as read ---
+        window.markNotificationAsRead = function (notificationId) {
+            fetch('/notifications/mark-as-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationId: notificationId })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the notification element from the DOM
+                        var el = document.querySelector('[data-notification-id="' + notificationId + '"]');
+                        if (el) {
+                            el.remove();
+                            // Update the badge count
+                            updateUnreadBadge();
+                        }
+                    } else {
+                        console.error('Failed to mark as read:', data.error);
+                    }
+                })
+                .catch(err => console.error('Error:', err));
+        };
+
+        // --- Mark all as read ---
+        window.markAllNotificationsAsRead = function () {
+            fetch('/notifications/mark-all-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove all notification items
+                        var items = document.querySelectorAll('.notification-item');
+                        items.forEach(function (el) { el.remove(); });
+                        // Update badge
+                        updateUnreadBadge();
+                        // Show empty state
+                        var menu = document.getElementById('notificationDropdownMenu');
+                        if (menu && !menu.querySelector('.notification-item')) {
+                            menu.innerHTML = '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
+                        }
+                    } else {
+                        console.error('Failed to mark all as read:', data.error);
+                    }
+                })
+                .catch(err => console.error('Error:', err));
+        };
+
+        // --- Update badge count ---
+        function updateUnreadBadge() {
+            var badge = document.getElementById('notificationBadge');
+            if (badge) {
+                fetch('/notifications/unread-count')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            var count = data.count;
+                            if (count > 0) {
+                                badge.textContent = count > 9 ? '9+' : count;
+                                badge.style.display = 'flex';
+                                badge.classList.add('blink');
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Error fetching unread count:', err));
+            }
+        }
+    });
 </script>
