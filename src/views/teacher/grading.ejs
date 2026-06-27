@@ -74,453 +74,450 @@
                             <% } %>
                 </div>
 
-                <div class="row">
-                    <!-- Left Sidebar with Profile -->
-                    <div class="col-md-3">
-                        <div class="profile-section text-center">
-                            <!-- FIX: Use partial for user avatar -->
-                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
-                                <h4>
-                                    <%= user.firstName %>
-                                        <%= user.lastName %>
-                                </h4>
-                                <p class="welcome-text">Grading Center</p>
-                                <span class="user-role">Teacher</span>
-                                <div class="mt-2">
-                                    <small><i class="fas fa-school me-1"></i>
-                                        <%= userSchool %>
-                                    </small>
+                <!-- ========== HELPER FUNCTION ========== -->
+                <% function cleanAvatarUrl(avatar) { if (!avatar) return null; if (avatar.startsWith('/https:/')) return
+                    avatar.replace('/https:/', 'https://' ); if (avatar.startsWith('/http:/')) return
+                    avatar.replace('/http:/', 'http://' ); if (avatar.startsWith('http://') ||
+                    avatar.startsWith('https://')) return avatar; return '/' + avatar; } %>
+
+                    <div class="row">
+                        <!-- Left Sidebar with Profile -->
+                        <div class="col-md-3">
+                            <div class="profile-section text-center">
+                                <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                    <h4>
+                                        <%= user.firstName %>
+                                            <%= user.lastName %>
+                                    </h4>
+                                    <p class="welcome-text">Grading Center</p>
+                                    <span class="user-role">Teacher</span>
+                                    <div class="mt-2">
+                                        <small><i class="fas fa-school me-1"></i>
+                                            <%= userSchool %>
+                                        </small>
+                                    </div>
+                            </div>
+
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header">
+                                    <h5>Quick Actions</h5>
                                 </div>
-                        </div>
-
-                        <div class="card dashboard-card mb-4">
-                            <div class="card-header">
-                                <h5>Quick Actions</h5>
+                                <div class="card-body">
+                                    <a href="/teacher/grading" class="btn btn-outline-warning w-100 mb-2 action-btn">
+                                        <i class="fas fa-graduation-cap"></i> Pending Grading
+                                    </a>
+                                    <a href="/teacher/assignments"
+                                        class="btn btn-outline-primary w-100 mb-2 action-btn">
+                                        <i class="fas fa-tasks"></i> Assignments
+                                    </a>
+                                    <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
+                                        <i class="fas fa-clipboard-list"></i> Exams
+                                    </a>
+                                    <a href="/teacher/class-works" class="btn btn-outline-info w-100 mb-2 action-btn">
+                                        <i class="fas fa-tasks"></i> Class Works
+                                    </a>
+                                    <a href="/teacher/dashboard"
+                                        class="btn btn-outline-secondary w-100 mb-2 action-btn">
+                                        <i class="fas fa-home"></i> Dashboard
+                                    </a>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <a href="/teacher/grading" class="btn btn-outline-warning w-100 mb-2 action-btn">
-                                    <i class="fas fa-graduation-cap"></i> Pending Grading
-                                </a>
-                                <a href="/teacher/assignments" class="btn btn-outline-primary w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Assignments
-                                </a>
-                                <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
-                                    <i class="fas fa-clipboard-list"></i> Exams
-                                </a>
-                                <a href="/teacher/class-works" class="btn btn-outline-info w-100 mb-2 action-btn">
-                                    <i class="fas fa-tasks"></i> Class Works
-                                </a>
-                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn">
-                                    <i class="fas fa-home"></i> Dashboard
-                                </a>
-                            </div>
-                        </div>
 
-                        <!-- Grading Stats -->
-                        <div class="card dashboard-card mb-4">
-                            <div class="card-header">
-                                <h5>Grading Statistics</h5>
-                            </div>
-                            <div class="card-body">
-                                <% let pendingCount=0; let gradedCount=0; let lateCount=0; if (submissions) {
-                                    submissions.forEach(submission=> {
-                                    if (submission.grade === null) {
-                                    pendingCount++;
-                                    } else {
-                                    gradedCount++;
-                                    }
-                                    });
-                                    }
-                                    %>
-                                    <div class="mb-2">
-                                        <small><strong>Total Submissions:</strong></small>
-                                        <span class="badge bg-primary float-end">
-                                            <%= submissions ? submissions.length : 0 %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Pending Grading:</strong></small>
-                                        <span class="badge bg-warning float-end">
-                                            <%= pendingCount %>
-                                        </span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <small><strong>Graded:</strong></small>
-                                        <span class="badge bg-success float-end">
-                                            <%= gradedCount %>
-                                        </span>
-                                    </div>
-                                    <% if (submissions && submissions.length> 0) { %>
-                                        <div class="mb-2">
-                                            <small><strong>Grading Progress:</strong></small>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-success"
-                                                    style="width: <%= (gradedCount / submissions.length * 100) %>%">
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">
-                                                <%= Math.round(gradedCount / submissions.length * 100) %>% complete
-                                            </small>
-                                        </div>
-                                        <% } %>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main Content -->
-                    <div class="col-md-9">
-                        <!-- Page Header -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2><i class="fas fa-graduation-cap me-2"></i>
-                                <%= title %>
-                            </h2>
-                            <div>
-                                <span class="badge bg-warning me-2">
-                                    <i class="fas fa-clock me-1"></i>
-                                    <%= pendingCount %> pending
-                                </span>
-                                <a href="/teacher/assignments" class="btn btn-outline-primary">
-                                    <i class="fas fa-tasks me-1"></i> View Assignments
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Grading Tabs -->
-                        <ul class="nav nav-tabs mb-4" id="gradingTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="pending-tab" data-bs-toggle="tab"
-                                    data-bs-target="#pending" type="button">
-                                    Pending (<%= pendingCount %>)
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="graded-tab" data-bs-toggle="tab" data-bs-target="#graded"
-                                    type="button">
-                                    Graded (<%= gradedCount %>)
-                                </button>
-                            </li>
-                        </ul>
-
-                        <!-- Grading Content -->
-                        <div class="tab-content" id="gradingTabContent">
-                            <!-- Pending Grading -->
-                            <div class="tab-pane fade show active" id="pending" role="tabpanel">
-                                <% if (submissions && submissions.length> 0) {
-                                    const pendingSubmissions = submissions.filter(s => s.grade === null);
-                                    if (pendingSubmissions.length > 0) { %>
-                                    <% pendingSubmissions.forEach(submission=> {
-                                        const isLate = new Date(submission.submittedAt) > new
-                                        Date(submission.assignment.dueDate);
+                            <!-- Grading Stats -->
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header">
+                                    <h5>Grading Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <% let pendingCount=0; let gradedCount=0; let lateCount=0; if (submissions) {
+                                        submissions.forEach(submission=> {
+                                        if (submission.grade === null) {
+                                        pendingCount++;
+                                        } else {
+                                        gradedCount++;
+                                        }
+                                        });
+                                        }
                                         %>
-                                        <div class="card grading-card mb-3">
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-8">
-                                                        <!-- Student Info -->
-                                                        <div class="d-flex align-items-center mb-3">
-                                                            <% if (submission.student.user.avatar) { %>
-                                                                <img src="<%= submission.student.user.avatar.startsWith('/') ? submission.student.user.avatar : '/' + submission.student.user.avatar %>"
-                                                                    class="student-avatar me-3"
+                                        <div class="mb-2">
+                                            <small><strong>Total Submissions:</strong></small>
+                                            <span class="badge bg-primary float-end">
+                                                <%= submissions ? submissions.length : 0 %>
+                                            </span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small><strong>Pending Grading:</strong></small>
+                                            <span class="badge bg-warning float-end">
+                                                <%= pendingCount %>
+                                            </span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small><strong>Graded:</strong></small>
+                                            <span class="badge bg-success float-end">
+                                                <%= gradedCount %>
+                                            </span>
+                                        </div>
+                                        <% if (submissions && submissions.length> 0) { %>
+                                            <div class="mb-2">
+                                                <small><strong>Grading Progress:</strong></small>
+                                                <div class="progress" style="height: 6px;">
+                                                    <div class="progress-bar bg-success"
+                                                        style="width: <%= (gradedCount / submissions.length * 100) %>%">
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <%= Math.round(gradedCount / submissions.length * 100) %>% complete
+                                                </small>
+                                            </div>
+                                            <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Content -->
+                        <div class="col-md-9">
+                            <!-- Page Header -->
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h2><i class="fas fa-graduation-cap me-2"></i>
+                                    <%= title %>
+                                </h2>
+                                <div>
+                                    <span class="badge bg-warning me-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <%= pendingCount %> pending
+                                    </span>
+                                    <a href="/teacher/assignments" class="btn btn-outline-primary">
+                                        <i class="fas fa-tasks me-1"></i> View Assignments
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Grading Tabs -->
+                            <ul class="nav nav-tabs mb-4" id="gradingTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="pending-tab" data-bs-toggle="tab"
+                                        data-bs-target="#pending" type="button">
+                                        Pending (<%= pendingCount %>)
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="graded-tab" data-bs-toggle="tab"
+                                        data-bs-target="#graded" type="button">
+                                        Graded (<%= gradedCount %>)
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="gradingTabContent">
+                                <!-- Pending Grading -->
+                                <div class="tab-pane fade show active" id="pending" role="tabpanel">
+                                    <% if (submissions && submissions.length> 0) {
+                                        const pendingSubmissions = submissions.filter(s => s.grade === null);
+                                        if (pendingSubmissions.length > 0) { %>
+                                        <% pendingSubmissions.forEach(submission=> {
+                                            const isLate = new Date(submission.submittedAt) > new
+                                            Date(submission.assignment.dueDate);
+                                            const avatar = cleanAvatarUrl(submission.student.user.avatar) ||
+                                            '/images/default-profile.png';
+                                            %>
+                                            <div class="card grading-card mb-3">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-8">
+                                                            <!-- Student Info -->
+                                                            <div class="d-flex align-items-center mb-3">
+                                                                <img src="<%= avatar %>" class="student-avatar me-3"
                                                                     onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                                                <% } else { %>
-                                                                    <img src="/images/default-profile.png"
-                                                                        class="student-avatar me-3">
-                                                                    <% } %>
-                                                                        <div>
-                                                                            <h6 class="mb-0">
-                                                                                <%= submission.student.user.firstName %>
-                                                                                    <%= submission.student.user.lastName
-                                                                                        %>
-                                                                            </h6>
-                                                                            <small class="text-muted">
-                                                                                ID: <%= submission.student.user.idNumber
+                                                                <div>
+                                                                    <h6 class="mb-0">
+                                                                        <%= submission.student.user.firstName %>
+                                                                            <%= submission.student.user.lastName %>
+                                                                    </h6>
+                                                                    <small class="text-muted">
+                                                                        ID: <%= submission.student.user.idNumber %>
+                                                                            <% if (submission.assignment.class) { %>
+                                                                                | Class: <%=
+                                                                                    submission.assignment.class.name %>
+                                                                                    <% } %>
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Assignment Info -->
+                                                            <h5 class="mb-2">
+                                                                <%= submission.assignment.title %>
+                                                                    <% if (isLate) { %>
+                                                                        <span
+                                                                            class="badge status-late submission-status ms-2">Late</span>
+                                                                        <% } %>
+                                                            </h5>
+                                                            <% if (submission.assignment.description) { %>
+                                                                <p class="text-muted small mb-3">
+                                                                    <%= submission.assignment.description.length> 150 ?
+                                                                        submission.assignment.description.substring(0,
+                                                                        150) + '...' :
+                                                                        submission.assignment.description %>
+                                                                </p>
+                                                                <% } %>
+
+                                                                    <!-- Submission Details -->
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <small class="text-muted d-block">
+                                                                                <i class="fas fa-calendar me-1"></i>
+                                                                                Submitted: <%= new
+                                                                                    Date(submission.submittedAt).toLocaleString()
                                                                                     %>
-                                                                                    <% if (submission.assignment.class)
-                                                                                        { %>
-                                                                                        | Class: <%=
-                                                                                            submission.assignment.class.name
-                                                                                            %>
-                                                                                            <% } %>
+                                                                            </small>
+                                                                            <small class="text-muted d-block">
+                                                                                <i class="fas fa-clock me-1"></i>
+                                                                                Due: <%= new
+                                                                                    Date(submission.assignment.dueDate).toLocaleString()
+                                                                                    %>
                                                                             </small>
                                                                         </div>
+                                                                        <div class="col-md-6">
+                                                                            <small class="text-muted d-block">
+                                                                                <i class="fas fa-file me-1"></i>
+                                                                                Points: <%= submission.assignment.points
+                                                                                    || 100 %>
+                                                                            </small>
+                                                                            <% if (submission.answerText) { %>
+                                                                                <button
+                                                                                    class="btn btn-sm btn-outline-info mt-2"
+                                                                                    type="button"
+                                                                                    data-bs-toggle="collapse"
+                                                                                    data-bs-target="#submissionText<%= submission.id %>">
+                                                                                    View Submission Text
+                                                                                </button>
+                                                                                <% } %>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Submission Text (Collapsible) -->
+                                                                    <% if (submission.answerText) { %>
+                                                                        <div class="collapse mt-3"
+                                                                            id="submissionText<%= submission.id %>">
+                                                                            <div
+                                                                                class="card card-body submission-preview">
+                                                                                <%= submission.answerText %>
+                                                                            </div>
+                                                                        </div>
+                                                                        <% } %>
+
+                                                                            <!-- File Attachments -->
+                                                                            <% if (submission.fileUrl) { %>
+                                                                                <div class="mt-3">
+                                                                                    <small
+                                                                                        class="text-muted d-block mb-1">
+                                                                                        <i
+                                                                                            class="fas fa-paperclip me-1"></i>
+                                                                                        Attached Files:
+                                                                                    </small>
+                                                                                    <a href="<%= submission.fileUrl %>"
+                                                                                        class="btn btn-sm btn-outline-primary"
+                                                                                        target="_blank">
+                                                                                        <i
+                                                                                            class="fas fa-download me-1"></i>
+                                                                                        Download File
+                                                                                    </a>
+                                                                                </div>
+                                                                                <% } %>
                                                         </div>
 
-                                                        <!-- Assignment Info -->
-                                                        <h5 class="mb-2">
-                                                            <%= submission.assignment.title %>
-                                                                <% if (isLate) { %>
-                                                                    <span
-                                                                        class="badge status-late submission-status ms-2">Late</span>
-                                                                    <% } %>
-                                                        </h5>
-                                                        <% if (submission.assignment.description) { %>
-                                                            <p class="text-muted small mb-3">
-                                                                <%= submission.assignment.description.length> 150 ?
-                                                                    submission.assignment.description.substring(0, 150)
-                                                                    + '...' :
-                                                                    submission.assignment.description %>
-                                                            </p>
-                                                            <% } %>
+                                                        <!-- Grading Form -->
+                                                        <div class="col-md-4">
+                                                            <div class="card">
+                                                                <div class="card-body">
+                                                                    <h6 class="card-title">Grade Submission</h6>
+                                                                    <form class="grade-form"
+                                                                        data-submission-id="<%= submission.id %>">
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Score (out of <%=
+                                                                                    submission.assignment.points || 100
+                                                                                    %>)</label>
+                                                                            <div class="input-group">
+                                                                                <input type="number"
+                                                                                    class="form-control grade-input"
+                                                                                    name="score" min="0"
+                                                                                    max="<%= submission.assignment.points || 100 %>"
+                                                                                    step="0.1" required>
+                                                                                <span class="input-group-text">/ <%=
+                                                                                        submission.assignment.points ||
+                                                                                        100 %></span>
+                                                                            </div>
+                                                                        </div>
 
-                                                                <!-- Submission Details -->
-                                                                <div class="row">
-                                                                    <div class="col-md-6">
-                                                                        <small class="text-muted d-block">
-                                                                            <i class="fas fa-calendar me-1"></i>
-                                                                            Submitted: <%= new
-                                                                                Date(submission.submittedAt).toLocaleString()
-                                                                                %>
-                                                                        </small>
-                                                                        <small class="text-muted d-block">
-                                                                            <i class="fas fa-clock me-1"></i>
-                                                                            Due: <%= new
-                                                                                Date(submission.assignment.dueDate).toLocaleString()
-                                                                                %>
-                                                                        </small>
-                                                                    </div>
-                                                                    <div class="col-md-6">
-                                                                        <small class="text-muted d-block">
-                                                                            <i class="fas fa-file me-1"></i>
-                                                                            Points: <%= submission.assignment.points ||
-                                                                                100 %>
-                                                                        </small>
-                                                                        <% if (submission.answerText) { %>
-                                                                            <button
-                                                                                class="btn btn-sm btn-outline-info mt-2"
-                                                                                type="button" data-bs-toggle="collapse"
-                                                                                data-bs-target="#submissionText<%= submission.id %>">
-                                                                                View Submission Text
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Feedback
+                                                                                (Optional)</label>
+                                                                            <textarea class="form-control"
+                                                                                name="feedback" rows="3"
+                                                                                placeholder="Provide feedback to the student..."></textarea>
+                                                                        </div>
+
+                                                                        <div class="d-grid">
+                                                                            <button type="submit"
+                                                                                class="btn btn-success">
+                                                                                <i class="fas fa-check me-1"></i> Submit
+                                                                                Grade
                                                                             </button>
-                                                                            <% } %>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <div class="card">
+                                                        <div class="card-body text-center py-5">
+                                                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                                            <h4>All Caught Up!</h4>
+                                                            <p class="text-muted">You have no pending submissions to
+                                                                grade.</p>
+                                                            <a href="/teacher/assignments" class="btn btn-primary">
+                                                                <i class="fas fa-tasks me-1"></i> View Assignments
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                    <% } %>
+                                                        <% } else { %>
+                                                            <div class="card">
+                                                                <div class="card-body text-center py-5">
+                                                                    <i
+                                                                        class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                                                                    <h4>No Submissions Yet</h4>
+                                                                    <p class="text-muted">You don't have any submissions
+                                                                        to grade at the moment.</p>
+                                                                    <a href="/teacher/assignments"
+                                                                        class="btn btn-primary">
+                                                                        <i class="fas fa-tasks me-1"></i> Create
+                                                                        Assignment
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            <% } %>
+                                </div>
+
+                                <!-- Graded Submissions -->
+                                <div class="tab-pane fade" id="graded" role="tabpanel">
+                                    <% if (submissions && submissions.length> 0) {
+                                        const gradedSubmissions = submissions.filter(s => s.grade !== null);
+                                        if (gradedSubmissions.length > 0) { %>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Student</th>
+                                                        <th>Assignment</th>
+                                                        <th>Class</th>
+                                                        <th>Score</th>
+                                                        <th>Graded On</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <% gradedSubmissions.forEach(submission=> {
+                                                        const percentage = ((submission.score || 0) /
+                                                        (submission.assignment.points || 100) * 100).toFixed(1);
+                                                        const avatar = cleanAvatarUrl(submission.student.user.avatar) ||
+                                                        '/images/default-profile.png';
+                                                        %>
+                                                        <tr>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <img src="<%= avatar %>" class="student-avatar me-2"
+                                                                        onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                                                                    <div>
+                                                                        <strong>
+                                                                            <%= submission.student.user.firstName %>
+                                                                                <%= submission.student.user.lastName %>
+                                                                        </strong><br>
+                                                                        <small class="text-muted">
+                                                                            <%= submission.student.user.idNumber %>
+                                                                        </small>
                                                                     </div>
                                                                 </div>
-
-                                                                <!-- Submission Text (Collapsible) -->
-                                                                <% if (submission.answerText) { %>
-                                                                    <div class="collapse mt-3"
-                                                                        id="submissionText<%= submission.id %>">
-                                                                        <div class="card card-body submission-preview">
-                                                                            <%= submission.answerText %>
-                                                                        </div>
-                                                                    </div>
-                                                                    <% } %>
-
-                                                                        <!-- File Attachments -->
-                                                                        <% if (submission.fileUrl) { %>
-                                                                            <div class="mt-3">
-                                                                                <small class="text-muted d-block mb-1">
-                                                                                    <i
-                                                                                        class="fas fa-paperclip me-1"></i>
-                                                                                    Attached Files:
-                                                                                </small>
-                                                                                <a href="<%= submission.fileUrl %>"
-                                                                                    class="btn btn-sm btn-outline-primary"
-                                                                                    target="_blank">
-                                                                                    <i class="fas fa-download me-1"></i>
-                                                                                    Download File
-                                                                                </a>
-                                                                            </div>
-                                                                            <% } %>
-                                                    </div>
-
-                                                    <!-- Grading Form -->
-                                                    <div class="col-md-4">
-                                                        <div class="card">
-                                                            <div class="card-body">
-                                                                <h6 class="card-title">Grade Submission</h6>
-                                                                <form class="grade-form"
-                                                                    data-submission-id="<%= submission.id %>">
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Score (out of <%=
-                                                                                submission.assignment.points || 100 %>
-                                                                                )</label>
-                                                                        <div class="input-group">
-                                                                            <input type="number"
-                                                                                class="form-control grade-input"
-                                                                                name="score" min="0"
-                                                                                max="<%= submission.assignment.points || 100 %>"
-                                                                                step="0.1" required>
-                                                                            <span class="input-group-text">/ <%=
-                                                                                    submission.assignment.points || 100
-                                                                                    %></span>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Feedback
-                                                                            (Optional)</label>
-                                                                        <textarea class="form-control" name="feedback"
-                                                                            rows="3"
-                                                                            placeholder="Provide feedback to the student..."></textarea>
-                                                                    </div>
-
-                                                                    <div class="d-grid">
-                                                                        <button type="submit" class="btn btn-success">
-                                                                            <i class="fas fa-check me-1"></i> Submit
-                                                                            Grade
-                                                                        </button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <% }); %>
-                                            <% } else { %>
-                                                <div class="card">
-                                                    <div class="card-body text-center py-5">
-                                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                                                        <h4>All Caught Up!</h4>
-                                                        <p class="text-muted">You have no pending submissions to grade.
-                                                        </p>
-                                                        <a href="/teacher/assignments" class="btn btn-primary">
-                                                            <i class="fas fa-tasks me-1"></i> View Assignments
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                                <% } %>
-                                                    <% } else { %>
-                                                        <div class="card">
-                                                            <div class="card-body text-center py-5">
-                                                                <i
-                                                                    class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
-                                                                <h4>No Submissions Yet</h4>
-                                                                <p class="text-muted">You don't have any submissions to
-                                                                    grade at the moment.</p>
-                                                                <a href="/teacher/assignments" class="btn btn-primary">
-                                                                    <i class="fas fa-tasks me-1"></i> Create Assignment
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <% } %>
-                            </div>
-
-                            <!-- Graded Submissions -->
-                            <div class="tab-pane fade" id="graded" role="tabpanel">
-                                <% if (submissions && submissions.length> 0) {
-                                    const gradedSubmissions = submissions.filter(s => s.grade !== null);
-                                    if (gradedSubmissions.length > 0) { %>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Student</th>
-                                                    <th>Assignment</th>
-                                                    <th>Class</th>
-                                                    <th>Score</th>
-                                                    <th>Graded On</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <% gradedSubmissions.forEach(submission=> {
-                                                    const percentage = ((submission.score || 0) /
-                                                    (submission.assignment.points || 100) * 100).toFixed(1);
-                                                    %>
-                                                    <tr>
-                                                        <td>
-                                                            <div class="d-flex align-items-center">
-                                                                <% if (submission.student.user.avatar) { %>
-                                                                    <img src="<%= submission.student.user.avatar.startsWith('/') ? submission.student.user.avatar : '/' + submission.student.user.avatar %>"
-                                                                        class="student-avatar me-2"
-                                                                        onerror="this.onerror=null; this.src='/images/default-profile.png'">
-                                                                    <% } else { %>
-                                                                        <img src="/images/default-profile.png"
-                                                                            class="student-avatar me-2">
-                                                                        <% } %>
-                                                                            <div>
-                                                                                <strong>
-                                                                                    <%= submission.student.user.firstName
-                                                                                        %>
-                                                                                        <%= submission.student.user.lastName
-                                                                                            %>
-                                                                                </strong><br>
-                                                                                <small class="text-muted">
-                                                                                    <%= submission.student.user.idNumber
-                                                                                        %>
-                                                                                </small>
-                                                                            </div>
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <strong>
-                                                                <%= submission.assignment.title %>
-                                                            </strong><br>
-                                                            <small class="text-muted">
-                                                                Due: <%= new
-                                                                    Date(submission.assignment.dueDate).toLocaleDateString()
-                                                                    %>
-                                                            </small>
-                                                        </td>
-                                                        <td>
-                                                            <% if (submission.assignment.class) { %>
-                                                                <%= submission.assignment.class.name %>
-                                                                    <% } else { %>
-                                                                        <span class="text-muted">N/A</span>
-                                                                        <% } %>
-                                                        </td>
-                                                        <td>
-                                                            <div>
+                                                            </td>
+                                                            <td>
                                                                 <strong>
-                                                                    <%= submission.score %> / <%=
-                                                                            submission.assignment.points || 100 %>
-                                                                </strong>
-                                                            </div>
-                                                            <div class="progress" style="height: 5px; width: 80px;">
-                                                                <div class="progress-bar <%= 
-                                                                percentage >= 80 ? 'bg-success' : 
-                                                                percentage >= 60 ? 'bg-warning' : 'bg-danger'
-                                                            %>" style="width: <%= percentage %>%"></div>
-                                                            </div>
-                                                            <small class="text-muted">
-                                                                <%= percentage %>%
-                                                            </small>
-                                                        </td>
-                                                        <td>
-                                                            <%= new Date(submission.gradedAt).toLocaleDateString() %>
-                                                                <br>
-                                                                <small>
-                                                                    <%= new
-                                                                        Date(submission.gradedAt).toLocaleTimeString([],
-                                                                        {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                    <%= submission.assignment.title %>
+                                                                </strong><br>
+                                                                <small class="text-muted">
+                                                                    Due: <%= new
+                                                                        Date(submission.assignment.dueDate).toLocaleDateString()
+                                                                        %>
                                                                 </small>
-                                                        </td>
-                                                        <td>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <a href="/teacher/grading/<%= submission.id %>"
-                                                                    class="btn btn-outline-primary">
-                                                                    <i class="fas fa-eye"></i>
-                                                                </a>
-                                                                <button class="btn btn-outline-warning"
-                                                                    onclick="regradeSubmission('<%= submission.id %>')">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                    <% }); %>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <% } else { %>
-                                        <div class="card">
-                                            <div class="card-body text-center py-5">
-                                                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
-                                                <h4>No Graded Submissions</h4>
-                                                <p class="text-muted">You haven't graded any submissions yet.</p>
-                                                <a href="#pending" class="btn btn-primary" data-bs-toggle="tab">
-                                                    <i class="fas fa-graduation-cap me-1"></i> Start Grading
-                                                </a>
-                                            </div>
+                                                            </td>
+                                                            <td>
+                                                                <% if (submission.assignment.class) { %>
+                                                                    <%= submission.assignment.class.name %>
+                                                                        <% } else { %>
+                                                                            <span class="text-muted">N/A</span>
+                                                                            <% } %>
+                                                            </td>
+                                                            <td>
+                                                                <div>
+                                                                    <strong>
+                                                                        <%= submission.score %> / <%=
+                                                                                submission.assignment.points || 100 %>
+                                                                    </strong>
+                                                                </div>
+                                                                <div class="progress" style="height: 5px; width: 80px;">
+                                                                    <div class="progress-bar <%= 
+                                                        percentage >= 80 ? 'bg-success' : 
+                                                        percentage >= 60 ? 'bg-warning' : 'bg-danger'
+                                                    %>" style="width: <%= percentage %>%"></div>
+                                                                </div>
+                                                                <small class="text-muted">
+                                                                    <%= percentage %>%
+                                                                </small>
+                                                            </td>
+                                                            <td>
+                                                                <%= new Date(submission.gradedAt).toLocaleDateString()
+                                                                    %>
+                                                                    <br><small>
+                                                                        <%= new
+                                                                            Date(submission.gradedAt).toLocaleTimeString([],
+                                                                            {hour: '2-digit' , minute:'2-digit'}) %>
+                                                                    </small>
+                                                            </td>
+                                                            <td>
+                                                                <div class="btn-group btn-group-sm">
+                                                                    <a href="/teacher/grading/<%= submission.id %>"
+                                                                        class="btn btn-outline-primary">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </a>
+                                                                    <button class="btn btn-outline-warning"
+                                                                        onclick="regradeSubmission('<%= submission.id %>')">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <% }); %>
+                                                </tbody>
+                                            </table>
                                         </div>
-                                        <% } %>
+                                        <% } else { %>
+                                            <div class="card">
+                                                <div class="card-body text-center py-5">
+                                                    <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                                                    <h4>No Graded Submissions</h4>
+                                                    <p class="text-muted">You haven't graded any submissions yet.</p>
+                                                    <a href="#pending" class="btn btn-primary" data-bs-toggle="tab">
+                                                        <i class="fas fa-graduation-cap me-1"></i> Start Grading
+                                                    </a>
+                                                </div>
+                                            </div>
                                             <% } %>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
         </div>
 
         <!-- Regrade Modal -->
@@ -554,24 +551,16 @@
 
                     fetch(`/teacher/grading/${submissionId}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            score: score,
-                            feedback: feedback
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ score, feedback })
                     })
                         .then(response => {
                             console.log('📥 Response status:', response.status);
-                            console.log('📥 Response headers:', response.headers);
                             return response.text();
                         })
                         .then(text => {
                             console.log('📥 Response text:', text);
-                            // Check if it's an HTML page (redirect) or JSON
                             if (text.includes('<!DOCTYPE html>')) {
-                                // It's a redirect, reload the page
                                 alert('Grade submitted successfully!');
                                 location.reload();
                             } else {
@@ -585,7 +574,6 @@
                                     }
                                 } catch (e) {
                                     console.error('Could not parse response as JSON:', e);
-                                    // Assume it's HTML and reload
                                     alert('Grade submitted successfully!');
                                     location.reload();
                                 }
@@ -597,6 +585,7 @@
                         });
                 });
             });
+
             // Regrade submission function
             function regradeSubmission(submissionId) {
                 fetch(`/teacher/api/grading/${submissionId}/details`)
@@ -605,54 +594,38 @@
                         if (data.success) {
                             const modalBody = document.getElementById('regradeModalBody');
                             modalBody.innerHTML = `
-                <form id="regradeForm" data-submission-id="${submissionId}">
-                    <div class="mb-3">
-                        <label class="form-label">New Grade (out of ${data.submission.assignment.points || 100})</label>
-                        <div class="input-group">
-                            <input type="number" 
-                                   class="form-control" 
-                                   name="score" 
-                                   value="${data.submission.grade || 0}" 
-                                   min="0" 
-                                   max="${data.submission.assignment.points || 100}" 
-                                   step="0.1"
-                                   required>
-                            <span class="input-group-text">/ ${data.submission.assignment.points || 100}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Feedback</label>
-                        <textarea class="form-control" 
-                                  name="feedback" 
-                                  rows="3">${data.submission.feedback || ''}</textarea>
-                    </div>
-                    
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-check me-1"></i> Update Grade
-                        </button>
-                    </div>
-                </form>
-            `;
+                            <form id="regradeForm" data-submission-id="${submissionId}">
+                                <div class="mb-3">
+                                    <label class="form-label">New Grade (out of ${data.submission.assignment.points || 100})</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" name="score" 
+                                               value="${data.submission.grade || 0}" min="0" 
+                                               max="${data.submission.assignment.points || 100}" step="0.1" required>
+                                        <span class="input-group-text">/ ${data.submission.assignment.points || 100}</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Feedback</label>
+                                    <textarea class="form-control" name="feedback" rows="3">${data.submission.feedback || ''}</textarea>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i> Update Grade
+                                    </button>
+                                </div>
+                            </form>
+                        `;
 
-                            // Handle regrade form submission
                             document.getElementById('regradeForm').addEventListener('submit', function (e) {
                                 e.preventDefault();
-
                                 const formData = new FormData(this);
                                 const updateData = {
-                                    score: parseFloat(formData.get('score')), // Will be converted to 'grade' on server
+                                    score: parseFloat(formData.get('score')),
                                     feedback: formData.get('feedback')
                                 };
-
-                                console.log('Updating grade with:', updateData);
-
                                 fetch(`/teacher/api/grading/${submissionId}/update`, {
                                     method: 'PUT',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
+                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(updateData)
                                 })
                                     .then(response => response.json())
@@ -685,16 +658,13 @@
             // Tab switching
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
-
             if (tabParam === 'graded') {
                 const tab = new bootstrap.Tab(document.querySelector('#graded-tab'));
                 tab.show();
             }
 
-            // Filter by assignment if provided in URL
             const assignmentId = urlParams.get('assignment');
             if (assignmentId) {
-                // You could implement filtering by assignment here
                 console.log('Filtering by assignment:', assignmentId);
             }
         </script>
