@@ -27,7 +27,11 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const methodOverride = require('method-override');
-const notificationRoutes = require('./routes/notifications');
+
+// ✅ FIX: Keep only one notificationRoutes import
+const notificationRoutes = require('./routes/notification.routes');
+// Removed: const notificationRoutes = require('./routes/notifications');
+
 const fetch = require('node-fetch');
 const teacherController = require('./controllers/teacherController');
 const studentController = require('./controllers/studentController');
@@ -170,6 +174,11 @@ app.use('/parent', noCache);
 app.use('/accountant', noCache);
 app.use('/cashier', noCache);
 
+// ✅ Mount notification routes (works for both /notifications and /api/notifications)
+app.use('/notifications', notificationRoutes);
+// Optionally, if you want a separate API prefix, you could add:
+// app.use('/api/notifications', notificationRoutes);
+
 // User context
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
@@ -298,7 +307,7 @@ app.use(async (req, res, next) => {
 });
 
 // API routes
-app.use('/api/notifications', notificationRoutes);
+// app.use('/api/notifications', notificationRoutes); // optional – already mounted at /notifications
 
 // Main routes
 app.use('/auth', authRoutes);
