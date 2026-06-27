@@ -153,7 +153,7 @@
                         </div>
                     </div>
 
-                    <!-- Main Content -->
+                    <!-- Main -->
                     <div class="col-md-9">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2>
@@ -164,29 +164,25 @@
                         </div>
 
                         <!-- ===== TABS ===== -->
-                        <ul class="nav nav-tabs mb-4" id="assignmentTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab"
-                                    data-bs-target="#active-pane" type="button" role="tab">Active (<%=
-                                        activeAssignments.length %>)</button>
+                        <ul class="nav nav-tabs mb-4" id="assignmentTabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="active-tab" data-bs-toggle="tab"
+                                    href="#active-pane">Active (<%= activeAssignments.length %>)</a>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab"
-                                    data-bs-target="#upcoming-pane" type="button" role="tab">Upcoming (<%=
-                                        upcomingAssignments.length %>)</button>
+                            <li class="nav-item">
+                                <a class="nav-link" id="upcoming-tab" data-bs-toggle="tab"
+                                    href="#upcoming-pane">Upcoming (<%= upcomingAssignments.length %>)</a>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="completed-tab" data-bs-toggle="tab"
-                                    data-bs-target="#completed-pane" type="button" role="tab">Completed (<%=
-                                        completedAssignments.length %>)</button>
+                            <li class="nav-item">
+                                <a class="nav-link" id="completed-tab" data-bs-toggle="tab"
+                                    href="#completed-pane">Completed (<%= completedAssignments.length %>)</a>
                             </li>
                         </ul>
 
                         <!-- ===== TAB PANES ===== -->
                         <div class="tab-content">
-                            <!-- Active Pane -->
-                            <div class="tab-pane fade show active" id="active-pane" role="tabpanel"
-                                aria-labelledby="active-tab">
+                            <!-- Active -->
+                            <div class="tab-pane fade show active" id="active-pane">
                                 <div class="row">
                                     <% if (activeAssignments.length===0) { %>
                                         <div class="col-12">
@@ -239,9 +235,8 @@
                                 </div>
                             </div>
 
-                            <!-- Upcoming Pane -->
-                            <div class="tab-pane fade" id="upcoming-pane" role="tabpanel"
-                                aria-labelledby="upcoming-tab">
+                            <!-- Upcoming -->
+                            <div class="tab-pane fade" id="upcoming-pane">
                                 <div class="row">
                                     <% if (upcomingAssignments.length===0) { %>
                                         <div class="col-12">
@@ -292,9 +287,8 @@
                                 </div>
                             </div>
 
-                            <!-- Completed Pane -->
-                            <div class="tab-pane fade" id="completed-pane" role="tabpanel"
-                                aria-labelledby="completed-tab">
+                            <!-- Completed -->
+                            <div class="tab-pane fade" id="completed-pane">
                                 <div class="row">
                                     <% if (completedAssignments.length===0) { %>
                                         <div class="col-12">
@@ -413,24 +407,29 @@
                 }
             });
 
-            // Tab persistence – optional
-            document.getElementById('assignmentTabs').addEventListener('click', function (e) {
-                if (e.target.tagName === 'BUTTON') {
-                    var tabId = e.target.getAttribute('data-bs-target');
-                    history.pushState(null, '', '/teacher/assignments' + (tabId === '#completed-pane' ? '?tab=completed' : ''));
-                }
-            });
+            // Tab persistence (simplified, safe)
+            (function () {
+                var tabLinks = document.querySelectorAll('#assignmentTabs a');
+                tabLinks.forEach(function (link) {
+                    link.addEventListener('click', function (e) {
+                        var href = this.getAttribute('href');
+                        if (href && href.indexOf('#completed-pane') !== -1) {
+                            history.pushState(null, '', '/teacher/assignments?tab=completed');
+                        } else {
+                            history.pushState(null, '', '/teacher/assignments');
+                        }
+                    });
+                });
 
-            document.addEventListener('DOMContentLoaded', function () {
                 var params = new URLSearchParams(window.location.search);
                 if (params.get('tab') === 'completed') {
-                    var btn = document.getElementById('completed-tab');
-                    if (btn) {
-                        var tab = new bootstrap.Tab(btn);
+                    var target = document.querySelector('#completed-tab');
+                    if (target) {
+                        var tab = new bootstrap.Tab(target);
                         tab.show();
                     }
                 }
-            });
+            })();
         </script>
 </body>
 
