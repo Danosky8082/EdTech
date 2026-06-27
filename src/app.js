@@ -28,7 +28,6 @@ const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const methodOverride = require('method-override');
 const notificationRoutes = require('./routes/notifications');
-const notificationRoutes = require('./routes/notification.routes');
 const fetch = require('node-fetch');
 const teacherController = require('./controllers/teacherController');
 const studentController = require('./controllers/studentController');
@@ -170,7 +169,6 @@ app.use('/admin', noCache);
 app.use('/parent', noCache);
 app.use('/accountant', noCache);
 app.use('/cashier', noCache);
-app.use('/notifications', notificationRoutes);
 
 // User context
 app.use((req, res, next) => {
