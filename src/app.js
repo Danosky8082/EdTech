@@ -30,7 +30,7 @@ const methodOverride = require('method-override');
 
 // ✅ FIX: Keep only one notificationRoutes import
 const notificationRoutes = require('./routes/notification.routes');
-// Removed: const notificationRoutes = require('./routes/notifications');
+
 
 const fetch = require('node-fetch');
 const teacherController = require('./controllers/teacherController');
@@ -38,6 +38,7 @@ const studentController = require('./controllers/studentController');
 const prisma = require('./config/database');
 const activityTracker = require('./middleware/activityTracker');
 const noCache = require('./middleware/noCache');
+
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -48,6 +49,7 @@ const { setSchoolContext } = require('./middleware/auth');
 const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
+const notificationRoutes = require('./routes/notification.routes');
 
 // ============================================================
 // View engine
@@ -173,6 +175,7 @@ app.use('/admin', noCache);
 app.use('/parent', noCache);
 app.use('/accountant', noCache);
 app.use('/cashier', noCache);
+app.use('/notifications', notificationRoutes);
 
 // ✅ Mount notification routes (works for both /notifications and /api/notifications)
 app.use('/notifications', notificationRoutes);
