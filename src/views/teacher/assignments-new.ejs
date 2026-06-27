@@ -91,14 +91,6 @@
             background: #198754;
             color: white;
         }
-
-        .nav-tabs .nav-link {
-            color: #495057;
-        }
-
-        .nav-tabs .nav-link.active {
-            font-weight: 600;
-        }
     </style>
 </head>
 
@@ -163,195 +155,158 @@
 
                     <!-- Main -->
                     <div class="col-md-9">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2>
-                                <%= title %>
-                            </h2>
-                            <a href="/teacher/assignments/create" class="btn btn-success"><i class="fas fa-plus"></i>
-                                Create</a>
+                        <h2 class="mb-4">
+                            <%= title %>
+                        </h2>
+
+                        <!-- Active -->
+                        <h4>Active (<%= activeAssignments.length %>)</h4>
+                        <div class="row">
+                            <% if (activeAssignments.length===0) { %>
+                                <div class="col-12">
+                                    <p class="text-muted">No active assignments.</p>
+                                </div>
+                                <% } else { %>
+                                    <% for (var i=0; i < activeAssignments.length; i++) { var a=activeAssignments[i]; %>
+                                        <div class="col-md-6 col-xl-4 mb-4">
+                                            <div class="card assignment-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="badge status-active">Active</span>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                                                onclick="editAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-edit"></i></button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-trash-alt"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <h5 class="card-title mt-2">
+                                                        <%= a.title %>
+                                                    </h5>
+                                                    <p class="card-text text-muted small">
+                                                        <%= a.description ? a.description.substring(0,80) +
+                                                            (a.description.length> 80 ? '...' : '') : 'No description'
+                                                            %>
+                                                    </p>
+                                                    <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %></small>
+                                                    <% if (a.class) { %><br><small>Class: <%= a.class.name %></small>
+                                                        <% } %>
+                                                            <div class="mt-2">
+                                                                <span class="badge bg-info">
+                                                                    <%= (a.submissions) ? a.submissions.length : 0 %>
+                                                                        submissions
+                                                                </span>
+                                                                <a href="/teacher/grading?assignment=<%= a.id %>"
+                                                                    class="btn btn-sm btn-outline-primary float-end">View</a>
+                                                            </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% } %>
+                                            <% } %>
                         </div>
 
-                        <!-- Tabs -->
-                        <ul class="nav nav-tabs mb-4" id="assignmentTabs">
-                            <li class="nav-item">
-                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-active">Active
-                                    (<%= activeAssignments.length %>)</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-upcoming">Upcoming (
-                                    <%= upcomingAssignments.length %>)</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-completed">Completed
-                                    (<%= completedAssignments.length %>)</button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content">
-                            <!-- Active Tab -->
-                            <div class="tab-pane fade show active" id="tab-active">
-                                <div class="row">
-                                    <% if (activeAssignments.length===0) { %>
-                                        <div class="col-12">
-                                            <p class="text-muted">No active assignments.</p>
-                                        </div>
-                                        <% } else { %>
-                                            <% for (var i=0; i < activeAssignments.length; i++) { var
-                                                a=activeAssignments[i]; %>
-                                                <div class="col-md-6 col-xl-4 mb-4">
-                                                    <div class="card assignment-card h-100">
-                                                        <div class="card-body">
-                                                            <div class="d-flex justify-content-between">
-                                                                <span class="badge status-active">Active</span>
-                                                                <div>
-                                                                    <button
-                                                                        class="btn btn-sm btn-outline-secondary me-1"
-                                                                        onclick="editAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-edit"></i></button>
-                                                                    <button class="btn btn-sm btn-outline-danger"
-                                                                        onclick="deleteAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-trash-alt"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <h5 class="card-title mt-2">
-                                                                <%= a.title %>
-                                                            </h5>
-                                                            <p class="card-text text-muted small">
-                                                                <%= a.description ? a.description.substring(0,80) +
-                                                                    (a.description.length> 80 ? '...' : '') : 'No
-                                                                    description' %>
-                                                            </p>
-                                                            <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %>
-                                                                    </small>
-                                                            <% if (a.class) { %><br><small>Class: <%= a.class.name %>
-                                                                        </small>
-                                                                <% } %>
-                                                                    <div class="mt-2">
-                                                                        <span class="badge bg-info">
-                                                                            <%= (a.submissions) ? a.submissions.length :
-                                                                                0 %> submissions
-                                                                        </span>
-                                                                        <a href="/teacher/grading?assignment=<%= a.id %>"
-                                                                            class="btn btn-sm btn-outline-primary float-end">View</a>
-                                                                    </div>
+                        <!-- Upcoming -->
+                        <h4>Upcoming (<%= upcomingAssignments.length %>)</h4>
+                        <div class="row">
+                            <% if (upcomingAssignments.length===0) { %>
+                                <div class="col-12">
+                                    <p class="text-muted">No upcoming assignments.</p>
+                                </div>
+                                <% } else { %>
+                                    <% for (var i=0; i < upcomingAssignments.length; i++) { var
+                                        a=upcomingAssignments[i]; %>
+                                        <div class="col-md-6 col-xl-4 mb-4">
+                                            <div class="card assignment-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="badge status-upcoming">Upcoming</span>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                                                onclick="editAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-edit"></i></button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-trash-alt"></i></button>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <% } %>
-                                                    <% } %>
-                                </div>
-                            </div>
-
-                            <!-- Upcoming Tab -->
-                            <div class="tab-pane fade" id="tab-upcoming">
-                                <div class="row">
-                                    <% if (upcomingAssignments.length===0) { %>
-                                        <div class="col-12">
-                                            <p class="text-muted">No upcoming assignments.</p>
-                                        </div>
-                                        <% } else { %>
-                                            <% for (var i=0; i < upcomingAssignments.length; i++) { var
-                                                a=upcomingAssignments[i]; %>
-                                                <div class="col-md-6 col-xl-4 mb-4">
-                                                    <div class="card assignment-card h-100">
-                                                        <div class="card-body">
-                                                            <div class="d-flex justify-content-between">
-                                                                <span class="badge status-upcoming">Upcoming</span>
-                                                                <div>
-                                                                    <button
-                                                                        class="btn btn-sm btn-outline-secondary me-1"
-                                                                        onclick="editAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-edit"></i></button>
-                                                                    <button class="btn btn-sm btn-outline-danger"
-                                                                        onclick="deleteAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-trash-alt"></i></button>
-                                                                </div>
+                                                    <h5 class="card-title mt-2">
+                                                        <%= a.title %>
+                                                    </h5>
+                                                    <p class="card-text text-muted small">
+                                                        <%= a.description ? a.description.substring(0,80) +
+                                                            (a.description.length> 80 ? '...' : '') : 'No description'
+                                                            %>
+                                                    </p>
+                                                    <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %></small>
+                                                    <% if (a.class) { %><br><small>Class: <%= a.class.name %></small>
+                                                        <% } %>
+                                                            <div class="mt-2">
+                                                                <span class="badge bg-secondary">0 submissions</span>
+                                                                <a href="/teacher/grading?assignment=<%= a.id %>"
+                                                                    class="btn btn-sm btn-outline-primary float-end">View</a>
                                                             </div>
-                                                            <h5 class="card-title mt-2">
-                                                                <%= a.title %>
-                                                            </h5>
-                                                            <p class="card-text text-muted small">
-                                                                <%= a.description ? a.description.substring(0,80) +
-                                                                    (a.description.length> 80 ? '...' : '') : 'No
-                                                                    description' %>
-                                                            </p>
-                                                            <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %>
-                                                                    </small>
-                                                            <% if (a.class) { %><br><small>Class: <%= a.class.name %>
-                                                                        </small>
-                                                                <% } %>
-                                                                    <div class="mt-2">
-                                                                        <span class="badge bg-secondary">0
-                                                                            submissions</span>
-                                                                        <a href="/teacher/grading?assignment=<%= a.id %>"
-                                                                            class="btn btn-sm btn-outline-primary float-end">View</a>
-                                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% } %>
+                                            <% } %>
+                        </div>
+
+                        <!-- Completed -->
+                        <h4>Completed (<%= completedAssignments.length %>)</h4>
+                        <div class="row">
+                            <% if (completedAssignments.length===0) { %>
+                                <div class="col-12">
+                                    <p class="text-muted">No completed assignments.</p>
+                                </div>
+                                <% } else { %>
+                                    <% for (var i=0; i < completedAssignments.length; i++) { var
+                                        a=completedAssignments[i]; var isOverdue=new Date(a.dueDate) < new Date(); var
+                                        statusClass=isOverdue ? 'status-overdue' : 'status-completed' ; var
+                                        statusText=isOverdue ? 'Overdue' : 'Completed' ; %>
+                                        <div class="col-md-6 col-xl-4 mb-4">
+                                            <div class="card assignment-card h-100">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="badge <%= statusClass %>">
+                                                            <%= statusText %>
+                                                        </span>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                                                onclick="editAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-edit"></i></button>
+                                                            <button class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteAssignment('<%= a.id %>')"><i
+                                                                    class="fas fa-trash-alt"></i></button>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <% } %>
-                                                    <% } %>
-                                </div>
-                            </div>
-
-                            <!-- Completed Tab -->
-                            <div class="tab-pane fade" id="tab-completed">
-                                <div class="row">
-                                    <% if (completedAssignments.length===0) { %>
-                                        <div class="col-12">
-                                            <p class="text-muted">No completed assignments.</p>
-                                        </div>
-                                        <% } else { %>
-                                            <% for (var i=0; i < completedAssignments.length; i++) { var
-                                                a=completedAssignments[i]; var isOverdue=new Date(a.dueDate) < new
-                                                Date(); var statusClass=isOverdue ? 'status-overdue'
-                                                : 'status-completed' ; var statusText=isOverdue ? 'Overdue'
-                                                : 'Completed' ; %>
-                                                <div class="col-md-6 col-xl-4 mb-4">
-                                                    <div class="card assignment-card h-100">
-                                                        <div class="card-body">
-                                                            <div class="d-flex justify-content-between">
-                                                                <span class="badge <%= statusClass %>">
-                                                                    <%= statusText %>
+                                                    <h5 class="card-title mt-2">
+                                                        <%= a.title %>
+                                                    </h5>
+                                                    <p class="card-text text-muted small">
+                                                        <%= a.description ? a.description.substring(0,80) +
+                                                            (a.description.length> 80 ? '...' : '') : 'No description'
+                                                            %>
+                                                    </p>
+                                                    <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %></small>
+                                                    <% if (a.class) { %><br><small>Class: <%= a.class.name %></small>
+                                                        <% } %>
+                                                            <div class="mt-2">
+                                                                <span class="badge bg-info">
+                                                                    <%= (a.submissions) ? a.submissions.length : 0 %>
+                                                                        submissions
                                                                 </span>
-                                                                <div>
-                                                                    <button
-                                                                        class="btn btn-sm btn-outline-secondary me-1"
-                                                                        onclick="editAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-edit"></i></button>
-                                                                    <button class="btn btn-sm btn-outline-danger"
-                                                                        onclick="deleteAssignment('<%= a.id %>')"><i
-                                                                            class="fas fa-trash-alt"></i></button>
-                                                                </div>
+                                                                <a href="/teacher/grading?assignment=<%= a.id %>"
+                                                                    class="btn btn-sm btn-outline-primary float-end">View</a>
                                                             </div>
-                                                            <h5 class="card-title mt-2">
-                                                                <%= a.title %>
-                                                            </h5>
-                                                            <p class="card-text text-muted small">
-                                                                <%= a.description ? a.description.substring(0,80) +
-                                                                    (a.description.length> 80 ? '...' : '') : 'No
-                                                                    description' %>
-                                                            </p>
-                                                            <small>Due: <%= new Date(a.dueDate).toLocaleDateString() %>
-                                                                    </small>
-                                                            <% if (a.class) { %><br><small>Class: <%= a.class.name %>
-                                                                        </small>
-                                                                <% } %>
-                                                                    <div class="mt-2">
-                                                                        <span class="badge bg-info">
-                                                                            <%= (a.submissions) ? a.submissions.length :
-                                                                                0 %> submissions
-                                                                        </span>
-                                                                        <a href="/teacher/grading?assignment=<%= a.id %>"
-                                                                            class="btn btn-sm btn-outline-primary float-end">View</a>
-                                                                    </div>
-                                                        </div>
-                                                    </div>
                                                 </div>
-                                                <% } %>
-                                                    <% } %>
-                                </div>
-                            </div>
+                                            </div>
+                                        </div>
+                                        <% } %>
+                                            <% } %>
                         </div>
                     </div>
                 </div>
