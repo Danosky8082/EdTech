@@ -49,7 +49,7 @@ const { setSchoolContext } = require('./middleware/auth');
 const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
-const notificationRoutes = require('./routes/notification.routes');
+
 
 // ============================================================
 // View engine
