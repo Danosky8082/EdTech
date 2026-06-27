@@ -178,7 +178,7 @@ app.use('/cashier', noCache);
 app.use('/notifications', notificationRoutes);
 
 // ✅ Mount notification routes (works for both /notifications and /api/notifications)
-app.use('/notifications', notificationRoutes);
+
 // Optionally, if you want a separate API prefix, you could add:
 // app.use('/api/notifications', notificationRoutes);
 
