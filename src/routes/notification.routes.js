@@ -4,6 +4,11 @@ const router = express.Router();
 const { notificationService } = require('../services/notificationService');
 const { isAuthenticated } = require('../middleware/auth');
 
+// --- TEST ROUTE (to verify mounting) ---
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Notification routes are working!' });
+});
+
 // Get user notifications with filters
 router.get('/', isAuthenticated, async (req, res) => {
   try {
