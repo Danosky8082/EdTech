@@ -151,6 +151,7 @@ app.use(session({
       connectionString: process.env.DATABASE_URL,
     },
     tableName: 'session',
+    createTableIfMissing: true,   // ✅ Add this line
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
