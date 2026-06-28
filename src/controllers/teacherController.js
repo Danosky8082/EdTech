@@ -238,6 +238,9 @@ exports.dashboard = async (req, res) => {
       }
     }
 
+    // ✅ ADDED: lessonNotesCount – placeholder until feature is built
+    const lessonNotesCount = 0; // TODO: Replace with actual count from database when lesson notes are implemented
+
     res.render('teacher/dashboard', {
       title: 'Teacher Dashboard',
       user: teacher.user,
@@ -254,7 +257,8 @@ exports.dashboard = async (req, res) => {
       userSchool: userSchool,
       isSuperAdmin: isSuperAdmin,
       avatarUrl: avatarUrl,
-      fallbackAvatar: fallbackAvatar
+      fallbackAvatar: fallbackAvatar,
+      lessonNotesCount: lessonNotesCount  // ✅ NOW INCLUDED
     });
 
   } catch (error) {
