@@ -103,6 +103,15 @@
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         }
+
+        /* Lesson notes specific styles */
+        .note-count-badge {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
@@ -112,7 +121,7 @@
         <div class="container mt-4">
             <%- include('../partials/alerts') %>
 
-                <!-- Add school info banner -->
+                <!-- School info banner -->
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-school me-2"></i>
                     <strong>School:</strong>
@@ -126,23 +135,19 @@
                     <!-- Left Sidebar with Profile -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (avatarUrl) { %>
-                                <img src="<%= avatarUrl %>" alt="Teacher Profile" class="profile-img mb-3 avatar-img"
-                                    onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
-                                <% } else { %>
-                                    <img src="<%= fallbackAvatar %>" alt="Teacher Profile" class="profile-img mb-3">
-                                    <% } %>
-                                        <h4>
-                                            <%= user.firstName %>
-                                                <%= user.lastName %>
-                                        </h4>
-                                        <p class="welcome-text">Welcome to your dashboard</p>
-                                        <span class="user-role">Teacher</span>
-                                        <div class="mt-2">
-                                            <small><i class="fas fa-school me-1"></i>
-                                                <%= userSchool %>
-                                            </small>
-                                        </div>
+                            <!-- ✅ FIX: Use user-avatar partial -->
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3 avatar-img' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Welcome to your dashboard</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
                         </div>
 
                         <div class="card dashboard-card mb-4">
@@ -152,11 +157,9 @@
                             <div class="card-body">
                                 <a href="/teacher/class-works" class="btn btn-outline-primary w-100 mb-2 action-btn">
                                     <i class="fas fa-tasks"></i> Manage Class Works
-                                    <span class="badge new-feature-badge ms-2">New</span>
                                 </a>
                                 <a href="/teacher/live-sessions" class="btn btn-outline-info w-100 mb-2 action-btn">
                                     <i class="fas fa-video"></i> Live Sessions
-                                    <span class="badge new-feature-badge ms-2">New</span>
                                 </a>
                                 <a href="/teacher/assignments" class="btn btn-outline-secondary w-100 mb-2 action-btn">
                                     <i class="fas fa-tasks"></i> Create Assignment
@@ -166,6 +169,11 @@
                                 </a>
                                 <a href="/teacher/exams" class="btn btn-outline-danger w-100 mb-2 action-btn">
                                     <i class="fas fa-clipboard-list"></i> Exams
+                                </a>
+                                <!-- NEW: Lesson Notes -->
+                                <a href="/teacher/lesson-notes" class="btn btn-outline-dark w-100 mb-2 action-btn">
+                                    <i class="fas fa-sticky-note"></i> Lesson Notes
+                                    <span class="badge new-feature-badge ms-2">New</span>
                                 </a>
                                 <a href="/auth/change-password" class="btn btn-outline-warning w-100 action-btn">
                                     <i class="fas fa-key"></i> Change Password
@@ -202,6 +210,12 @@
                                         <%= totalStudents || 0 %>
                                     </span>
                                 </div>
+                                <div class="mb-2">
+                                    <small><strong>Lesson Notes:</strong></small>
+                                    <span class="badge bg-dark float-end">
+                                        <%= lessonNotesCount || 0 %>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -212,11 +226,9 @@
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
                                     <div class="card-body">
-                                        <h1 class="display-4">
-                                            <strong>
+                                        <h1 class="display-4"><strong>
                                                 <%= classes ? classes.length : 0 %>
-                                            </strong>
-                                        </h1>
+                                            </strong></h1>
                                         <p class="card-text"><strong>Total Classes</strong></p>
                                     </div>
                                 </div>
@@ -224,11 +236,9 @@
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
                                     <div class="card-body">
-                                        <h1 class="display-4">
-                                            <strong>
+                                        <h1 class="display-4"><strong>
                                                 <%= totalStudents || 0 %>
-                                            </strong>
-                                        </h1>
+                                            </strong></h1>
                                         <p class="card-text"><strong>Total Students</strong></p>
                                     </div>
                                 </div>
@@ -236,11 +246,9 @@
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
                                     <div class="card-body">
-                                        <h1 class="display-4">
-                                            <strong>
+                                        <h1 class="display-4"><strong>
                                                 <%= pendingGrading ? pendingGrading.length : 0 %>
-                                            </strong>
-                                        </h1>
+                                            </strong></h1>
                                         <p class="card-text"><strong>Pending Grading</strong></p>
                                     </div>
                                 </div>
@@ -248,11 +256,9 @@
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
                                     <div class="card-body">
-                                        <h1 class="display-4">
-                                            <strong>
+                                        <h1 class="display-4"><strong>
                                                 <%= activeClassWorks || 0 %>
-                                            </strong>
-                                        </h1>
+                                            </strong></h1>
                                         <p class="card-text"><strong>Class Works</strong></p>
                                     </div>
                                 </div>
@@ -263,6 +269,7 @@
                             <div class="col-12">
                                 <h3 class="mb-3">Teaching Tools</h3>
                                 <div class="row">
+                                    <!-- Existing Class Works -->
                                     <div class="col-md-6 mb-3">
                                         <div class="card feature-card h-100">
                                             <div class="card-body">
@@ -271,24 +278,20 @@
                                                     <h5 class="card-title mb-0">Class Works</h5>
                                                     <span class="badge new-feature-badge ms-2">New</span>
                                                 </div>
-                                                <p class="card-text">
-                                                    Create interactive quizzes, assignments, and discussions for your
-                                                    students.
-                                                    Track submissions and provide instant feedback with our new
-                                                    assessment tools.
-                                                </p>
+                                                <p class="card-text">Create interactive quizzes, assignments, and
+                                                    discussions for your students. Track submissions and provide instant
+                                                    feedback.</p>
                                                 <div class="btn-group">
-                                                    <a href="/teacher/class-works" class="btn btn-primary">
-                                                        <i class="fas fa-cog me-1"></i> Manage
-                                                    </a>
+                                                    <a href="/teacher/class-works" class="btn btn-primary"><i
+                                                            class="fas fa-cog me-1"></i> Manage</a>
                                                     <a href="/teacher/class-works/create"
-                                                        class="btn btn-outline-primary">
-                                                        <i class="fas fa-plus me-1"></i> Create New
-                                                    </a>
+                                                        class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>
+                                                        Create New</a>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- Existing Live Sessions -->
                                     <div class="col-md-6 mb-3">
                                         <div class="card feature-card h-100">
                                             <div class="card-body">
@@ -297,19 +300,37 @@
                                                     <h5 class="card-title mb-0">Live Sessions</h5>
                                                     <span class="badge new-feature-badge ms-2">New</span>
                                                 </div>
-                                                <p class="card-text">
-                                                    Conduct real-time virtual classes with interactive features
-                                                    including
-                                                    chat, screen sharing, participant management, and session analytics.
+                                                <p class="card-text">Conduct real-time virtual classes with interactive
+                                                    features including chat, screen sharing, and participant management.
                                                 </p>
                                                 <div class="btn-group">
-                                                    <a href="/teacher/live-sessions" class="btn btn-info text-white">
-                                                        <i class="fas fa-cog me-1"></i> Manage
-                                                    </a>
+                                                    <a href="/teacher/live-sessions" class="btn btn-info text-white"><i
+                                                            class="fas fa-cog me-1"></i> Manage</a>
                                                     <a href="/teacher/live-sessions/create"
-                                                        class="btn btn-outline-info">
-                                                        <i class="fas fa-plus me-1"></i> Schedule
-                                                    </a>
+                                                        class="btn btn-outline-info"><i class="fas fa-plus me-1"></i>
+                                                        Schedule</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- NEW: Lesson Notes -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card feature-card h-100" style="border-left-color: #6c757d;">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-sticky-note fa-2x text-dark me-3"></i>
+                                                    <h5 class="card-title mb-0">Lesson Notes</h5>
+                                                    <span class="badge new-feature-badge ms-2">New</span>
+                                                </div>
+                                                <p class="card-text">Create, organize, and share lesson notes with your
+                                                    students. Include text, images, attachments, and rich formatting for
+                                                    effective teaching.</p>
+                                                <div class="btn-group">
+                                                    <a href="/teacher/lesson-notes" class="btn btn-dark"><i
+                                                            class="fas fa-cog me-1"></i> Manage</a>
+                                                    <a href="/teacher/lesson-notes/create"
+                                                        class="btn btn-outline-dark"><i class="fas fa-plus me-1"></i>
+                                                        Create Note</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -324,15 +345,13 @@
                                     <div class="card-header d-flex justify-content-between align-items-center">
                                         <h4>My Classes</h4>
                                         <div>
-                                            <a href="/teacher/class-works" class="btn btn-sm btn-primary me-2">
-                                                <i class="fas fa-tasks me-1"></i> Class Works
-                                            </a>
-                                            <a href="/teacher/live-sessions" class="btn btn-sm btn-info text-white">
-                                                <i class="fas fa-video me-1"></i> Live Sessions
-                                            </a>
-                                            <a href="/teacher/classes" class="btn btn-sm btn-success">
-                                                <i class="fas fa-cog me-1"></i> Manage Classes
-                                            </a>
+                                            <a href="/teacher/class-works" class="btn btn-sm btn-primary me-2"><i
+                                                    class="fas fa-tasks me-1"></i> Class Works</a>
+                                            <a href="/teacher/live-sessions"
+                                                class="btn btn-sm btn-info text-white me-2"><i
+                                                    class="fas fa-video me-1"></i> Live Sessions</a>
+                                            <a href="/teacher/classes" class="btn btn-sm btn-success"><i
+                                                    class="fas fa-cog me-1"></i> Manage Classes</a>
                                         </div>
                                     </div>
                                     <div class="card-body">
@@ -345,19 +364,20 @@
                                                                 <h5 class="card-title">
                                                                     <%= cls.name %>
                                                                 </h5>
-                                                                <p class="card-text">
-                                                                    Grade/Class: <%= cls.grade %>-<%= cls.section %><br>
-                                                                            Students: <%= cls.enrollments.length %>
+                                                                <p class="card-text">Grade/Class: <%= cls.grade %>-<%=
+                                                                            cls.section %><br>Students: <%=
+                                                                                cls.enrollments.length %>
                                                                 </p>
                                                                 <div class="btn-group w-100">
                                                                     <a href="/teacher/materials?class=<%= cls.id %>"
                                                                         class="btn btn-sm btn-outline-secondary">Materials</a>
+                                                                    <a href="/teacher/lesson-notes?class=<%= cls.id %>"
+                                                                        class="btn btn-sm btn-outline-dark">Notes</a>
                                                                 </div>
                                                                 <div class="mt-2">
                                                                     <a href="/teacher/class-works/create?class=<%= cls.id %>"
-                                                                        class="btn btn-sm btn-outline-success">
-                                                                        <i class="fas fa-plus"></i> Add Class Work
-                                                                    </a>
+                                                                        class="btn btn-sm btn-outline-success"><i
+                                                                            class="fas fa-plus"></i> Add Class Work</a>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -372,7 +392,7 @@
                             </div>
 
                             <div class="col-md-4">
-                                <!-- Pending Grading -->
+                                <!-- Pending Grading (unchanged) -->
                                 <div class="card dashboard-card mb-4">
                                     <div class="card-header">
                                         <h4>Pending Grading</h4>
@@ -384,16 +404,14 @@
                                                     <h6>
                                                         <%= submission.assignment.title %>
                                                     </h6>
-                                                    <small class="text-muted">
-                                                        Student: <%= submission.student.user.firstName %>
-                                                            <%= submission.student.user.lastName %><br>
-                                                                Submitted: <%= new
+                                                    <small class="text-muted">Student: <%=
+                                                            submission.student.user.firstName %>
+                                                            <%= submission.student.user.lastName %><br>Submitted: <%=
+                                                                    new
                                                                     Date(submission.submittedAt).toLocaleDateString() %>
-                                                    </small>
-                                                    <div class="mt-2">
-                                                        <a href="/teacher/grading/<%= submission.id %>"
-                                                            class="btn btn-sm btn-primary">Grade</a>
-                                                    </div>
+                                                                    </small>
+                                                    <div class="mt-2"><a href="/teacher/grading/<%= submission.id %>"
+                                                            class="btn btn-sm btn-primary">Grade</a></div>
                                                 </div>
                                                 <% }) %>
                                                     <% } else { %>
@@ -402,7 +420,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Recent Class Works -->
+                                <!-- Recent Class Works (unchanged) -->
                                 <div class="card dashboard-card mb-4">
                                     <div class="card-header">
                                         <h4>Recent Class Works</h4>
@@ -414,34 +432,28 @@
                                                     <h6>
                                                         <%= classWork.title %>
                                                     </h6>
-                                                    <small class="text-muted">
-                                                        Type: <span
+                                                    <small class="text-muted">Type: <span
                                                             class="badge bg-<%= classWork.type === 'quiz' ? 'primary' : classWork.type === 'assignment' ? 'success' : 'warning' %>">
                                                             <%= classWork.type %>
-                                                        </span><br>
-                                                        Class: <%= classWork.class.name %><br>
-                                                            Submissions: <%= classWork._count ?
-                                                                classWork._count.submissions : 0 %>
-                                                    </small>
-                                                    <div class="mt-2">
-                                                        <a href="/teacher/class-works/<%= classWork.id %>/submissions"
-                                                            class="btn btn-sm btn-outline-primary">
-                                                            View Submissions
-                                                        </a>
+                                                        </span><br>Class: <%= classWork.class.name %><br>Submissions:
+                                                            <%= classWork._count ? classWork._count.submissions : 0 %>
+                                                                </small>
+                                                    <div class="mt-2"><a
+                                                            href="/teacher/class-works/<%= classWork.id %>/submissions"
+                                                            class="btn btn-sm btn-outline-primary">View Submissions</a>
                                                     </div>
                                                 </div>
                                                 <% }) %>
                                                     <% } else { %>
-                                                        <p>No class works created yet.</p>
-                                                        <a href="/teacher/class-works/create"
-                                                            class="btn btn-sm btn-primary">
-                                                            Create First Class Work
-                                                        </a>
+                                                        <p>No class works created yet. <a
+                                                                href="/teacher/class-works/create"
+                                                                class="btn btn-sm btn-primary">Create First Class
+                                                                Work</a></p>
                                                         <% } %>
                                     </div>
                                 </div>
 
-                                <!-- Upcoming Live Sessions -->
+                                <!-- Upcoming Live Sessions (unchanged) -->
                                 <div class="card dashboard-card">
                                     <div class="card-header">
                                         <h4>Upcoming Live Sessions</h4>
@@ -453,10 +465,8 @@
                                                     <h6>
                                                         <%= session.title %>
                                                     </h6>
-                                                    <small class="text-muted">
-                                                        Class: <%= session.class.name %><br>
-                                                            Start: <%= new Date(session.startTime).toLocaleString() %>
-                                                    </small>
+                                                    <small class="text-muted">Class: <%= session.class.name %><br>Start:
+                                                            <%= new Date(session.startTime).toLocaleString() %></small>
                                                     <div class="mt-2">
                                                         <% if (session.status==='scheduled' ) { %>
                                                             <button class="btn btn-sm btn-success start-session"
@@ -469,11 +479,10 @@
                                                 </div>
                                                 <% }) %>
                                                     <% } else { %>
-                                                        <p>No upcoming live sessions.</p>
-                                                        <a href="/teacher/live-sessions/create"
-                                                            class="btn btn-sm btn-info text-white">
-                                                            Schedule Session
-                                                        </a>
+                                                        <p>No upcoming live sessions. <a
+                                                                href="/teacher/live-sessions/create"
+                                                                class="btn btn-sm btn-info text-white">Schedule
+                                                                Session</a></p>
                                                         <% } %>
                                     </div>
                                 </div>
