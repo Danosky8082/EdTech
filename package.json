@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "build": "prisma generate",
-    "vercel-build": "prisma generate"
+    "vercel-build": "prisma migrate deploy && prisma generate",
+    "migrate": "prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
