@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-sticky-note me-2"></i>Lesson Notes</h2>
+                    <a href="/teacher/lesson-notes/create" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i> Create Note
+                    </a>
+                </div>
+
+                <div class="row">
+                    <% if (lessonNotes && lessonNotes.length> 0) { %>
+                        <% lessonNotes.forEach(note=> { %>
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <%= note.title %>
+                                        </h5>
+                                        <% if (note.description) { %>
+                                            <p class="card-text text-muted small">
+                                                <%= note.description.substring(0, 80) + (note.description.length> 80 ?
+                                                    '...' : '') %>
+                                            </p>
+                                            <% } %>
+                                                <div class="mb-2">
+                                                    <small class="text-muted"><i class="fas fa-calendar me-1"></i>
+                                                        <%= new Date(note.createdAt).toLocaleDateString() %>
+                                                    </small>
+                                                    <% if (note.class) { %>
+                                                        <br><small class="text-muted"><i
+                                                                class="fas fa-chalkboard me-1"></i>
+                                                            <%= note.class.name %>
+                                                        </small>
+                                                        <% } %>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <% if (note.isPublic) { %>
+                                                            <span class="badge bg-success">Public</span>
+                                                            <% } else { %>
+                                                                <span class="badge bg-secondary">Private</span>
+                                                                <% } %>
+                                                    </div>
+                                                    <div>
+                                                        <a href="/teacher/lesson-notes/<%= note.id %>"
+                                                            class="btn btn-sm btn-outline-primary">View</a>
+                                                        <a href="/teacher/lesson-notes/<%= note.id %>/edit"
+                                                            class="btn btn-sm btn-outline-warning">Edit</a>
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                            onclick="deleteNote('<%= note.id %>')">Delete</button>
+                                                    </div>
+                                                </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }) %>
+                                <% } else { %>
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-body text-center py-5">
+                                                <i class="fas fa-sticky-note fa-3x text-muted mb-3"></i>
+                                                <h4>No Lesson Notes Yet</h4>
+                                                <p class="text-muted">Create your first lesson note to share with
+                                                    students.</p>
+                                                <a href="/teacher/lesson-notes/create" class="btn btn-success">
+                                                    <i class="fas fa-plus me-1"></i> Create Note
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% } %>
+                </div>
+        </div>
+
+        <script>
+            function deleteNote(noteId) {
+                if (confirm('Are you sure you want to delete this lesson note?')) {
+                    fetch(`/teacher/lesson-notes/${noteId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Error deleting note');
+                        });
+                }
+            }
+        </script>
+</body>
+
+</html>

@@ -702,4 +702,13 @@ teacherRouter.get('/debug/assignment-submissions/:assignmentId', async (req, res
   }
 });
 
+// ========== LESSON NOTES ROUTES ==========
+teacherRouter.get('/lesson-notes', teacherController.viewLessonNotes);
+teacherRouter.get('/lesson-notes/create', teacherController.createLessonNoteForm);
+teacherRouter.post('/lesson-notes', teacherController.createLessonNote);
+teacherRouter.get('/lesson-notes/:id', teacherController.viewLessonNote);
+teacherRouter.get('/lesson-notes/:id/edit', teacherController.editLessonNoteForm);
+teacherRouter.put('/lesson-notes/:id', teacherController.updateLessonNote);
+teacherRouter.delete('/lesson-notes/:id', teacherController.deleteLessonNote);
+
 module.exports = teacherRouter;

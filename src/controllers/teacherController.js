@@ -3765,3 +3765,299 @@ exports.parseClassWorkQuestions = async (req, res) => {
     });
   }
 };
+
+// ========== LESSON NOTES MANAGEMENT ==========
+
+// View all lesson notes
+exports.viewLessonNotes = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+    const { class: classFilter, search } = req.query;
+
+    // Build filter
+    const where = { teacherId };
+    if (classFilter && classFilter !== 'all') {
+      where.classId = classFilter;
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const lessonNotes = await prisma.lessonNote.findMany({
+      where,
+      include: {
+        class: {
+          select: { id: true, name: true, grade: true, section: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const classes = await prisma.class.findMany({
+      where: { teacherId },
+      select: { id: true, name: true }
+    });
+
+    res.render('teacher/lesson-notes', {
+      title: 'Lesson Notes',
+      lessonNotes,
+      classes,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user,
+      currentFilters: { class: classFilter, search }
+    });
+
+  } catch (error) {
+    console.error('❌ View lesson notes error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
+// Create lesson note form
+exports.createLessonNoteForm = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+    const { classId } = req.query;
+
+    const classes = await prisma.class.findMany({
+      where: { teacherId },
+      select: { id: true, name: true }
+    });
+
+    res.render('teacher/create-lesson-note', {
+      title: 'Create Lesson Note',
+      classes,
+      selectedClass: classId || null,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
+    });
+
+  } catch (error) {
+    console.error('❌ Create lesson note form error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
+// Create lesson note
+exports.createLessonNote = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const { title, description, content, classId, isPublic, tags } = req.body;
+
+    console.log('📝 Creating lesson note:', { title, classId, teacherId });
+
+    // Validate
+    if (!title || !title.trim()) {
+      req.flash('error', 'Title is required');
+      return res.redirect('/teacher/lesson-notes/create');
+    }
+
+    if (!content || !content.trim()) {
+      req.flash('error', 'Content is required');
+      return res.redirect('/teacher/lesson-notes/create');
+    }
+
+    // Parse tags
+    let parsedTags = [];
+    if (tags) {
+      parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    // Create note
+    const lessonNote = await prisma.lessonNote.create({
+      data: {
+        title: title.trim(),
+        description: description ? description.trim() : null,
+        content: content.trim(),
+        classId: classId || null,
+        teacherId,
+        isPublic: isPublic === 'on' || isPublic === true || isPublic === 'true',
+        tags: parsedTags,
+        createdAt: new Date()
+      }
+    });
+
+    console.log('✅ Lesson note created:', lessonNote.id);
+
+    // Send notification to students (if class selected)
+    if (classId) {
+      try {
+        const students = await prisma.enrollment.findMany({
+          where: { classId },
+          include: { student: true }
+        });
+        for (const enrollment of students) {
+          await createNotification(
+            enrollment.student.userId,
+            'New Lesson Note',
+            `New lesson note "${title}" has been published`,
+            'fa-sticky-note'
+          );
+        }
+        console.log(`📢 Sent notifications to ${students.length} students`);
+      } catch (notifError) {
+        console.error('❌ Failed to send notifications:', notifError);
+      }
+    }
+
+    req.flash('success', 'Lesson note created successfully!');
+    res.redirect('/teacher/lesson-notes');
+
+  } catch (error) {
+    console.error('❌ Create lesson note error:', error);
+    req.flash('error', 'Failed to create lesson note: ' + error.message);
+    res.redirect('/teacher/lesson-notes/create');
+  }
+};
+
+// View single lesson note
+exports.viewLessonNote = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const noteId = req.params.id;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    const lessonNote = await prisma.lessonNote.findFirst({
+      where: { id: noteId, teacherId },
+      include: {
+        class: {
+          select: { id: true, name: true, grade: true, section: true }
+        },
+        teacher: {
+          include: { user: { select: { firstName: true, lastName: true } } }
+        }
+      }
+    });
+
+    if (!lessonNote) {
+      req.flash('error', 'Lesson note not found');
+      return res.redirect('/teacher/lesson-notes');
+    }
+
+    res.render('teacher/view-lesson-note', {
+      title: lessonNote.title,
+      lessonNote,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
+    });
+
+  } catch (error) {
+    console.error('❌ View lesson note error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
+// Edit lesson note form
+exports.editLessonNoteForm = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const noteId = req.params.id;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    const lessonNote = await prisma.lessonNote.findFirst({
+      where: { id: noteId, teacherId },
+      include: { class: true }
+    });
+
+    if (!lessonNote) {
+      req.flash('error', 'Lesson note not found');
+      return res.redirect('/teacher/lesson-notes');
+    }
+
+    const classes = await prisma.class.findMany({
+      where: { teacherId },
+      select: { id: true, name: true }
+    });
+
+    res.render('teacher/edit-lesson-note', {
+      title: 'Edit Lesson Note',
+      lessonNote,
+      classes,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
+    });
+
+  } catch (error) {
+    console.error('❌ Edit lesson note form error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
+// Update lesson note
+exports.updateLessonNote = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const noteId = req.params.id;
+    const { title, description, content, classId, isPublic, tags } = req.body;
+
+    const existing = await prisma.lessonNote.findFirst({
+      where: { id: noteId, teacherId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Note not found' });
+    }
+
+    let parsedTags = [];
+    if (tags) {
+      parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    await prisma.lessonNote.update({
+      where: { id: noteId },
+      data: {
+        title: title.trim(),
+        description: description ? description.trim() : null,
+        content: content.trim(),
+        classId: classId || null,
+        isPublic: isPublic === 'on' || isPublic === true || isPublic === 'true',
+        tags: parsedTags,
+        updatedAt: new Date()
+      }
+    });
+
+    res.json({ success: true, message: 'Lesson note updated successfully' });
+
+  } catch (error) {
+    console.error('❌ Update lesson note error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update' });
+  }
+};
+
+// Delete lesson note
+exports.deleteLessonNote = async (req, res) => {
+  try {
+    const teacherId = req.session.user.teacherId;
+    const noteId = req.params.id;
+
+    const existing = await prisma.lessonNote.findFirst({
+      where: { id: noteId, teacherId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Note not found' });
+    }
+
+    await prisma.lessonNote.delete({ where: { id: noteId } });
+
+    res.json({ success: true, message: 'Lesson note deleted successfully' });
+
+  } catch (error) {
+    console.error('❌ Delete lesson note error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete' });
+  }
+};

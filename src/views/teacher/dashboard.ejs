@@ -213,7 +213,9 @@
                                 <div class="mb-2">
                                     <small><strong>Lesson Notes:</strong></small>
                                     <span class="badge bg-dark float-end">
-                                        <%= lessonNotesCount || 0 %>
+                                    const lessonNotesCount = await prisma.lessonNote.count({
+                                    where: { teacherId }
+                                    });
                                     </span>
                                 </div>
                             </div>
