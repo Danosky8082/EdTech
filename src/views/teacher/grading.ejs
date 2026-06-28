@@ -55,6 +55,56 @@
             max-height: 200px;
             overflow-y: auto;
         }
+
+        /* Enhanced tab styles */
+        .nav-tabs .nav-link {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-right: 6px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.25s;
+            background: transparent;
+        }
+
+        .nav-tabs .nav-link i {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: #e9ecef;
+            color: #0d6efd;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: #0d6efd;
+            color: white;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-tabs .nav-link .badge {
+            background: rgba(0, 0, 0, 0.15);
+            color: inherit;
+            margin-left: 6px;
+        }
+
+        .nav-tabs .nav-link.active .badge {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .tab-tooltip {
+            font-size: 0.75rem;
+            display: block;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .nav-tabs .nav-link.active .tab-tooltip {
+            color: rgba(255, 255, 255, 0.8);
+        }
     </style>
 </head>
 
@@ -73,7 +123,7 @@
                             <% } %>
                 </div>
 
-                <!-- ===== Helper for avatar URLs (safe EJS) ===== -->
+                <!-- ===== Helper for avatar URLs ===== -->
                 <% function cleanAvatar(avatar) { if (!avatar) return '/images/default-profile.png' ; if
                     (avatar.startsWith('/https:/')) return avatar.replace('/https:/', 'https://' ); if
                     (avatar.startsWith('/http:/')) return avatar.replace('/http:/', 'http://' ); if
@@ -123,7 +173,7 @@
                                     <h5>Grading Statistics</h5>
                                 </div>
                                 <div class="card-body">
-                                    <% var pendingCount=0; var gradedCount=0; if (submissions) { for (var i=0; i <
+                                    <% var pendingCount=0, gradedCount=0; if (submissions) { for (var i=0; i <
                                         submissions.length; i++) { if (submissions[i].grade===null) pendingCount++; else
                                         gradedCount++; } } %>
                                         <div><small>Total Submissions: <span class="float-end badge bg-primary">
@@ -167,13 +217,27 @@
                                 </div>
                             </div>
 
-                            <!-- Tabs -->
+                            <!-- ===== ENHANCED TABS ===== -->
                             <ul class="nav nav-tabs mb-4" id="gradingTabs" role="tablist">
-                                <li class="nav-item"><button class="nav-link active" id="pending-tab"
-                                        data-bs-toggle="tab" data-bs-target="#pending" type="button">Pending (<%=
-                                            pendingCount %>)</button></li>
-                                <li class="nav-item"><button class="nav-link" id="graded-tab" data-bs-toggle="tab"
-                                        data-bs-target="#graded" type="button">Graded (<%= gradedCount %>)</button></li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link active" id="pending-tab" data-bs-toggle="tab" href="#pending"
+                                        role="tab">
+                                        <i class="fas fa-hourglass-half"></i> Pending
+                                        <span class="badge">
+                                            <%= pendingCount %>
+                                        </span>
+                                        <span class="tab-tooltip">Awaiting grading</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" id="graded-tab" data-bs-toggle="tab" href="#graded" role="tab">
+                                        <i class="fas fa-check-circle"></i> Graded
+                                        <span class="badge">
+                                            <%= gradedCount %>
+                                        </span>
+                                        <span class="tab-tooltip">Already graded</span>
+                                    </a>
+                                </li>
                             </ul>
 
                             <div class="tab-content" id="gradingTabContent">
@@ -314,22 +378,23 @@
                                             </div>
                                             <% } } else { %>
                                                 <div class="card">
-                                                    <div class="card-body text-center py-5"><i
-                                                            class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                                    <div class="card-body text-center py-5">
+                                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                                                         <h4>All Caught Up!</h4>
                                                         <p class="text-muted">You have no pending submissions to grade.
-                                                        </p><a href="/teacher/assignments" class="btn btn-primary"><i
+                                                        </p>
+                                                        <a href="/teacher/assignments" class="btn btn-primary"><i
                                                                 class="fas fa-tasks me-1"></i> View Assignments</a>
                                                     </div>
                                                 </div>
                                                 <% } } else { %>
                                                     <div class="card">
-                                                        <div class="card-body text-center py-5"><i
-                                                                class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                                                        <div class="card-body text-center py-5">
+                                                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
                                                             <h4>No Submissions Yet</h4>
                                                             <p class="text-muted">You don't have any submissions to
-                                                                grade.</p><a href="/teacher/assignments"
-                                                                class="btn btn-primary"><i
+                                                                grade.</p>
+                                                            <a href="/teacher/assignments" class="btn btn-primary"><i
                                                                     class="fas fa-tasks me-1"></i> Create Assignment</a>
                                                         </div>
                                                     </div>
@@ -376,11 +441,14 @@
                                                                     </div>
                                                                 </div>
                                                             </td>
-                                                            <td><strong>
+                                                            <td>
+                                                                <strong>
                                                                     <%= sub.assignment.title %>
-                                                                </strong><br><small class="text-muted">Due: <%= new
+                                                                </strong><br>
+                                                                <small class="text-muted">Due: <%= new
                                                                         Date(sub.assignment.dueDate).toLocaleDateString()
-                                                                        %></small></td>
+                                                                        %></small>
+                                                            </td>
                                                             <td>
                                                                 <% if (sub.assignment.class) { %>
                                                                     <%= sub.assignment.class.name %>
@@ -402,8 +470,8 @@
                                                                 </small>
                                                             </td>
                                                             <td>
-                                                                <%= new Date(sub.gradedAt).toLocaleDateString() %>
-                                                                    <br><small>
+                                                                <%= new Date(sub.gradedAt).toLocaleDateString() %><br>
+                                                                    <small>
                                                                         <%= new
                                                                             Date(sub.gradedAt).toLocaleTimeString([],
                                                                             {hour:'2-digit', minute:'2-digit'}) %>
@@ -426,11 +494,11 @@
                                         </div>
                                         <% } else { %>
                                             <div class="card">
-                                                <div class="card-body text-center py-5"><i
-                                                        class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                                                <div class="card-body text-center py-5">
+                                                    <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
                                                     <h4>No Graded Submissions</h4>
-                                                    <p class="text-muted">You haven't graded any submissions yet.</p><a
-                                                        href="#pending" class="btn btn-primary" data-bs-toggle="tab"><i
+                                                    <p class="text-muted">You haven't graded any submissions yet.</p>
+                                                    <a href="#pending" class="btn btn-primary" data-bs-toggle="tab"><i
                                                             class="fas fa-graduation-cap me-1"></i> Start Grading</a>
                                                 </div>
                                             </div>
@@ -446,8 +514,8 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Update Grade</h5><button type="button" class="btn-close"
-                            data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title">Update Grade</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body" id="regradeModalBody"></div>
                 </div>
@@ -456,7 +524,7 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Grade submission
+            // Grade submission (AJAX)
             document.querySelectorAll('.grade-form').forEach(form => {
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
@@ -561,12 +629,24 @@
                     });
             }
 
-            // Tab switching
+            // Tab switching with URL persistence
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('tab') === 'graded') {
                 const tab = new bootstrap.Tab(document.querySelector('#graded-tab'));
                 tab.show();
             }
+
+            // Save tab state in URL when switching
+            document.querySelectorAll('#gradingTabs a').forEach(link => {
+                link.addEventListener('shown.bs.tab', function (e) {
+                    const href = this.getAttribute('href');
+                    if (href === '#graded') {
+                        history.pushState(null, '', '/teacher/grading?tab=graded');
+                    } else {
+                        history.pushState(null, '', '/teacher/grading');
+                    }
+                });
+            });
         </script>
 </body>
 
