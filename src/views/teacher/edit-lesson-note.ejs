@@ -1,40 +1,177 @@
-exports.updateLessonNote = async (req, res) => {
-try {
-const teacherId = req.session.user.teacherId;
-const noteId = req.params.id;
-const { title, description, content, classId, isPublic, tags } = req.body;
+<!DOCTYPE html>
+<html lang="en">
 
-const existing = await prisma.lessonNote.findFirst({
-where: { id: noteId, teacherId }
-});
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .profile-section {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
 
-if (!existing) {
-return res.status(404).json({ success: false, message: 'Note not found' });
-}
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
 
-let parsedTags = [];
-if (tags) {
-parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
-}
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
 
-await prisma.lessonNote.update({
-where: { id: noteId },
-data: {
-title: title.trim(),
-description: description ? description.trim() : null,
-content: content.trim(),
-classId: classId || null,
-isPublic: isPublic === 'on' || isPublic === true || isPublic === 'true',
-tags: parsedTags,
-updatedAt: new Date()
-}
-});
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
 
-req.flash('success', 'Lesson note updated successfully');
-res.redirect('/teacher/lesson-notes');
-} catch (error) {
-console.error('❌ Update lesson note error:', error);
-req.flash('error', 'Failed to update lesson note: ' + error.message);
-res.redirect(`/teacher/lesson-notes/${noteId}/edit`);
-}
-};
+        .card-header {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            text-align: left;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .action-btn i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .action-btn:hover {
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <div class="row">
+                    <!-- Left Sidebar -->
+                    <div class="col-md-3">
+                        <div class="profile-section text-center">
+                            <%- include('../partials/user-avatar', { localClass: 'profile-img mb-3' }) %>
+                                <h4>
+                                    <%= user.firstName %>
+                                        <%= user.lastName %>
+                                </h4>
+                                <p class="welcome-text">Edit Lesson Note</p>
+                                <span class="user-role">Teacher</span>
+                                <div class="mt-2">
+                                    <small><i class="fas fa-school me-1"></i>
+                                        <%= userSchool %>
+                                    </small>
+                                </div>
+                        </div>
+
+                        <div class="card dashboard-card mb-4">
+                            <div class="card-header">
+                                <h5>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="/teacher/lesson-notes" class="btn btn-outline-primary w-100 mb-2 action-btn"><i
+                                        class="fas fa-sticky-note"></i> All Notes</a>
+                                <a href="/teacher/lesson-notes/create"
+                                    class="btn btn-outline-success w-100 mb-2 action-btn"><i class="fas fa-plus"></i>
+                                    Create Note</a>
+                                <a href="/teacher/dashboard" class="btn btn-outline-secondary w-100 mb-2 action-btn"><i
+                                        class="fas fa-home"></i> Dashboard</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="col-md-9">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-edit me-2"></i>Edit Lesson Note</h4>
+                            </div>
+                            <div class="card-body">
+                                <!-- Use method override for PUT -->
+                                <form action="/teacher/lesson-notes/<%= lessonNote.id %>?_method=PUT" method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">Title *</label>
+                                        <input type="text" class="form-control" name="title"
+                                            value="<%= lessonNote.title %>" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Description (Optional)</label>
+                                        <textarea class="form-control" name="description"
+                                            rows="2"><%= lessonNote.description || '' %></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Content *</label>
+                                        <textarea class="form-control" name="content" rows="8"
+                                            required><%= lessonNote.content %></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Class (Optional)</label>
+                                        <select class="form-select" name="classId">
+                                            <option value="">All Classes</option>
+                                            <% classes.forEach(cls=> { %>
+                                                <option value="<%= cls.id %>" <%=lessonNote.classId===cls.id
+                                                    ? 'selected' : '' %>>
+                                                    <%= cls.name %>
+                                                </option>
+                                                <% }); %>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Tags (comma separated)</label>
+                                        <input type="text" class="form-control" name="tags"
+                                            value="<%= lessonNote.tags ? lessonNote.tags.join(', ') : '' %>">
+                                    </div>
+
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" name="isPublic" id="isPublic"
+                                            <%=lessonNote.isPublic ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="isPublic">Make this note public (students
+                                            can view)</label>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <a href="/teacher/lesson-notes" class="btn btn-secondary">Cancel</a>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-save me-1"></i> Update Note
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
