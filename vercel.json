@@ -5,7 +5,7 @@
       "use": "@vercel/node"
     }
   ],
-  "buildCommand": "npx prisma generate && npx prisma migrate deploy",
+  "buildCommand": "npx prisma db push && npx prisma generate",
   "routes": [
     {
       "src": "/(.*)",
