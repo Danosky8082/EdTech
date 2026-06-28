@@ -1181,7 +1181,9 @@ exports.viewGrading = async (req, res) => {
   }
 };
 
-// Grade assignment
+// ========== GRADING MANAGEMENT ==========
+
+// Grade submission – handles both AJAX and traditional forms
 exports.submitGrade = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -1191,20 +1193,34 @@ exports.submitGrade = async (req, res) => {
     console.log('🎯 Submitting grade for:', submissionId);
 
     // Validate - must be integer for grade field
-    if (!score || score.trim() === '') {
-      req.flash('error', 'Please enter a score');
-      return res.redirect('/teacher/grading');
+    if (score === undefined || score === null || score === '') {
+      if (req.accepts('json')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please enter a score'
+        });
+      } else {
+        req.flash('error', 'Please enter a score');
+        return res.redirect('/teacher/grading');
+      }
     }
 
     const gradeInt = parseInt(score, 10);
     if (isNaN(gradeInt)) {
-      req.flash('error', 'Score must be a number');
-      return res.redirect('/teacher/grading');
+      if (req.accepts('json')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Score must be a number'
+        });
+      } else {
+        req.flash('error', 'Score must be a number');
+        return res.redirect('/teacher/grading');
+      }
     }
 
     // Get assignment to validate max points
     const submission = await prisma.submission.findFirst({
-      where: { 
+      where: {
         id: submissionId,
         assignment: { teacherId: teacherId }
       },
@@ -1212,14 +1228,26 @@ exports.submitGrade = async (req, res) => {
     });
 
     if (!submission) {
-      req.flash('error', 'Submission not found');
-      return res.redirect('/teacher/grading');
+      if (req.accepts('json')) {
+        return res.status(404).json({
+          success: false,
+          message: 'Submission not found'
+        });
+      } else {
+        req.flash('error', 'Submission not found');
+        return res.redirect('/teacher/grading');
+      }
     }
 
     const maxPoints = submission.assignment.points || 100;
     if (gradeInt < 0 || gradeInt > maxPoints) {
-      req.flash('error', `Score must be between 0 and ${maxPoints}`);
-      return res.redirect('/teacher/grading');
+      const msg = `Score must be between 0 and ${maxPoints}`;
+      if (req.accepts('json')) {
+        return res.status(400).json({ success: false, message: msg });
+      } else {
+        req.flash('error', msg);
+        return res.redirect('/teacher/grading');
+      }
     }
 
     // Update using ONLY fields from your schema
@@ -1233,8 +1261,8 @@ exports.submitGrade = async (req, res) => {
     });
 
     console.log(`✅ Grade ${gradeInt} saved to grade field`);
-    
-    // ADD NOTIFICATION SERVICE CALL HERE
+
+    // Send notification
     try {
       await notificationService.notifyAssignmentGraded(submissionId, gradeInt, feedback || '');
       console.log('📢 Grade submission notification sent');
@@ -1242,14 +1270,29 @@ exports.submitGrade = async (req, res) => {
       console.error('❌ Failed to send grade notification:', notificationError);
       // Don't fail the whole operation if notification fails
     }
-    
-    req.flash('success', 'Grade submitted successfully');
-    return res.redirect('/teacher/grading');
+
+    // ✅ Check if request accepts JSON
+    if (req.accepts('json')) {
+      return res.json({
+        success: true,
+        message: 'Grade submitted successfully'
+      });
+    } else {
+      req.flash('success', 'Grade submitted successfully!');
+      return res.redirect('/teacher/grading');
+    }
 
   } catch (error) {
     console.error('❌ Grading error:', error);
-    req.flash('error', 'Failed to submit grade');
-    return res.redirect('/teacher/grading');
+    if (req.accepts('json')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to submit grade: ' + error.message
+      });
+    } else {
+      req.flash('error', 'Failed to submit grade: ' + error.message);
+      return res.redirect('/teacher/grading');
+    }
   }
 };
 
