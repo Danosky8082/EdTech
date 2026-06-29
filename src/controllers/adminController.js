@@ -1,5 +1,5 @@
 // ============================================================
-// CONTROLLER: adminController.js (Full) - FINAL FIX
+// CONTROLLER: adminController.js (Revenue-Focused)
 // ============================================================
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
@@ -7,7 +7,7 @@ const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHel
 const { uploadToBlob } = require('../utils/fileUpload');
 
 // --------------------------------------------
-// HELPERS
+// HELPERS (unchanged)
 // --------------------------------------------
 const generateTemporaryPassword = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -81,7 +81,7 @@ function getAccessStatus(user) {
 }
 
 // --------------------------------------------
-// CROSS-SCHOOL PARENT HELPER (DUPLICATE PREVENTION)
+// CROSS-SCHOOL PARENT HELPER (unchanged)
 // --------------------------------------------
 const findOrLinkParent = async (studentId, firstName, lastName, email, relationship, school) => {
   let parentUser = null;
@@ -112,7 +112,6 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
   }
 
   if (parentUser) {
-    // Existing parent found – link if not already linked
     const parent = parentUser.parent;
     const existingLink = await prisma.studentParent.findUnique({
       where: {
@@ -133,7 +132,6 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
     }
     return { success: true, linked: true, existing: true, parentUser };
   } else {
-    // Create new parent (assign the student's school)
     const parentIdNumber = await generateParentId();
     const newParentUser = await prisma.user.create({
       data: {
@@ -162,7 +160,7 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
 };
 
 // --------------------------------------------
-// DASHBOARD (with wallet balance) - FIXED
+// DASHBOARD – SCHOOL REVENUE
 // --------------------------------------------
 const dashboard = async (req, res) => {
   try {
@@ -189,37 +187,50 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    // ---------- WALLET BALANCE (FIXED) ----------
-    let walletBalance = 0;
-    if (isSuperAdmin) {
-      // Super admin: sum all wallets
-      const walletResult = await prisma.wallet.aggregate({
-        _sum: { balance: true }
-      });
-      walletBalance = walletResult._sum.balance || 0;
-    } else if (userSchool) {
-      // School admin: sum wallets of parents linked to students in this school
-      const walletResult = await prisma.wallet.aggregate({
-        where: {
-          parent: {
-            students: {
-              some: {
-                student: {
-                  user: {
-                    school: userSchool
-                  }
+    // ---------- SCHOOL REVENUE (Total Verified Payments) ----------
+    let revenueWhere = {};
+    if (userSchool && !isSuperAdmin) {
+      revenueWhere = {
+        student: {
+          user: {
+            school: userSchool
+          }
+        }
+      };
+    }
+    const revenueResult = await prisma.tuitionPayment.aggregate({
+      where: {
+        status: 'verified',
+        ...revenueWhere
+      },
+      _sum: { amount: true }
+    });
+    const schoolRevenue = revenueResult._sum.amount || 0;
+
+    // (Optional) Parent wallet balance – not displayed on main card
+    let walletWhere = {};
+    if (userSchool && !isSuperAdmin) {
+      walletWhere = {
+        parent: {
+          students: {
+            some: {
+              student: {
+                user: {
+                  school: userSchool
                 }
               }
             }
           }
-        },
-        _sum: { balance: true }
-      });
-      walletBalance = walletResult._sum.balance || 0;
+        }
+      };
     }
-    // If no school and not super admin, walletBalance stays 0
+    const walletResult = await prisma.wallet.aggregate({
+      where: walletWhere,
+      _sum: { balance: true }
+    });
+    const parentWalletBalance = walletResult._sum.balance || 0;
 
-    // ---------- RECENT ACTIVITIES ----------
+    // ---------- RECENT ACTIVITIES (unchanged) ----------
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -240,7 +251,7 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
-    // ---------- NOTIFICATIONS ----------
+    // ---------- NOTIFICATIONS (unchanged) ----------
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -294,7 +305,7 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
-    // ---------- USER & AVATAR ----------
+    // ---------- USER & AVATAR (unchanged) ----------
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -324,7 +335,7 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
-      walletBalance,                     // FIXED
+      schoolRevenue,                // <-- main metric: actual revenue
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
@@ -670,7 +681,7 @@ const updateUser = async (req, res) => {
 };
 
 // --------------------------------------------
-// USER MANAGEMENT - FIXED
+// USER MANAGEMENT – SCHOOL REVENUE
 // --------------------------------------------
 const manageUsers = async (req, res) => {
   try {
@@ -757,38 +768,45 @@ const manageUsers = async (req, res) => {
 
     const parentCount = users.filter(user => user.role === 'parent').length;
 
-    // ---------- WALLET BALANCE (FIXED) ----------
-    let walletBalance = 0;
-    if (isSuperAdmin) {
-      // Super admin: sum all wallets from the already‑fetched users list
-      walletBalance = users.reduce((total, user) => {
-        if (user.role === 'parent' && user.parent && user.parent.wallet) {
-          return total + user.parent.wallet.balance;
+    // ---------- SCHOOL REVENUE ----------
+    let revenueWhere = {};
+    if (userSchool && !isSuperAdmin) {
+      revenueWhere = {
+        student: {
+          user: {
+            school: userSchool
+          }
         }
-        return total;
-      }, 0);
-    } else if (userSchool) {
-      // School admin: sum wallets of parents linked to students in this school
-      const walletResult = await prisma.wallet.aggregate({
-        where: {
-          parent: {
-            students: {
-              some: {
-                student: {
-                  user: {
-                    school: userSchool
-                  }
+      };
+    }
+    const revenueResult = await prisma.tuitionPayment.aggregate({
+      where: {
+        status: 'verified',
+        ...revenueWhere
+      },
+      _sum: { amount: true }
+    });
+    const schoolRevenue = revenueResult._sum.amount || 0;
+
+    // (Optional) Parent wallet balance – not displayed
+    const walletResult = await prisma.wallet.aggregate({
+      where: {
+        parent: {
+          students: {
+            some: {
+              student: {
+                user: {
+                  school: userSchool
                 }
               }
             }
           }
-        },
-        _sum: { balance: true }
-      });
-      walletBalance = walletResult._sum.balance || 0;
-    }
-    // If no school and not super admin, walletBalance stays 0
-    
+        }
+      },
+      _sum: { balance: true }
+    });
+    const parentWalletBalance = walletResult._sum.balance || 0;
+
     const success = req.query.success;
     const error = req.query.error;
 
@@ -881,7 +899,7 @@ const manageUsers = async (req, res) => {
       unpaidStudents,
       expiredStudents,
       parentCount,
-      walletBalance,
+      schoolRevenue,               // <-- main metric
       userSchool,
       isSuperAdmin,
       canSeeAllSchoolUsers,
@@ -906,6 +924,7 @@ const manageUsers = async (req, res) => {
     });
   }
 };
+
 
 // --------------------------------------------
 // TUITION MANAGEMENT
