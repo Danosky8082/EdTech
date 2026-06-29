@@ -335,7 +335,9 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
-      schoolRevenue,                // <-- main metric: actual revenue
+      schoolRevenue,                // actual revenue
+      parentWalletBalance,          // parent credits
+      recentActivities: formattedActivities,
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
@@ -892,30 +894,31 @@ const manageUsers = async (req, res) => {
     }
     
     res.render('admin/users', { 
-      title: 'User Management',
-      users: usersWithAge,
-      paidStudents,
-      partialStudents,
-      unpaidStudents,
-      expiredStudents,
-      parentCount,
-      schoolRevenue,               // <-- main metric
-      userSchool,
-      isSuperAdmin,
-      canSeeAllSchoolUsers,
-      userRole: req.user.role,
-      adminInfo: req.user?.admin || null,
-      success,
-      error,
-      getAccessStatus,
-      notificationCount: notificationCount,
-      notificationsDropdownHtml: notificationsDropdownHtml,
-      userFirstName: user ? user.firstName || '' : '',
-      userLastName: user ? user.lastName || '' : '',
-      avatarUrl: avatarUrl,
-      fallbackAvatar: fallbackAvatar,
-      notifications: notifications
-    });
+  title: 'User Management',
+  users: usersWithAge,
+  paidStudents,
+  partialStudents,
+  unpaidStudents,
+  expiredStudents,
+  parentCount,
+  schoolRevenue,               // main metric: actual revenue
+  parentWalletBalance,         // secondary metric: parent credits
+  userSchool,
+  isSuperAdmin,
+  canSeeAllSchoolUsers,
+  userRole: req.user.role,
+  adminInfo: req.user?.admin || null,
+  success,
+  error,
+  getAccessStatus,
+  notificationCount: notificationCount,
+  notificationsDropdownHtml: notificationsDropdownHtml,
+  userFirstName: user ? user.firstName || '' : '',
+  userLastName: user ? user.lastName || '' : '',
+  avatarUrl: avatarUrl,
+  fallbackAvatar: fallbackAvatar,
+  notifications: notifications
+});
   } catch (error) {
     console.error('Manage users error:', error);
     res.status(500).render('error/500', { 
