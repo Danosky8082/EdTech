@@ -307,7 +307,6 @@
 
                     <!-- Main Content -->
                     <div class="col-md-9">
-                        <!-- Stats Cards -->
                         <div class="row">
                             <div class="col-md-3 mb-4">
                                 <div class="card text-center stat-card">
@@ -351,18 +350,6 @@
                             </div>
                         </div>
 
-                        <!-- New row for Wallet Balance -->
-                        <div class="row">
-                            <div class="col-md-12 mb-4">
-                                <div class="card text-center stat-card">
-                                    <div class="card-body">
-                                        <h1 class="display-4"><strong>=N=<%= walletBalance %></strong></h1>
-                                        <p class="card-text"><strong>Total Wallet Balance</strong></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="card mb-4 dashboard-card">
@@ -400,7 +387,7 @@
                                                         </p>
                                                         <% if (activity.email) { %>
                                                             <small class="text-muted">Email: <%= activity.email %>
-                                                            </small>
+                                                                    </small>
                                                             <% } %>
                                                     </div>
                                                     <% }); %>
