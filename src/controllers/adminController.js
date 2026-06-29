@@ -1,5 +1,5 @@
 // ============================================================
-// CONTROLLER: adminController.js (Full)
+// CONTROLLER: adminController.js (Full) - FIXED
 // ============================================================
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
@@ -189,15 +189,25 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    // ---------- WALLET BALANCE ----------
-    const walletResult = await prisma.wallet.aggregate({
-      where: {
+    // ---------- WALLET BALANCE (FIXED) ----------
+    let walletWhere = {};
+    if (userSchool && !isSuperAdmin) {
+      walletWhere = {
         parent: {
-          user: {
-            ...(userSchool && !isSuperAdmin ? { school: userSchool } : {})
+          students: {
+            some: {
+              student: {
+                user: {
+                  school: userSchool
+                }
+              }
+            }
           }
         }
-      },
+      };
+    }
+    const walletResult = await prisma.wallet.aggregate({
+      where: walletWhere,
       _sum: { balance: true }
     });
     const walletBalance = walletResult._sum.balance || 0;
@@ -307,7 +317,7 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
-      walletBalance,                     // <-- NEW
+      walletBalance,                     // <-- FIXED
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
@@ -653,7 +663,7 @@ const updateUser = async (req, res) => {
 };
 
 // --------------------------------------------
-// USER MANAGEMENT
+// USER MANAGEMENT (FIXED)
 // --------------------------------------------
 const manageUsers = async (req, res) => {
   try {
@@ -739,12 +749,38 @@ const manageUsers = async (req, res) => {
     }).length;
 
     const parentCount = users.filter(user => user.role === 'parent').length;
-    const walletBalance = users.reduce((total, user) => {
-      if (user.role === 'parent' && user.parent && user.parent.wallet) {
-        return total + user.parent.wallet.balance;
-      }
-      return total;
-    }, 0);
+
+    // ---------- WALLET BALANCE (FIXED) ----------
+    let walletBalance = 0;
+    if (isSuperAdmin) {
+      // Super admin: sum all wallets from the already‑fetched users list
+      walletBalance = users.reduce((total, user) => {
+        if (user.role === 'parent' && user.parent && user.parent.wallet) {
+          return total + user.parent.wallet.balance;
+        }
+        return total;
+      }, 0);
+    } else if (userSchool) {
+      // School admin: sum wallets of parents linked to students in this school
+      const walletResult = await prisma.wallet.aggregate({
+        where: {
+          parent: {
+            students: {
+              some: {
+                student: {
+                  user: {
+                    school: userSchool
+                  }
+                }
+              }
+            }
+          }
+        },
+        _sum: { balance: true }
+      });
+      walletBalance = walletResult._sum.balance || 0;
+    }
+    // If no school and not super admin, walletBalance stays 0
     
     const success = req.query.success;
     const error = req.query.error;
