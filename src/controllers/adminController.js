@@ -162,7 +162,7 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
 };
 
 // --------------------------------------------
-// DASHBOARD
+// DASHBOARD (with wallet balance)
 // --------------------------------------------
 const dashboard = async (req, res) => {
   try {
@@ -189,6 +189,20 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
+    // ---------- WALLET BALANCE ----------
+    const walletResult = await prisma.wallet.aggregate({
+      where: {
+        parent: {
+          user: {
+            ...(userSchool && !isSuperAdmin ? { school: userSchool } : {})
+          }
+        }
+      },
+      _sum: { balance: true }
+    });
+    const walletBalance = walletResult._sum.balance || 0;
+
+    // ---------- RECENT ACTIVITIES ----------
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -209,6 +223,7 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
+    // ---------- NOTIFICATIONS ----------
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -262,6 +277,7 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
+    // ---------- USER & AVATAR ----------
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -282,6 +298,7 @@ const dashboard = async (req, res) => {
       where: { userId: userId }
     });
 
+    // ---------- RENDER ----------
     res.render('admin/dashboard', {
       title: 'Admin Dashboard',
       overview: {
@@ -290,6 +307,7 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
+      walletBalance,                     // <-- NEW
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
