@@ -1,5 +1,5 @@
 // ============================================================
-// CONTROLLER: adminController.js (Full) - FIXED
+// CONTROLLER: adminController.js (Full) - FINAL FIX
 // ============================================================
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
@@ -162,7 +162,7 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
 };
 
 // --------------------------------------------
-// DASHBOARD (with wallet balance)
+// DASHBOARD (with wallet balance) - FIXED
 // --------------------------------------------
 const dashboard = async (req, res) => {
   try {
@@ -190,27 +190,34 @@ const dashboard = async (req, res) => {
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
     // ---------- WALLET BALANCE (FIXED) ----------
-    let walletWhere = {};
-    if (userSchool && !isSuperAdmin) {
-      walletWhere = {
-        parent: {
-          students: {
-            some: {
-              student: {
-                user: {
-                  school: userSchool
+    let walletBalance = 0;
+    if (isSuperAdmin) {
+      // Super admin: sum all wallets
+      const walletResult = await prisma.wallet.aggregate({
+        _sum: { balance: true }
+      });
+      walletBalance = walletResult._sum.balance || 0;
+    } else if (userSchool) {
+      // School admin: sum wallets of parents linked to students in this school
+      const walletResult = await prisma.wallet.aggregate({
+        where: {
+          parent: {
+            students: {
+              some: {
+                student: {
+                  user: {
+                    school: userSchool
+                  }
                 }
               }
             }
           }
-        }
-      };
+        },
+        _sum: { balance: true }
+      });
+      walletBalance = walletResult._sum.balance || 0;
     }
-    const walletResult = await prisma.wallet.aggregate({
-      where: walletWhere,
-      _sum: { balance: true }
-    });
-    const walletBalance = walletResult._sum.balance || 0;
+    // If no school and not super admin, walletBalance stays 0
 
     // ---------- RECENT ACTIVITIES ----------
     const recentActivities = await prisma.user.findMany({
@@ -317,7 +324,7 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
-      walletBalance,                     // <-- FIXED
+      walletBalance,                     // FIXED
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
@@ -663,7 +670,7 @@ const updateUser = async (req, res) => {
 };
 
 // --------------------------------------------
-// USER MANAGEMENT (FIXED)
+// USER MANAGEMENT - FIXED
 // --------------------------------------------
 const manageUsers = async (req, res) => {
   try {
