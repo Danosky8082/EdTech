@@ -28,17 +28,13 @@ const pgSession = require('connect-pg-simple')(session);
 const flash = require('express-flash');
 const methodOverride = require('method-override');
 
-// ✅ FIX: Keep only one notificationRoutes import
 const notificationRoutes = require('./routes/notification.routes');
-
-
 const fetch = require('node-fetch');
 const teacherController = require('./controllers/teacherController');
 const studentController = require('./controllers/studentController');
 const prisma = require('./config/database');
 const activityTracker = require('./middleware/activityTracker');
 const noCache = require('./middleware/noCache');
-
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -50,6 +46,12 @@ const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
 
+// ============================================================
+// ✅ NEW: Profile controller and upload middleware
+// ============================================================
+const profileController = require('./controllers/profileController');
+const { uploadProfileSingle } = require('./utils/fileUpload');
+const { isAuthenticated } = require('./middleware/auth');
 
 // ============================================================
 // View engine
@@ -103,7 +105,6 @@ app.get('/debug-files', (req, res) => {
       result.exists = true;
     } else {
       result.exists = false;
-      // try to create it to see if we have write permissions
       try {
         fs.mkdirSync(dir, { recursive: true });
         result.created = true;
@@ -114,7 +115,6 @@ app.get('/debug-files', (req, res) => {
         result.mkdirError = mkdirErr.message;
       }
     }
-    // also check parent
     const parentDir = '/tmp/uploads';
     if (fs.existsSync(parentDir)) {
       const parentFiles = fs.readdirSync(parentDir);
@@ -133,7 +133,7 @@ app.get('/debug-files', (req, res) => {
 // Static files (fallback)
 // ============================================================
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads')); // local fallback
+app.use('/uploads', express.static('uploads'));
 
 // ============================================================
 // Body parsing and method override
@@ -151,7 +151,7 @@ app.use(session({
       connectionString: process.env.DATABASE_URL,
     },
     tableName: 'session',
-    createTableIfMissing: true,   // ✅ Add this line
+    createTableIfMissing: true,
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -178,12 +178,7 @@ app.use('/accountant', noCache);
 app.use('/cashier', noCache);
 app.use('/notifications', notificationRoutes);
 
-// ✅ Mount notification routes (works for both /notifications and /api/notifications)
-
-// Optionally, if you want a separate API prefix, you could add:
-// app.use('/api/notifications', notificationRoutes);
-
-// User context
+// User context (sets res.locals.user)
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
     res.locals.user = req.session.user;
@@ -209,7 +204,6 @@ app.use(async (req, res, next) => {
   res.locals.userLastName = '';
   res.locals.userRole = '';
 
-  // If no user, skip
   if (!req.session || !req.session.user) {
     return next();
   }
@@ -234,7 +228,6 @@ app.use(async (req, res, next) => {
     const unreadCount = notifications.filter(n => !n.read).length;
     res.locals.notificationCount = unreadCount;
 
-    // Build dropdown HTML (same logic as dashboard)
     let dropdownHtml = '';
     if (notifications && notifications.length > 0) {
       let itemsHtml = '';
@@ -310,10 +303,16 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// API routes
-// app.use('/api/notifications', notificationRoutes); // optional – already mounted at /notifications
+// ============================================================
+// ✅ PROFILE ROUTES (for all authenticated users)
+// ============================================================
+app.get('/profile', isAuthenticated, profileController.getProfile);
+app.post('/profile', isAuthenticated, uploadProfileSingle('avatar'), profileController.updateProfile);
+app.post('/profile/change-password', isAuthenticated, profileController.changePassword);
 
+// ============================================================
 // Main routes
+// ============================================================
 app.use('/auth', authRoutes);
 app.use('/student', studentRoutes);
 app.use('/teacher', teacherRoutes);
@@ -322,7 +321,7 @@ app.use('/parent', parentRoutes);
 app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
 
-// School context middleware
+// School context middleware (applied after routes so they can still use it)
 app.use('/teacher', setSchoolContext);
 app.use('/student', setSchoolContext);
 app.use('/admin', setSchoolContext);
