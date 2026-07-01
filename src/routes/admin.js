@@ -288,4 +288,8 @@ router.get('/parents/debug', async (req, res) => {
   }
 });
 
+router.get('/admin/school-setup', adminController.schoolSetupPage);
+router.post('/admin/school-setup', adminController.saveSchoolSetup);
+router.get('/admin/next-id', adminController.getNextUserId);
+
 module.exports = router;

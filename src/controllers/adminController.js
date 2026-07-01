@@ -1,10 +1,78 @@
 // ============================================================
-// CONTROLLER: adminController.js (Revenue-Focused)
+// CONTROLLER: adminController.js (Revenue-Focused + ID Setup)
 // ============================================================
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
 const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHelpers');
 const { uploadToBlob } = require('../utils/fileUpload');
+
+// --------------------------------------------
+// ID GENERATION HELPERS
+// --------------------------------------------
+const getSchoolSettings = async (schoolName) => {
+  if (!schoolName) return null;
+  return await prisma.schoolSettings.findUnique({
+    where: { school: schoolName }
+  });
+};
+
+const saveSchoolSettings = async (schoolName, prefix, separator = '-', includeYear = true, startingCounter = 1) => {
+  return await prisma.schoolSettings.upsert({
+    where: { school: schoolName },
+    update: {
+      idPrefix: prefix,
+      idSeparator: separator,
+      includeYear: includeYear,
+      idCounter: startingCounter
+    },
+    create: {
+      school: schoolName,
+      idPrefix: prefix,
+      idSeparator: separator,
+      includeYear: includeYear,
+      idCounter: startingCounter
+    }
+  });
+};
+
+const getNextSchoolId = async (schoolName) => {
+  let settings = await getSchoolSettings(schoolName);
+  if (!settings) return null;
+
+  let prefix = settings.idPrefix;
+  let counter = settings.idCounter;
+  let year = new Date().getFullYear();
+  let separator = settings.idSeparator || '-';
+  let includeYear = settings.includeYear;
+
+  let idNumber;
+  if (includeYear) {
+    idNumber = `${prefix}${separator}${year}${separator}${String(counter).padStart(3, '0')}`;
+  } else {
+    idNumber = `${prefix}${separator}${String(counter).padStart(3, '0')}`;
+  }
+
+  // Increment counter
+  await prisma.schoolSettings.update({
+    where: { school: schoolName },
+    data: { idCounter: { increment: 1 } }
+  });
+
+  return idNumber;
+};
+
+const previewNextId = async (schoolName) => {
+  const settings = await getSchoolSettings(schoolName);
+  if (!settings) return null;
+  let prefix = settings.idPrefix;
+  let counter = settings.idCounter;
+  let year = new Date().getFullYear();
+  let separator = settings.idSeparator || '-';
+  let includeYear = settings.includeYear;
+  return includeYear
+    ? `${prefix}${separator}${year}${separator}${String(counter).padStart(3, '0')}`
+    : `${prefix}${separator}${String(counter).padStart(3, '0')}`;
+};
 
 // --------------------------------------------
 // HELPERS (unchanged)
@@ -86,7 +154,6 @@ function getAccessStatus(user) {
 const findOrLinkParent = async (studentId, firstName, lastName, email, relationship, school) => {
   let parentUser = null;
 
-  // 1. Search by email across all schools
   if (email) {
     parentUser = await prisma.user.findFirst({
       where: {
@@ -98,7 +165,6 @@ const findOrLinkParent = async (studentId, firstName, lastName, email, relations
     });
   }
 
-  // 2. Search by full name (case-insensitive) across all schools
   if (!parentUser && firstName && lastName) {
     parentUser = await prisma.user.findFirst({
       where: {
@@ -187,7 +253,7 @@ const dashboard = async (req, res) => {
     const totalClasses = await prisma.class.count({ where: classWhere });
     const totalAssignments = await prisma.assignment.count({ where: assignmentWhere });
 
-    // ---------- SCHOOL REVENUE (Total Verified Payments) ----------
+    // ---------- SCHOOL REVENUE ----------
     let revenueWhere = {};
     if (userSchool && !isSuperAdmin) {
       revenueWhere = {
@@ -207,7 +273,7 @@ const dashboard = async (req, res) => {
     });
     const schoolRevenue = revenueResult._sum.amount || 0;
 
-    // (Optional) Parent wallet balance – not displayed on main card
+    // Parent wallet balance (optional)
     let walletWhere = {};
     if (userSchool && !isSuperAdmin) {
       walletWhere = {
@@ -230,7 +296,7 @@ const dashboard = async (req, res) => {
     });
     const parentWalletBalance = walletResult._sum.balance || 0;
 
-    // ---------- RECENT ACTIVITIES (unchanged) ----------
+    // ---------- RECENT ACTIVITIES ----------
     const recentActivities = await prisma.user.findMany({
       where: activityWhere,
       orderBy: { createdAt: 'desc' },
@@ -251,7 +317,7 @@ const dashboard = async (req, res) => {
       adminInfo: activity.admin
     }));
 
-    // ---------- NOTIFICATIONS (unchanged) ----------
+    // ---------- NOTIFICATIONS ----------
     const notifications = await prisma.notification.findMany({
       where: {
         userId: userId,
@@ -305,7 +371,7 @@ const dashboard = async (req, res) => {
       notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
     }
 
-    // ---------- USER & AVATAR (unchanged) ----------
+    // ---------- USER & AVATAR ----------
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
@@ -335,9 +401,8 @@ const dashboard = async (req, res) => {
         totalClasses,
         totalAssignments
       },
-      schoolRevenue,                // actual revenue
-      parentWalletBalance,          // parent credits
-      recentActivities: formattedActivities,
+      schoolRevenue,
+      parentWalletBalance,
       recentActivities: formattedActivities,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
@@ -361,7 +426,7 @@ const dashboard = async (req, res) => {
 };
 
 // --------------------------------------------
-// CREATE USER (with duplicate prevention)
+// CREATE USER (with auto‑ID generation)
 // --------------------------------------------
 const createUser = async (req, res) => {
   try {
@@ -374,18 +439,43 @@ const createUser = async (req, res) => {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
-    if (!idNumber || !firstName || !lastName || !role) {
-      return res.redirect('/admin/users?error=All required fields must be filled');
+    if (!firstName || !lastName || !role) {
+      return res.redirect('/admin/users?error=First name, last name and role are required');
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { idNumber: idNumber.trim() }
-    });
+    // ---------- ID NUMBER GENERATION ----------
+    let finalIdNumber = idNumber ? idNumber.trim() : '';
 
+    if (!finalIdNumber) {
+      let schoolName = null;
+      if (isSuperAdmin) {
+        schoolName = school ? school.trim() : null;
+        if (!schoolName) {
+          return res.redirect('/admin/users?error=School is required when auto‑generating ID');
+        }
+      } else {
+        schoolName = userSchool;
+        if (!schoolName) {
+          return res.redirect('/admin/users?error=Your account is not assigned to a school');
+        }
+      }
+
+      const generatedId = await getNextSchoolId(schoolName);
+      if (!generatedId) {
+        return res.redirect(`/admin/school-setup?school=${encodeURIComponent(schoolName)}&error=Please configure your school ID format first`);
+      }
+      finalIdNumber = generatedId;
+    }
+
+    // Check uniqueness
+    const existingUser = await prisma.user.findUnique({
+      where: { idNumber: finalIdNumber }
+    });
     if (existingUser) {
       return res.redirect('/admin/users?error=ID Number already exists');
     }
 
+    // Determine assigned school
     let assignedSchool;
     if (isSuperAdmin) {
       assignedSchool = school || null;
@@ -409,7 +499,7 @@ const createUser = async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        idNumber: idNumber.trim(),
+        idNumber: finalIdNumber,
         password: hashedPassword,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -424,6 +514,7 @@ const createUser = async (req, res) => {
       }
     });
 
+    // ---------- ROLE‑SPECIFIC CREATION ----------
     if (role === 'student') {
       if (!grade || !section) {
         await prisma.user.delete({ where: { id: user.id } });
@@ -444,7 +535,6 @@ const createUser = async (req, res) => {
         }
       });
 
-      // ---- Parent handling (optional) ----
       if (parentFirstName && parentLastName) {
         try {
           const result = await findOrLinkParent(
@@ -453,7 +543,7 @@ const createUser = async (req, res) => {
             parentLastName,
             parentEmail,
             parentRelationship,
-            assignedSchool   // used only when creating a new parent
+            assignedSchool
           );
           if (result.existing) {
             console.log(`👨‍👦 Linked existing parent (${result.parentUser.idNumber}) to student`);
@@ -514,14 +604,14 @@ const createUser = async (req, res) => {
       await prisma.cashier.create({
         data: {
           userId: user.id,
-          employeeId: idNumber.trim()
+          employeeId: finalIdNumber
         }
       });
     } else if (role === 'accountant') {
       await prisma.accountant.create({
         data: {
           userId: user.id,
-          employeeId: idNumber.trim()
+          employeeId: finalIdNumber
         }
       });
     }
@@ -683,14 +773,25 @@ const updateUser = async (req, res) => {
 };
 
 // --------------------------------------------
-// USER MANAGEMENT – SCHOOL REVENUE
+// USER MANAGEMENT – with needsSetup check
 // --------------------------------------------
 const manageUsers = async (req, res) => {
   try {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
     const canSeeAllSchoolUsers = req.canSeeAllSchoolUsers;
-    
+
+    // ---------- Check if school ID setup is needed ----------
+    let needsSetup = false;
+    if (!isSuperAdmin && userSchool) {
+      const settings = await getSchoolSettings(userSchool);
+      needsSetup = !settings; // true if no settings found
+    }
+
+    // If setup is needed, redirect or show a banner – we'll pass it to the view
+    // and let the frontend decide to show a modal or redirect.
+    // For a smoother UX, you can redirect immediately, but we'll pass it.
+
     let whereClause = {};
     
     if (isSuperAdmin) {
@@ -790,7 +891,7 @@ const manageUsers = async (req, res) => {
     });
     const schoolRevenue = revenueResult._sum.amount || 0;
 
-    // (Optional) Parent wallet balance – not displayed
+    // (Optional) Parent wallet balance
     const walletResult = await prisma.wallet.aggregate({
       where: {
         parent: {
@@ -894,31 +995,32 @@ const manageUsers = async (req, res) => {
     }
     
     res.render('admin/users', { 
-  title: 'User Management',
-  users: usersWithAge,
-  paidStudents,
-  partialStudents,
-  unpaidStudents,
-  expiredStudents,
-  parentCount,
-  schoolRevenue,               // main metric: actual revenue
-  parentWalletBalance,         // secondary metric: parent credits
-  userSchool,
-  isSuperAdmin,
-  canSeeAllSchoolUsers,
-  userRole: req.user.role,
-  adminInfo: req.user?.admin || null,
-  success,
-  error,
-  getAccessStatus,
-  notificationCount: notificationCount,
-  notificationsDropdownHtml: notificationsDropdownHtml,
-  userFirstName: user ? user.firstName || '' : '',
-  userLastName: user ? user.lastName || '' : '',
-  avatarUrl: avatarUrl,
-  fallbackAvatar: fallbackAvatar,
-  notifications: notifications
-});
+      title: 'User Management',
+      users: usersWithAge,
+      paidStudents,
+      partialStudents,
+      unpaidStudents,
+      expiredStudents,
+      parentCount,
+      schoolRevenue,
+      parentWalletBalance,
+      userSchool,
+      isSuperAdmin,
+      canSeeAllSchoolUsers,
+      userRole: req.user.role,
+      adminInfo: req.user?.admin || null,
+      success,
+      error,
+      needsSetup,              // <-- Pass to view
+      getAccessStatus,
+      notificationCount: notificationCount,
+      notificationsDropdownHtml: notificationsDropdownHtml,
+      userFirstName: user ? user.firstName || '' : '',
+      userLastName: user ? user.lastName || '' : '',
+      avatarUrl: avatarUrl,
+      fallbackAvatar: fallbackAvatar,
+      notifications: notifications
+    });
   } catch (error) {
     console.error('Manage users error:', error);
     res.status(500).render('error/500', { 
@@ -928,9 +1030,87 @@ const manageUsers = async (req, res) => {
   }
 };
 
+// --------------------------------------------
+// SCHOOL SETUP PAGES
+// --------------------------------------------
+const schoolSetupPage = async (req, res) => {
+  try {
+    const userSchool = req.userSchool;
+    if (!userSchool) {
+      return res.redirect('/admin/users?error=No school assigned');
+    }
+    const settings = await getSchoolSettings(userSchool);
+    res.render('admin/school-setup', {
+      title: 'School ID Setup',
+      school: userSchool,
+      settings: settings,
+      adminInfo: req.user?.admin || null,
+      error: req.query.error,
+      success: req.query.success
+    });
+  } catch (error) {
+    console.error('School setup page error:', error);
+    res.status(500).render('error/500', { 
+      title: 'Server Error',
+      adminInfo: req.user?.admin || null
+    });
+  }
+};
+
+const saveSchoolSetup = async (req, res) => {
+  try {
+    const { prefix, separator, includeYear, startingCounter } = req.body;
+    const userSchool = req.userSchool;
+    if (!userSchool) {
+      return res.status(400).json({ success: false, message: 'No school assigned' });
+    }
+    // Validate inputs
+    if (!prefix || prefix.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Prefix is required' });
+    }
+    const parsedCounter = parseInt(startingCounter) || 1;
+    if (parsedCounter < 1) {
+      return res.status(400).json({ success: false, message: 'Starting counter must be at least 1' });
+    }
+    const includeYearBool = includeYear === 'on' || includeYear === true;
+    await saveSchoolSettings(
+      userSchool,
+      prefix.trim(),
+      separator || '-',
+      includeYearBool,
+      parsedCounter
+    );
+    res.json({ success: true, message: 'Settings saved successfully' });
+  } catch (error) {
+    console.error('Save school setup error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 
 // --------------------------------------------
-// TUITION MANAGEMENT
+// API: Get next ID for preview
+// --------------------------------------------
+const getNextUserId = async (req, res) => {
+  try {
+    const userSchool = req.userSchool;
+    if (!userSchool) {
+      return res.status(400).json({ success: false, message: 'No school assigned to this admin' });
+    }
+    const settings = await getSchoolSettings(userSchool);
+    if (!settings) {
+      // No settings – return a flag so the frontend can redirect to setup
+      return res.json({ success: false, needsSetup: true });
+    }
+    const nextId = await previewNextId(userSchool);
+    res.json({ success: true, nextId });
+  } catch (error) {
+    console.error('Error fetching next ID:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// --------------------------------------------
+// TUITION MANAGEMENT (unchanged)
 // --------------------------------------------
 const manageTuition = async (req, res) => {
   try {
@@ -1009,6 +1189,9 @@ const manageTuition = async (req, res) => {
   }
 };
 
+// --------------------------------------------
+// recordPayment, resetStudentPassword, checkPasswordExpiry (unchanged)
+// --------------------------------------------
 const recordPayment = async (req, res) => {
   try {
     const { studentId, receiptNumber, amount, semester, paymentDate } = req.body;
@@ -1297,7 +1480,7 @@ const getAvailableStudents = async (req, res) => {
 };
 
 // --------------------------------------------
-// CLASS MANAGEMENT
+// CLASS MANAGEMENT (all functions unchanged)
 // --------------------------------------------
 const manageClasses = async (req, res) => {
   try {
@@ -1995,7 +2178,7 @@ const removeStudent = async (req, res) => {
 };
 
 // --------------------------------------------
-// ANALYTICS & ACTIVITIES
+// ANALYTICS & ACTIVITIES (unchanged)
 // --------------------------------------------
 const analytics = async (req, res) => {
   try {
@@ -2244,7 +2427,7 @@ const activitiesLog = async (req, res) => {
 };
 
 // --------------------------------------------
-// STUDENT TUITION FUNCTIONS
+// STUDENT TUITION FUNCTIONS (unchanged)
 // --------------------------------------------
 const getStudentTuition = async (req, res) => {
   try {
@@ -2393,7 +2576,7 @@ const checkIdNumber = async (req, res) => {
 };
 
 // --------------------------------------------
-// PARENT MANAGEMENT (cross‑school)
+// PARENT MANAGEMENT (cross‑school) - unchanged
 // --------------------------------------------
 const getStudentParent = async (req, res) => {
   try {
@@ -2431,12 +2614,10 @@ const getStudentParent = async (req, res) => {
   }
 };
 
-// UPDATED: List all active parents (cross‑school)
 const getAvailableParents = async (req, res) => {
   try {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    // No school filtering – all admins see all active parents
     const whereClause = { role: 'parent', isActive: true };
 
     const parents = await prisma.user.findMany({
@@ -2500,7 +2681,6 @@ const linkExistingParent = async (req, res) => {
   }
 };
 
-// UPDATED: createNewParent with cross‑school duplicate prevention
 const createNewParent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -2733,7 +2913,7 @@ const getStudentParentInfo = async (req, res) => {
 };
 
 // --------------------------------------------
-// CLASS STUDENTS & SAVINGS GOALS
+// CLASS STUDENTS & SAVINGS GOALS (unchanged)
 // --------------------------------------------
 const getClassStudents = async (req, res) => {
   try {
@@ -3069,7 +3249,7 @@ const getActivitiesData = async (req, res) => {
 };
 
 // --------------------------------------------
-// SYSTEM RESET FUNCTIONS
+// SYSTEM RESET FUNCTIONS (unchanged)
 // --------------------------------------------
 const systemResetPage = async (req, res) => {
   try {
@@ -3379,5 +3559,8 @@ module.exports = {
   systemResetPage,
   resetAllPayments,
   deleteSelectedUsers,
-  resetNewTerm
+  resetNewTerm,
+  schoolSetupPage,
+  saveSchoolSetup,
+  getNextUserId
 };

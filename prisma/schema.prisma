@@ -643,6 +643,19 @@ model Accountant {
   @@map("accountants")
 }
 
+model SchoolSettings {
+  id         String   @id @default(cuid())
+  school     String   @unique        // matches User.school
+  idPrefix   String                  // e.g., "STU", "TCH"
+  idCounter  Int      @default(1)    // next available number
+  idSeparator String @default("-")   // optional, default "-"
+  includeYear Boolean @default(true) // include current year?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("school_settings")
+}
+
 // ========== LESSON NOTES ==========
 model LessonNote {
   id          String   @id @default(cuid())
