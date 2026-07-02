@@ -401,80 +401,47 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Only one navigation block, now conditionally shown based on isUnpaidStudent -->
             <ul class="navbar-nav me-auto">
                 <% if (userRole) { %>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    <% if (userRole==='student' ) { %>
-                        <li class="nav-item"><a class="nav-link" href="/student/progress"><i
-                                    class="fas fa-chart-line me-1"></i>My Progress</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/student/classes"><i
-                                    class="fas fa-book me-1"></i>My Classes</a></li>
-                        <% } else if (userRole==='parent' ) { %>
-                            <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                        class="fas fa-child me-1"></i>My Children</a></li>
-                            <% } else if (userRole==='teacher' ) { %>
-                                <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
-                                            class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
-                                            class="fas fa-user-graduate me-1"></i>My Students</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
-                                            class="fas fa-tasks me-1"></i>Assignments</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
-                                            class="fas fa-book me-1"></i>Materials</a></li>
-                                <% } %>
+                    <% if (!isUnpaidStudent) { %>
+                        <!-- Show full navigation for all users EXCEPT unpaid students -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                        </li>
+                        <% if (userRole==='student' ) { %>
+                            <li class="nav-item"><a class="nav-link" href="/student/progress"><i
+                                        class="fas fa-chart-line me-1"></i>My Progress</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/student/classes"><i
+                                        class="fas fa-book me-1"></i>My Classes</a></li>
+                            <% } else if (userRole==='parent' ) { %>
+                                <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                            class="fas fa-child me-1"></i>My Children</a></li>
+                                <% } else if (userRole==='teacher' ) { %>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
+                                                class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
+                                                class="fas fa-user-graduate me-1"></i>My Students</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
+                                                class="fas fa-tasks me-1"></i>Assignments</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
+                                                class="fas fa-book me-1"></i>Materials</a></li>
                                     <% } %>
-
-
-                                    <ul class="navbar-nav me-auto">
-                                        <% if (userRole) { %>
-                                            <% if (!isUnpaidStudent) { %>
-                                                <!-- Only show navigation links if the student is not unpaid -->
-                                                <li class="nav-item">
-                                                    <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
-                                                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                                                    </a>
-                                                </li>
-                                                <% if (userRole==='student' ) { %>
-                                                    <!-- <li class="nav-item"><a class="nav-link" href="/student/progress"><i
-                                                                class="fas fa-chart-line me-1"></i>My Progress</a></li>
-                                                    <li class="nav-item"><a class="nav-link" href="/student/classes"><i class="fas fa-book me-1"></i>My
-                                                            Classes</a></li> -->
-                                                    <% } else if (userRole==='parent' ) { %>
-                                                        <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                                                    class="fas fa-child me-1"></i>My Children</a></li>
-                                                        <% } else if (userRole==='teacher' ) { %>
-                                                            <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
-                                                                        class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
-                                                            <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
-                                                                        class="fas fa-user-graduate me-1"></i>My Students</a></li>
-                                                            <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
-                                                                        class="fas fa-tasks me-1"></i>Assignments</a></li>
-                                                            <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
-                                                                        class="fas fa-book me-1"></i>Materials</a></li>
-                                                            <% } %>
-                                                                <% } else { %>
-                                                                    <!-- Unpaid student: show a message and only the dashboard link (if needed) -->
-                                                                    <li class="nav-item">
-                                                                        <span class="nav-link text-warning">
-                                                                            <i class="fas fa-exclamation-triangle me-1"></i> Payment Required
-                                                                        </span>
-                                                                    </li>
-                                                                    <!-- Optionally, you can still show Dashboard but restrict access via middleware -->
-                                                                    <!-- <li class="nav-item">
-                                                                        <a class="nav-link" href="/student/dashboard">
-                                                                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                                                                        </a>
-                                                                    </li> -->
-                                                                    <% } %>
-                                                                        <% } %>
-                                    </ul>
+                                        <% } else { %>
+                                            <!-- Unpaid student: show only a warning message -->
+                                            <li class="nav-item">
+                                                <span class="nav-link text-warning">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i> Payment Required
+                                                </span>
+                                            </li>
+                                            <!-- Optionally, you could keep the Dashboard link here if you want, but it's better to also protect the route -->
+                                            <% } %>
+                                                <% } %>
             </ul>
 
-            <!-- Notification Bell -->
+            <!-- Notification Bell (unchanged) -->
             <div class="notification-wrapper">
                 <div class="dropdown">
                     <button class="notification-bell" id="notificationDropdown" title="Notifications">
@@ -491,7 +458,7 @@
                 </div>
             </div>
 
-            <!-- User dropdown -->
+            <!-- User dropdown (unchanged) -->
             <div class="welcome-section">
                 <ul class="navbar-nav">
                     <% if (userRole) { %>
@@ -595,11 +562,9 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Remove the notification element from the DOM
                         var el = document.querySelector('[data-notification-id="' + notificationId + '"]');
                         if (el) {
                             el.remove();
-                            // Update the badge count
                             updateUnreadBadge();
                         }
                     } else {
@@ -618,12 +583,9 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Remove all notification items
                         var items = document.querySelectorAll('.notification-item');
                         items.forEach(function (el) { el.remove(); });
-                        // Update badge
                         updateUnreadBadge();
-                        // Show empty state
                         var menu = document.getElementById('notificationDropdownMenu');
                         if (menu && !menu.querySelector('.notification-item')) {
                             menu.innerHTML = '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
