@@ -427,6 +427,51 @@
                                             class="fas fa-book me-1"></i>Materials</a></li>
                                 <% } %>
                                     <% } %>
+
+
+                                    <ul class="navbar-nav me-auto">
+                                        <% if (userRole) { %>
+                                            <% if (!isUnpaidStudent) { %>
+                                                <!-- Only show navigation links if the student is not unpaid -->
+                                                <li class="nav-item">
+                                                    <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
+                                                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                                    </a>
+                                                </li>
+                                                <% if (userRole==='student' ) { %>
+                                                    <li class="nav-item"><a class="nav-link" href="/student/progress"><i
+                                                                class="fas fa-chart-line me-1"></i>My Progress</a></li>
+                                                    <li class="nav-item"><a class="nav-link" href="/student/classes"><i class="fas fa-book me-1"></i>My
+                                                            Classes</a></li>
+                                                    <% } else if (userRole==='parent' ) { %>
+                                                        <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                                                    class="fas fa-child me-1"></i>My Children</a></li>
+                                                        <% } else if (userRole==='teacher' ) { %>
+                                                            <li class="nav-item"><a class="nav-link" href="/teacher/classes"><i
+                                                                        class="fas fa-chalkboard-teacher me-1"></i>My Classes</a></li>
+                                                            <li class="nav-item"><a class="nav-link" href="/teacher/students"><i
+                                                                        class="fas fa-user-graduate me-1"></i>My Students</a></li>
+                                                            <li class="nav-item"><a class="nav-link" href="/teacher/assignments"><i
+                                                                        class="fas fa-tasks me-1"></i>Assignments</a></li>
+                                                            <li class="nav-item"><a class="nav-link" href="/teacher/materials"><i
+                                                                        class="fas fa-book me-1"></i>Materials</a></li>
+                                                            <% } %>
+                                                                <% } else { %>
+                                                                    <!-- Unpaid student: show a message and only the dashboard link (if needed) -->
+                                                                    <li class="nav-item">
+                                                                        <span class="nav-link text-warning">
+                                                                            <i class="fas fa-exclamation-triangle me-1"></i> Payment Required
+                                                                        </span>
+                                                                    </li>
+                                                                    <!-- Optionally, you can still show Dashboard but restrict access via middleware -->
+                                                                    <li class="nav-item">
+                                                                        <a class="nav-link" href="/student/dashboard">
+                                                                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                                                        </a>
+                                                                    </li>
+                                                                    <% } %>
+                                                                        <% } %>
+                                    </ul>
             </ul>
 
             <!-- Notification Bell -->
