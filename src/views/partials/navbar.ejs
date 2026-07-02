@@ -439,10 +439,10 @@
                                                     </a>
                                                 </li>
                                                 <% if (userRole==='student' ) { %>
-                                                    <li class="nav-item"><a class="nav-link" href="/student/progress"><i
+                                                    <!-- <li class="nav-item"><a class="nav-link" href="/student/progress"><i
                                                                 class="fas fa-chart-line me-1"></i>My Progress</a></li>
                                                     <li class="nav-item"><a class="nav-link" href="/student/classes"><i class="fas fa-book me-1"></i>My
-                                                            Classes</a></li>
+                                                            Classes</a></li> -->
                                                     <% } else if (userRole==='parent' ) { %>
                                                         <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
                                                                     class="fas fa-child me-1"></i>My Children</a></li>
@@ -464,11 +464,11 @@
                                                                         </span>
                                                                     </li>
                                                                     <!-- Optionally, you can still show Dashboard but restrict access via middleware -->
-                                                                    <li class="nav-item">
+                                                                    <!-- <li class="nav-item">
                                                                         <a class="nav-link" href="/student/dashboard">
                                                                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                                                                         </a>
-                                                                    </li>
+                                                                    </li> -->
                                                                     <% } %>
                                                                         <% } %>
                                     </ul>
