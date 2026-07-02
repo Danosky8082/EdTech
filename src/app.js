@@ -4,14 +4,11 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 dotenv.config();  // load .env as early as possible
 
-// ============================================================
-// Initialize app early so all routes can use it
-// ============================================================
 const app = express();
 app.set('trust proxy', 1);
 
 // ============================================================
-// Process error handlers (can be placed anywhere)
+// Process error handlers
 // ============================================================
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err);
@@ -41,14 +38,12 @@ const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/student');
 const teacherRoutes = require('./routes/teacher');
 const adminRoutes = require('./routes/admin');
-const { setSchoolContext } = require('./middleware/auth');
+const { setSchoolContext, setStudentTuitionStatus } = require('./middleware/auth');  // ✅ added setStudentTuitionStatus
 const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
 
-// ============================================================
-// ✅ NEW: Profile controller and upload middleware
-// ============================================================
+// Profile controller
 const profileController = require('./controllers/profileController');
 const { uploadProfileSingle } = require('./utils/fileUpload');
 const { isAuthenticated } = require('./middleware/auth');
@@ -61,7 +56,6 @@ app.set('view engine', 'ejs');
 
 // ============================================================
 // Custom routes to serve uploaded images from /tmp (Vercel)
-// Must come BEFORE static middleware
 // ============================================================
 app.get('/uploads/profiles/:filename', (req, res) => {
   const filename = req.params.filename;
@@ -92,7 +86,7 @@ app.get('/uploads/materials/:filename', (req, res) => {
 });
 
 // ============================================================
-// Simple debug route (safe, won't crash if directory missing)
+// Simple debug route
 // ============================================================
 app.get('/debug-files', (req, res) => {
   try {
@@ -130,7 +124,7 @@ app.get('/debug-files', (req, res) => {
 });
 
 // ============================================================
-// Static files (fallback)
+// Static files
 // ============================================================
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
@@ -164,7 +158,7 @@ app.use(session({
 }));
 
 // ============================================================
-// Custom middleware
+// Custom middleware (order matters!)
 // ============================================================
 app.use(activityTracker());
 app.use(flash());
@@ -178,13 +172,23 @@ app.use('/accountant', noCache);
 app.use('/cashier', noCache);
 app.use('/notifications', notificationRoutes);
 
-// User context (sets res.locals.user)
+// ============================================================
+// ✅ GLOBAL SCHOOL CONTEXT AND STUDENT TUITION STATUS
+// Now runs on every request so navbar always has data
+// ============================================================
+app.use(setSchoolContext);                 // sets req.userSchool, req.isSuperAdmin
+app.use(setStudentTuitionStatus);          // sets res.locals.isUnpaidStudent
+
+// ============================================================
+// User context middleware (populates res.locals for views)
+// ============================================================
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
     res.locals.user = req.session.user;
   } else {
     res.locals.user = null;
   }
+  // These are now set by setSchoolContext
   res.locals.isSuperAdmin = req.isSuperAdmin || false;
   res.locals.userSchool = req.userSchool || null;
   res.locals.adminInfo = req.user?.admin || null;
@@ -321,12 +325,9 @@ app.use('/parent', parentRoutes);
 app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
 
-// School context middleware (applied after routes so they can still use it)
-app.use('/teacher', setSchoolContext);
-app.use('/student', setSchoolContext);
-app.use('/admin', setSchoolContext);
-app.use('/accountant', setSchoolContext);
-app.use('/cashier', setSchoolContext);
+// ============================================================
+// (setSchoolContext is now global – remove the per‑route ones)
+// ============================================================
 
 // Home route
 app.get('/', (req, res) => {
