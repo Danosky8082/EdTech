@@ -239,7 +239,9 @@ exports.dashboard = async (req, res) => {
     }
 
     // ✅ ADDED: lessonNotesCount – placeholder until feature is built
-    const lessonNotesCount = 0; // TODO: Replace with actual count from database when lesson notes are implemented
+    const lessonNotesCount = await prisma.lessonNote.count({
+    where: { teacherId: teacherId }
+});
 
     res.render('teacher/dashboard', {
       title: 'Teacher Dashboard',
@@ -258,7 +260,7 @@ exports.dashboard = async (req, res) => {
       isSuperAdmin: isSuperAdmin,
       avatarUrl: avatarUrl,
       fallbackAvatar: fallbackAvatar,
-      lessonNotesCount: lessonNotesCount  // ✅ NOW INCLUDED
+      lessonNotesCount: lessonNotesCount
     });
 
   } catch (error) {

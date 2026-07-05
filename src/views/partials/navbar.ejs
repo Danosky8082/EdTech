@@ -401,7 +401,9 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- Only one navigation block, now conditionally shown based on isUnpaidStudent -->
+            <!-- ============================================================ -->
+            <!-- ✅ CORRECTED NAVIGATION BLOCK – conditionally shows based on isUnpaidStudent -->
+            <!-- ============================================================ -->
             <ul class="navbar-nav me-auto">
                 <% if (userRole) { %>
                     <% if (!isUnpaidStudent) { %>
@@ -436,7 +438,6 @@
                                                     <i class="fas fa-exclamation-triangle me-1"></i> Payment Required
                                                 </span>
                                             </li>
-                                            <!-- Optionally, you could keep the Dashboard link here if you want, but it's better to also protect the route -->
                                             <% } %>
                                                 <% } %>
             </ul>

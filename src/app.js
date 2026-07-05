@@ -176,9 +176,8 @@ app.use('/notifications', notificationRoutes);
 // ✅ GLOBAL SCHOOL CONTEXT AND STUDENT TUITION STATUS
 // Now runs on every request so navbar always has data
 // ============================================================
-app.use(setSchoolContext);                 // sets req.userSchool, req.isSuperAdmin
-app.use(setStudentTuitionStatus);          // sets res.locals.isUnpaidStudent
-
+app.use(setSchoolContext);
+app.use(setStudentTuitionStatus);
 // ============================================================
 // User context middleware (populates res.locals for views)
 // ============================================================
@@ -324,6 +323,7 @@ app.use('/admin', adminRoutes);
 app.use('/parent', parentRoutes);
 app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
+
 
 // ============================================================
 // (setSchoolContext is now global – remove the per‑route ones)

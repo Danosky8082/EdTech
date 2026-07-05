@@ -416,7 +416,7 @@ const viewPaymentDetails = async (req, res) => {
     }
 };
 
-// Process payment (POST route)
+// Process payment (POST route) – NOT USED? Kept for compatibility
 const processPayment = async (req, res) => {
     try {
         const { paymentId } = req.params;
@@ -539,411 +539,7 @@ const processPayment = async (req, res) => {
     }
 };
 
-// Reject payment (POST route) - FIXED
-const rejectParentPayment = async (req, res) => {
-    try {
-        const { paymentId } = req.params;
-        const { reason } = req.body;
-        const userId = req.session.user.id;
-        const userSchool = req.userSchool;
-        const isSuperAdmin = req.isSuperAdmin;
-        
-        console.log('❌ Rejecting parent payment:', paymentId);
-        
-        // Validate rejection reason
-        if (!reason || reason.trim().length < 3) {
-            req.session.error_msg = 'Please provide a valid rejection reason (minimum 3 characters)';
-            return res.redirect(`/cashier/payment/${paymentId}`);
-        }
-        
-        // Build school filter
-        const schoolFilter = userSchool && !isSuperAdmin 
-            ? {
-                OR: [
-                    { student: { user: { school: userSchool } } },
-                    { parent: { user: { school: userSchool } } }
-                ]
-            }
-            : {};
-        
-        const payment = await prisma.parentPayment.findUnique({
-            where: { 
-                id: paymentId,
-                ...schoolFilter
-            },
-            include: {
-                parent: {
-                    include: { 
-                        user: true 
-                    }
-                },
-                student: {
-                    include: { 
-                        user: true 
-                    }
-                }
-            }
-        });
-        
-        if (!payment) {
-            req.session.error_msg = 'Payment not found or not in your school';
-            return res.redirect('/cashier/pending-payments');
-        }
-        
-        if (payment.status !== 'pending') {
-            req.session.error_msg = `Payment is already ${payment.status}`;
-            return res.redirect(`/cashier/payment/${paymentId}`);
-        }
-        
-        await prisma.$transaction(async (tx) => {
-            // Update payment status to rejected
-            await tx.parentPayment.update({
-                where: { id: paymentId },
-                data: {
-                    status: 'rejected',
-                    reason: reason.trim(), // Using 'reason' field from your schema
-                    rejectedAt: new Date(),
-                    confirmedBy: userId, // Record who rejected it
-                    confirmedAt: new Date() // Also update confirmedAt since it's used by both approve/reject
-                }
-            });
-            
-            // Optional: If this was a wallet payment, refund the amount
-            if (payment.paymentMethod === 'wallet') {
-                // Check if parent has a wallet
-                const wallet = await tx.wallet.findUnique({
-                    where: { parentId: payment.parentId }
-                });
-                
-                if (wallet) {
-                    // Refund to wallet
-                    await tx.wallet.update({
-                        where: { parentId: payment.parentId },
-                        data: {
-                            balance: {
-                                increment: payment.amount
-                            }
-                        }
-                    });
-                    
-                    // Create transaction record for refund
-                    await tx.transaction.create({
-                        data: {
-                            walletId: wallet.id,
-                            amount: payment.amount,
-                            type: 'refund',
-                            description: `Payment refund: ${reason.trim().substring(0, 50)}...`,
-                            status: 'completed',
-                            referenceId: paymentId
-                        }
-                    });
-                    
-                    // Optional: Create savings deposit if this was for a savings goal
-                    if (payment.description && payment.description.toLowerCase().includes('savings')) {
-                        const savingsGoal = await tx.savingsGoal.findFirst({
-                            where: {
-                                parentId: payment.parentId,
-                                isActive: true
-                            }
-                        });
-                        
-                        if (savingsGoal) {
-                            await tx.savingsDeposit.create({
-                                data: {
-                                    savingsGoalId: savingsGoal.id,
-                                    amount: payment.amount,
-                                    description: `Refund for rejected payment: ${payment.receiptNumber}`,
-                                    status: 'completed'
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            
-            // Optional: Create notification for parent
-            await tx.notification.create({
-                data: {
-                    userId: payment.parent.userId,
-                    title: 'Payment Rejected',
-                    message: `Your payment of ₦${payment.amount.toFixed(2)} for ${payment.student.user.firstName} has been rejected. Reason: ${reason.trim()}`,
-                    icon: 'times-circle',
-                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-                }
-            });
-            
-            // Optional: Create financial transaction record for accounting
-            if (userSchool) {
-                await tx.financialTransaction.create({
-                    data: {
-                        type: 'payment_rejected',
-                        title: `Payment Rejected - ${payment.receiptNumber}`,
-                        description: `Payment rejected for ${payment.student.user.firstName} ${payment.student.user.lastName}. Reason: ${reason.trim()}`,
-                        amount: payment.amount,
-                        collector: payment.parent.user.firstName + ' ' + payment.parent.user.lastName,
-                        category: 'tuition',
-                        receiptNumber: payment.receiptNumber,
-                        status: 'rejected',
-                        school: userSchool,
-                        createdBy: userId
-                    }
-                });
-            }
-        });
-        
-        // Set success message and redirect
-        req.session.success_msg = 'Payment rejected successfully';
-        res.redirect('/cashier/pending-payments');
-        
-    } catch (error) {
-        console.error('❌ Reject parent payment error:', error);
-        req.session.error_msg = `Failed to reject payment: ${error.message}`;
-        res.redirect(`/cashier/payment/${req.params.paymentId}`);
-    }
-};
-
-// Approve Parent Payment - UPDATED with school filter (FIXED for schema and enhanced)
-const approveParentPayment = async (req, res) => {
-    try {
-        const { paymentId } = req.params;
-        const userId = req.session.user.id;
-        const userSchool = req.userSchool;
-        const isSuperAdmin = req.isSuperAdmin;
-        
-        console.log('✅ Approving parent payment:', paymentId);
-        
-        // Build school filter
-        const schoolFilter = userSchool && !isSuperAdmin 
-            ? {
-                OR: [
-                    { student: { user: { school: userSchool } } },
-                    { parent: { user: { school: userSchool } } }
-                ]
-            }
-            : {};
-        
-        const payment = await prisma.parentPayment.findUnique({
-            where: { 
-                id: paymentId,
-                ...schoolFilter
-            },
-            include: {
-                parent: {
-                    include: { 
-                        user: true 
-                    }
-                },
-                student: {
-                    include: { 
-                        user: true 
-                    }
-                }
-            }
-        });
-        
-        if (!payment) {
-            return res.status(404).json({
-                success: false,
-                message: 'Payment not found or not in your school'
-            });
-        }
-        
-        if (payment.status !== 'pending') {
-            return res.status(400).json({
-                success: false,
-                message: `Payment is already ${payment.status}`
-            });
-        }
-        
-        await prisma.$transaction(async (tx) => {
-            // Update payment status - CORRECTED for your schema
-            await tx.parentPayment.update({
-                where: { id: paymentId },
-                data: {
-                    status: 'completed',
-                    confirmedBy: userId,
-                    confirmedAt: new Date(),
-                    // Note: processedAt and processedBy don't exist in your schema
-                }
-            });
-            
-            // Update student tuition status
-            await tx.student.update({
-                where: { id: payment.studentId },
-                data: {
-                    tuitionStatus: 'paid',
-                    canChangePassword: true,
-                    tempPasswordExpiry: null
-                }
-            });
-            
-            // Create tuition payment record
-            await tx.tuitionPayment.create({
-                data: {
-                    receiptNumber: payment.receiptNumber,
-                    amount: payment.amount,
-                    status: 'verified',
-                    verifiedBy: userId,
-                    verifiedAt: new Date(),
-                    studentId: payment.studentId,
-                    semester: `${new Date().getFullYear()}-1`
-                }
-            });
-            
-            // Handle wallet payment if applicable
-            if (payment.paymentMethod === 'wallet') {
-                // Deduct from wallet balance
-                const wallet = await tx.wallet.findUnique({
-                    where: { parentId: payment.parentId }
-                });
-                
-                if (wallet) {
-                    await tx.wallet.update({
-                        where: { parentId: payment.parentId },
-                        data: {
-                            balance: {
-                                decrement: payment.amount
-                            }
-                        }
-                    });
-                    
-                    // Create transaction record for wallet deduction
-                    await tx.transaction.create({
-                        data: {
-                            walletId: wallet.id,
-                            amount: payment.amount,
-                            type: 'payment',
-                            description: `Tuition payment for ${payment.student.user.firstName} ${payment.student.user.lastName}`,
-                            status: 'completed',
-                            referenceId: paymentId
-                        }
-                    });
-                }
-            } else {
-                // For non-wallet payments (card, transfer, cash), create a transaction for accounting
-                // This might represent money coming into the school
-                await tx.transaction.create({
-                    data: {
-                        walletId: null, // No wallet involved
-                        amount: payment.amount,
-                        type: 'deposit',
-                        description: `School fee payment via ${payment.paymentMethod}: ${payment.description || 'Tuition'}`,
-                        status: 'completed',
-                        referenceId: paymentId
-                    }
-                });
-            }
-            
-            // Create daily transaction record
-            await tx.dailyTransaction.create({
-                data: {
-                    type: 'fee_payment',
-                    parentId: payment.parentId,
-                    studentId: payment.studentId,
-                    amount: payment.amount,
-                    paymentMethod: payment.paymentMethod,
-                    receiptNumber: payment.receiptNumber,
-                    description: `Parent payment: ${payment.description || 'Tuition fee'}`,
-                    status: 'completed',
-                    collectedBy: userId,
-                    school: payment.parent.user.school || payment.student.user.school,
-                    tuitionStatus: 'full',
-                    semester: `${new Date().getFullYear()}-1`
-                }
-            });
-            
-            // Create financial transaction record
-            await tx.financialTransaction.create({
-                data: {
-                    type: 'tuition_payment',
-                    title: `Tuition Payment - ${payment.receiptNumber}`,
-                    description: `Payment from ${payment.parent.user.firstName} ${payment.parent.user.lastName} for ${payment.student.user.firstName} ${payment.student.user.lastName}`,
-                    amount: payment.amount,
-                    collector: `${payment.parent.user.firstName} ${payment.parent.user.lastName}`,
-                    destination: 'School Account',
-                    category: 'tuition',
-                    receiptNumber: payment.receiptNumber,
-                    status: 'completed',
-                    school: payment.parent.user.school || payment.student.user.school,
-                    createdBy: userId
-                }
-            });
-            
-            // Create notification for parent
-            await tx.notification.create({
-                data: {
-                    userId: payment.parent.userId,
-                    title: 'Payment Confirmed',
-                    message: `Your payment of ₦${payment.amount.toFixed(2)} has been confirmed. Thank you!`,
-                    icon: 'fas fa-check-circle'
-                }
-            });
-            
-            // Optional: Update any savings goals if this payment was for savings
-            if (payment.description && payment.description.toLowerCase().includes('savings')) {
-                const activeSavingsGoal = await tx.savingsGoal.findFirst({
-                    where: {
-                        parentId: payment.parentId,
-                        isActive: true
-                    }
-                });
-                
-                if (activeSavingsGoal) {
-                    // Update savings goal current amount
-                    await tx.savingsGoal.update({
-                        where: { id: activeSavingsGoal.id },
-                        data: {
-                            currentAmount: {
-                                increment: payment.amount
-                            }
-                        }
-                    });
-                    
-                    // Create savings deposit record
-                    await tx.savingsDeposit.create({
-                        data: {
-                            savingsGoalId: activeSavingsGoal.id,
-                            amount: payment.amount,
-                            description: `Payment for ${payment.description}`,
-                            status: 'completed'
-                        }
-                    });
-                }
-            }
-        });
-        
-        console.log('✅ Parent payment approved successfully');
-        
-        // Check if the request expects HTML redirect or JSON
-        if (req.headers.accept && req.headers.accept.includes('text/html')) {
-            // This is likely coming from a form submission, redirect with flash message
-            req.flash('success', 'Payment approved successfully');
-            res.redirect('/cashier/pending-approve');
-        } else {
-            // This is likely an API/JSON request
-            res.json({
-                success: true,
-                message: 'Payment approved successfully'
-            });
-        }
-        
-    } catch (error) {
-        console.error('💥 Approve parent payment error:', error);
-        
-        // Check if the request expects HTML redirect or JSON
-        if (req.headers.accept && req.headers.accept.includes('text/html')) {
-            req.flash('error', `Failed to approve payment: ${error.message}`);
-            res.redirect(`/cashier/payment/${req.params.paymentId}`);
-        } else {
-            res.status(500).json({
-                success: false,
-                message: 'Failed to approve payment: ' + error.message
-            });
-        }
-    }
-};
-
-// Record Fee Payment - UPDATED with fixed notification
+// ========== RECORD FEE PAYMENT (REMOVED WALLET DEDUCTION) ==========
 const recordFeePayment = async (req, res) => {
     try {
         const { studentId, amount, paymentMethod, receiptNumber, description, tuitionStatus, semester } = req.body;
@@ -988,62 +584,59 @@ const recordFeePayment = async (req, res) => {
             });
         }
         
-        // Create transaction record
-        const transaction = await prisma.dailyTransaction.create({
+        // Get parent ID for the student (you'll need to determine which parent to link)
+        // For simplicity, we'll use the first parent linked to the student
+        const studentParent = await prisma.studentParent.findFirst({
+            where: { studentId: studentId },
+            include: { parent: true }
+        });
+        
+        if (!studentParent) {
+            return res.status(400).json({
+                success: false,
+                message: 'No parent linked to this student'
+            });
+        }
+        
+        // Create parent payment record with status = 'pending' – NO WALLET DEDUCTION
+        const payment = await prisma.parentPayment.create({
             data: {
-                type: 'fee_payment',
                 studentId: studentId,
+                parentId: studentParent.parent.id,
                 amount: parseFloat(amount),
                 paymentMethod: paymentMethod,
                 receiptNumber: finalReceiptNumber,
-                description: description || `Tuition fee payment for ${student.user.firstName} ${student.user.lastName}`,
-                status: 'completed',
-                collectedBy: userId,
-                school: userSchool,
-                tuitionStatus: tuitionStatus || 'partial',
-                semester: semester || `${new Date().getFullYear()}-1`,
-                academicYear: new Date().getFullYear().toString()
+                description: description || 'Tuition fee payment',
+                status: 'pending',  // <-- Always pending until cashier approves
+                // No wallet deduction here
             }
         });
         
-        // Update student tuition status
+        // Update student tuition status to 'partial' (pending payment)
         await prisma.student.update({
             where: { id: studentId },
             data: {
-                tuitionStatus: tuitionStatus === 'full' ? 'paid' : 'partial',
-                canChangePassword: tuitionStatus === 'full',
-                tempPasswordExpiry: tuitionStatus === 'full' ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                tuitionStatus: 'partial',
+                canChangePassword: false,
+                tempPasswordExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days temporary access
             }
         });
         
-        // Create tuition payment record
-        await prisma.tuitionPayment.create({
-            data: {
-                receiptNumber: finalReceiptNumber,
-                amount: parseFloat(amount),
-                status: 'verified',
-                verifiedBy: userId,
-                verifiedAt: new Date(),
-                studentId: studentId,
-                semester: semester || `${new Date().getFullYear()}-1`
-            }
-        });
-        
-        // Create notification for admin (REMOVED 'type' field)
-        const admins = await prisma.user.findMany({
+        // Create notification for cashier
+        const cashiers = await prisma.user.findMany({
             where: {
-                role: 'admin',
+                role: 'cashier',
                 school: userSchool
             }
         });
         
-        for (const admin of admins) {
+        for (const cashier of cashiers) {
             await prisma.notification.create({
                 data: {
-                    userId: admin.id,
+                    userId: cashier.id,
                     title: 'New Fee Payment',
-                    message: `Cashier recorded a fee payment of ₦${amount} for ${student.user.firstName} ${student.user.lastName}`,
-                    icon: 'fas fa-money-bill-wave'
+                    message: `A new payment of ₦${amount} for ${student.user.firstName} ${student.user.lastName} is pending approval`,
+                    icon: 'fas fa-clock'
                 }
             });
         }
@@ -1052,9 +645,8 @@ const recordFeePayment = async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Fee payment recorded successfully',
-            receiptNumber: finalReceiptNumber,
-            transaction: transaction
+            message: 'Payment recorded, pending approval',
+            payment: payment
         });
         
     } catch (error) {
@@ -1065,6 +657,238 @@ const recordFeePayment = async (req, res) => {
         });
     }
 };
+
+// ========== APPROVE PARENT PAYMENT (FIXED: DEDUCT WALLET ON APPROVAL) ==========
+const approveParentPayment = async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+        const userId = req.session.user.id;
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
+
+        // Build school filter
+        const schoolFilter = userSchool && !isSuperAdmin 
+            ? {
+                OR: [
+                    { student: { user: { school: userSchool } } },
+                    { parent: { user: { school: userSchool } } }
+                ]
+            }
+            : {};
+
+        const payment = await prisma.parentPayment.findFirst({
+            where: { id: paymentId, ...schoolFilter },
+            include: {
+                parent: { include: { wallet: true, user: true } },
+                student: { include: { user: true } }
+            }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ success: false, message: 'Payment not found' });
+        }
+
+        if (payment.status !== 'pending') {
+            return res.status(400).json({ success: false, message: `Payment already ${payment.status}` });
+        }
+
+        // If payment method is wallet, deduct now
+        if (payment.paymentMethod === 'wallet') {
+            const wallet = payment.parent.wallet;
+            if (!wallet || wallet.balance < payment.amount) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient wallet balance. Available: =N=${wallet?.balance.toFixed(2) || '0.00'}`
+                });
+            }
+
+            // Deduct from wallet
+            await prisma.$transaction([
+                prisma.wallet.update({
+                    where: { id: wallet.id },
+                    data: { balance: { decrement: payment.amount } }
+                }),
+                prisma.transaction.create({
+                    data: {
+                        walletId: wallet.id,
+                        amount: -payment.amount,
+                        type: 'payment',
+                        description: `Tuition payment for ${payment.student.user.firstName}`,
+                        status: 'completed',
+                        referenceId: payment.id
+                    }
+                })
+            ]);
+        }
+
+        // Update payment status to confirmed
+        await prisma.parentPayment.update({
+            where: { id: paymentId },
+            data: {
+                status: 'confirmed',
+                confirmedBy: userId,
+                confirmedAt: new Date()
+            }
+        });
+
+        // Update student tuition status
+        await prisma.student.update({
+            where: { id: payment.studentId },
+            data: {
+                tuitionStatus: 'paid',
+                canChangePassword: true,
+                tempPasswordExpiry: null
+            }
+        });
+
+        // Create tuition payment record
+        await prisma.tuitionPayment.create({
+            data: {
+                receiptNumber: payment.receiptNumber,
+                amount: payment.amount,
+                status: 'verified',
+                verifiedBy: userId,
+                verifiedAt: new Date(),
+                studentId: payment.studentId,
+                semester: `${new Date().getFullYear()}-1`
+            }
+        });
+
+        // Create daily transaction record
+        await prisma.dailyTransaction.create({
+            data: {
+                type: 'fee_payment',
+                parentId: payment.parentId,
+                studentId: payment.studentId,
+                amount: payment.amount,
+                paymentMethod: payment.paymentMethod,
+                receiptNumber: payment.receiptNumber,
+                description: `Parent payment: ${payment.description || 'Tuition fee'}`,
+                status: 'completed',
+                collectedBy: userId,
+                school: payment.parent.user.school || payment.student.user.school,
+                tuitionStatus: 'full',
+                semester: `${new Date().getFullYear()}-1`
+            }
+        });
+
+        // Create financial transaction record
+        await prisma.financialTransaction.create({
+            data: {
+                type: 'tuition_payment',
+                title: `Tuition Payment - ${payment.receiptNumber}`,
+                description: `Payment from ${payment.parent.user.firstName} ${payment.parent.user.lastName} for ${payment.student.user.firstName} ${payment.student.user.lastName}`,
+                amount: payment.amount,
+                collector: `${payment.parent.user.firstName} ${payment.parent.user.lastName}`,
+                destination: 'School Account',
+                category: 'tuition',
+                receiptNumber: payment.receiptNumber,
+                status: 'completed',
+                school: payment.parent.user.school || payment.student.user.school,
+                createdBy: userId
+            }
+        });
+
+        // Create notification for parent
+        await prisma.notification.create({
+            data: {
+                userId: payment.parent.userId,
+                title: 'Payment Confirmed',
+                message: `Your payment of ₦${payment.amount.toFixed(2)} has been confirmed. Thank you!`,
+                icon: 'fas fa-check-circle'
+            }
+        });
+
+        console.log('✅ Payment approved successfully');
+        
+        // Check if request expects JSON or HTML
+        if (req.headers.accept && req.headers.accept.includes('text/html')) {
+            req.flash('success', 'Payment approved successfully');
+            res.redirect('/cashier/pending-approve');
+        } else {
+            res.json({ success: true, message: 'Payment approved successfully' });
+        }
+
+    } catch (error) {
+        console.error('💥 Approve payment error:', error);
+        if (req.headers.accept && req.headers.accept.includes('text/html')) {
+            req.flash('error', 'Failed to approve payment: ' + error.message);
+            res.redirect(`/cashier/payment/${paymentId}`);
+        } else {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+};
+
+// ========== REJECT PAYMENT (WITH REFUND LOGIC) ==========
+const rejectParentPayment = async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+        const { reason } = req.body;
+        const userId = req.session.user.id;
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
+
+        // Build school filter
+        const schoolFilter = userSchool && !isSuperAdmin 
+            ? {
+                OR: [
+                    { student: { user: { school: userSchool } } },
+                    { parent: { user: { school: userSchool } } }
+                ]
+            }
+            : {};
+
+        const payment = await prisma.parentPayment.findFirst({
+            where: { id: paymentId, ...schoolFilter },
+            include: {
+                parent: { include: { wallet: true, user: true } },
+                student: { include: { user: true } }
+            }
+        });
+
+        if (!payment || payment.status !== 'pending') {
+            return res.status(404).json({ success: false, message: 'Payment not found or not pending' });
+        }
+
+        // Validate rejection reason
+        if (!reason || reason.trim().length < 3) {
+            return res.status(400).json({ success: false, message: 'Rejection reason must be at least 3 characters' });
+        }
+
+        // If wallet payment, no deduction was made (since we only deduct on approval), so nothing to refund.
+        // But if you ever need to refund a payment that was already deducted, add logic here.
+
+        await prisma.parentPayment.update({
+            where: { id: paymentId },
+            data: {
+                status: 'rejected',
+                reason: reason.trim(),
+                rejectedAt: new Date(),
+                confirmedBy: userId
+            }
+        });
+
+        // Notify parent
+        await prisma.notification.create({
+            data: {
+                userId: payment.parent.userId,
+                title: 'Payment Rejected',
+                message: `Your payment of ₦${payment.amount.toFixed(2)} has been rejected. Reason: ${reason}`,
+                icon: 'fas fa-times-circle'
+            }
+        });
+
+        console.log('✅ Payment rejected successfully');
+        res.json({ success: true, message: 'Payment rejected successfully' });
+
+    } catch (error) {
+        console.error('❌ Reject payment error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ========== OTHER FUNCTIONS (unchanged) ==========
 
 // Record Other Transaction - UPDATED with fixed notification
 const recordOtherTransaction = async (req, res) => {
@@ -1451,151 +1275,25 @@ const getPendingPayments = async (req, res) => {
     }
 };
 
-// Approve parent payment (FIXED VERSION)
-exports.approveParentPayment = async (req, res) => {
+// View payment details (for cashier)
+const getPaymentDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const cashierId = req.session.user.id;
-        
-        console.log(`💰 Cashier ${cashierId} approving payment ${id}`);
+        const userSchool = req.userSchool;
+        const isSuperAdmin = req.isSuperAdmin;
 
-        // Get payment with parent and wallet
-        const payment = await prisma.parentPayment.findUnique({
-            where: { id },
-            include: {
-                parent: {
-                    include: {
-                        wallet: true,
-                        user: true
-                    }
-                },
-                student: {
-                    include: {
-                        user: true
-                    }
-                }
+        // Build school filter
+        const schoolFilter = userSchool && !isSuperAdmin 
+            ? {
+                OR: [
+                    { student: { user: { school: userSchool } } },
+                    { parent: { user: { school: userSchool } } }
+                ]
             }
-        });
+            : {};
 
-        if (!payment) {
-            return res.status(404).json({
-                success: false,
-                message: 'Payment not found'
-            });
-        }
-
-        if (payment.status === 'confirmed') {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment already confirmed'
-            });
-        }
-
-        // Start transaction
-        await prisma.$transaction(async (tx) => {
-            // For wallet payments: deduct from wallet NOW (only at approval time)
-            if (payment.paymentMethod === 'wallet') {
-                // Double-check wallet has enough balance
-                if (!payment.parent.wallet || payment.parent.wallet.balance < payment.amount) {
-                    throw new Error(`Insufficient wallet balance. Available: =N=${payment.parent.wallet?.balance.toFixed(2) || '0.00'}`);
-                }
-
-                // Deduct from wallet (FIRST AND ONLY DEDUCTION)
-                await tx.wallet.update({
-                    where: { id: payment.parent.wallet.id },
-                    data: {
-                        balance: {
-                            decrement: payment.amount
-                        }
-                    }
-                });
-
-                // Record wallet transaction
-                await tx.transaction.create({
-                    data: {
-                        walletId: payment.parent.wallet.id,
-                        amount: -payment.amount, // Negative for deduction
-                        type: 'payment',
-                        description: `Tuition payment for ${payment.student.user.firstName}`,
-                        status: 'completed',
-                        referenceId: `payment_${payment.id}`
-                    }
-                });
-            }
-
-            // Update payment status
-            await tx.parentPayment.update({
-                where: { id },
-                data: {
-                    status: 'confirmed',
-                    confirmedAt: new Date(),
-                    confirmedBy: cashierId
-                }
-            });
-
-            // Update student tuition status
-            const totalPaid = await tx.parentPayment.aggregate({
-                where: {
-                    studentId: payment.studentId,
-                    status: 'confirmed'
-                },
-                _sum: { amount: true }
-            });
-
-            const paidAmount = totalPaid._sum.amount || 0;
-            
-            // Determine tuition status
-            let tuitionStatus = 'partial';
-            if (paidAmount >= 100000) { // Adjust this threshold as needed
-                tuitionStatus = 'paid';
-            } else if (paidAmount <= 0) {
-                tuitionStatus = 'pending';
-            }
-
-            await tx.student.update({
-                where: { id: payment.studentId },
-                data: { tuitionStatus }
-            });
-
-            // Create notification for parent
-            await tx.notification.create({
-                data: {
-                    userId: payment.parent.user.id,
-                    title: 'Payment Confirmed',
-                    message: `Your payment of =N=${payment.amount.toFixed(2)} for ${payment.student.user.firstName} has been confirmed`,
-                    type: 'payment_confirmed',
-                    data: JSON.stringify({
-                        paymentId: payment.id,
-                        amount: payment.amount,
-                        studentName: `${payment.student.user.firstName} ${payment.student.user.lastName}`
-                    })
-                }
-            });
-        });
-
-        console.log(`✅ Payment ${id} approved successfully`);
-
-        res.json({
-            success: true,
-            message: 'Payment approved successfully'
-        });
-
-    } catch (error) {
-        console.error('💥 Approve payment error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to approve payment: ' + error.message
-        });
-    }
-};
-
-// View payment details
-exports.getPaymentDetails = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const payment = await prisma.parentPayment.findUnique({
-            where: { id },
+        const payment = await prisma.parentPayment.findFirst({
+            where: { id, ...schoolFilter },
             include: {
                 parent: {
                     include: {
@@ -1617,36 +1315,40 @@ exports.getPaymentDetails = async (req, res) => {
         });
 
         if (!payment) {
-            return res.status(404).render('error/404', { title: 'Payment not found' });
+            req.flash('error', 'Payment not found or not in your school');
+            return res.redirect('/cashier/dashboard');
         }
 
-        // Calculate parent's current wallet balance
         const walletBalance = payment.parent.wallet?.balance || 0;
 
         res.render('cashier/payment-details', {
             title: 'Payment Details',
             payment,
             walletBalance,
+            userSchool,
+            isSuperAdmin,
             user: req.session.user
         });
 
     } catch (error) {
         console.error('Error getting payment details:', error);
-        res.status(500).render('error/500', { title: 'Server Error' });
+        req.flash('error', 'Failed to load payment details');
+        res.redirect('/cashier/dashboard');
     }
 };
 
+// ========== MODULE EXPORTS ==========
 module.exports = {
     dashboard,
     recordFeePayment,
     recordOtherTransaction,
     getStudentsForPayment,
     getDailyTransactions,
-    approveParentPayment,
+    approveParentPayment,   // only one definition
     viewPaymentDetails,
     viewPendingPayments,
     processPayment,
     rejectParentPayment,
     getPendingPayments,
-    approveParentPayment 
+    getPaymentDetails
 };
