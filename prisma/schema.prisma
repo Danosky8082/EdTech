@@ -39,6 +39,7 @@ model User {
   passwordChangedAt            DateTime?
   createdAt                    DateTime               @default(now())
   updatedAt                    DateTime               @updatedAt
+  qrToken                      String?                @unique
   
   // Relations
   accountant                   Accountant?

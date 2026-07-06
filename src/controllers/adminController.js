@@ -1,11 +1,11 @@
 // ============================================================
 // CONTROLLER: adminController.js (Revenue-Focused + ID Setup)
 // ============================================================
+const crypto = require('crypto');  // <-- Added for QR token
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
 const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHelpers');
 const { uploadToBlob } = require('../utils/fileUpload');
-
 // --------------------------------------------
 // ID GENERATION HELPERS
 // --------------------------------------------
@@ -497,7 +497,7 @@ const createUser = async (req, res) => {
       }
     }
 
-    const user = await prisma.user.create({
+     const user = await prisma.user.create({
       data: {
         idNumber: finalIdNumber,
         password: hashedPassword,
@@ -512,6 +512,13 @@ const createUser = async (req, res) => {
         school: assignedSchool,
         isActive: true
       }
+    });
+
+    // ---------- GENERATE QR TOKEN ----------
+    const qrToken = crypto.randomUUID();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { qrToken }
     });
 
     // ---------- ROLE‑SPECIFIC CREATION ----------
@@ -636,6 +643,7 @@ const createUser = async (req, res) => {
     }
   }
 };
+
 
 // --------------------------------------------
 // UPDATE USER
@@ -3506,6 +3514,54 @@ const resetNewTerm = async (req, res) => {
 };
 
 // --------------------------------------------
+// NEW: GET USER QR TOKEN
+// --------------------------------------------
+/**
+ * GET /admin/users/:userId/qr
+ * Returns the QR token for a user (generates one if missing).
+ */
+const getUserQR = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        qrToken: true,
+        idNumber: true,
+        firstName: true,
+        lastName: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // If user has no QR token, generate one now
+    let token = user.qrToken;
+    if (!token) {
+      token = crypto.randomUUID();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { qrToken: token }
+      });
+    }
+
+    // Return the token (frontend can generate QR from it, or we can return a QR image URL)
+    res.json({
+      success: true,
+      qrToken: token,
+      idNumber: user.idNumber,
+      name: `${user.firstName} ${user.lastName}`
+    });
+  } catch (error) {
+    console.error('Get user QR error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// --------------------------------------------
 // EXPORTS
 // --------------------------------------------
 module.exports = {
@@ -3562,5 +3618,6 @@ module.exports = {
   resetNewTerm,
   schoolSetupPage,
   saveSchoolSetup,
-  getNextUserId
+  getNextUserId,
+  getUserQR            
 };

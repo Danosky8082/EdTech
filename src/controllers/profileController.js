@@ -1,9 +1,10 @@
 const prisma = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 const { uploadToBlob } = require('../utils/fileUpload');
+const { generateQR } = require('../utils/qrGenerator');  // <-- NEW: QR generator
 
 // ============================================================
-// GET PROFILE - for all roles
+// GET PROFILE - for all roles (WITH QR CODE)
 // ============================================================
 const getProfile = async (req, res) => {
   try {
@@ -87,6 +88,21 @@ const getProfile = async (req, res) => {
       };
     }
 
+    // ---------- QR CODE GENERATION ----------
+    let qrImage = null;
+    let qrToken = user.qrToken;
+    if (!qrToken) {
+      // Generate a new QR token if missing
+      const crypto = require('crypto');
+      qrToken = crypto.randomUUID();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { qrToken }
+      });
+    }
+    // Generate QR image from the token
+    qrImage = await generateQR(qrToken);
+
     // Avatar handling
     let avatarUrl = '';
     let fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=6a11cb&color=fff&size=100`;
@@ -158,6 +174,7 @@ const getProfile = async (req, res) => {
       roleData: roleData,
       avatarUrl: avatarUrl,
       fallbackAvatar: fallbackAvatar,
+      qrImage: qrImage,                // <-- NEW: QR image data URL
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
       userFirstName: user.firstName,
@@ -175,7 +192,7 @@ const getProfile = async (req, res) => {
 };
 
 // ============================================================
-// UPDATE PROFILE (name, email, phone, avatar)
+// UPDATE PROFILE (unchanged)
 // ============================================================
 const updateProfile = async (req, res) => {
   try {
@@ -227,7 +244,7 @@ const updateProfile = async (req, res) => {
 };
 
 // ============================================================
-// CHANGE PASSWORD
+// CHANGE PASSWORD (unchanged)
 // ============================================================
 const changePassword = async (req, res) => {
   try {

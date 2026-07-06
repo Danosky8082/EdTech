@@ -42,14 +42,98 @@ const formatTimeAgo = (date) => {
 };
 
 // ============================================================
-// 5. MIDDLEWARE (global for all admin routes)
+// 5. BODY PARSERS (global)
 // ============================================================
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json());
+
+// ============================================================
+// 6. PUBLIC ROUTES – no authentication required
+// ============================================================
+
+/**
+ * GET /api/scan/:token
+ * Public endpoint to scan a QR code and retrieve user info.
+ * Used by the scanner page (accessible to teachers/admins, but no auth required).
+ */
+router.get('/api/scan/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { qrToken: token },
+      include: {
+        student: {
+          select: {
+            grade: true,
+            section: true,
+            tuitionStatus: true
+          }
+        },
+        teacher: {
+          select: {
+            subject: true
+          }
+        },
+        parent: {
+          select: {
+            wallet: {
+              select: {
+                balance: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Build response (exclude password and other sensitive fields)
+    const response = {
+      success: true,
+      user: {
+        id: user.id,
+        idNumber: user.idNumber,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        school: user.school,
+        avatar: user.avatar,
+        isActive: user.isActive,
+        // Role-specific data
+        grade: user.student?.grade || null,
+        section: user.student?.section || null,
+        tuitionStatus: user.student?.tuitionStatus || null,
+        subject: user.teacher?.subject || null,
+        walletBalance: user.parent?.wallet?.balance || 0
+      }
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('QR scan error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// ============================================================
+// 7. AUTH MIDDLEWARE (applied to all routes below)
+// ============================================================
 router.use(isAuthenticated, isAdmin, setSchoolContext, restrictToSchool);
 
 // ============================================================
-// 6. ROUTES (all your existing routes – unchanged)
+// 8. PROTECTED ROUTES (all existing admin routes)
 // ============================================================
 
 // Dashboard & analytics
@@ -68,6 +152,17 @@ router.put('/users/:userId', uploadSingle('avatar'), adminController.updateUser)
 router.patch('/users/:userId/toggle-status', adminController.toggleUserStatus);
 router.get('/users/check-id/:idNumber', adminController.checkIdNumber);
 router.get('/students/available', adminController.getAvailableStudents);
+
+// ============================================================
+// 9. QR ROUTES (protected – require admin)
+// ============================================================
+
+/**
+ * GET /admin/users/:userId/qr
+ * Returns the QR token for a specific user (admin only).
+ * Admin can view or generate QR for any user.
+ */
+router.get('/users/:userId/qr', adminController.getUserQR);
 
 // Class management
 router.get('/classes', adminController.manageClasses);
@@ -158,7 +253,7 @@ router.get('/notifications/recent', async (req, res) => {
 router.get('/tuition-analytics', adminController.getTuitionAnalytics);
 
 // ============================================================
-// 7. DEBUG ROUTES (keep as is)
+// 10. DEBUG ROUTES (keep as is)
 // ============================================================
 router.get('/test-db', async (req, res) => {
   try {
