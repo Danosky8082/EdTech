@@ -347,6 +347,11 @@ app.get('/', (req, res) => {
   }
 });
 
+// ✅ Test route – add it here
+app.get('/test', (req, res) => {
+  res.send('Test route works!');
+});
+
 // Download route
 app.get('/download/material/:materialId', (req, res) => {
   if (req.session.user.role === 'teacher') {
