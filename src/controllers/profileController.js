@@ -169,22 +169,22 @@ qrImage = await generateQR(user.qrToken);
     }
 
     res.render('profile', {
-      title: 'My Profile',
-      user: user,
-      roleData: roleData,
-      avatarUrl: avatarUrl,
-      fallbackAvatar: fallbackAvatar,
-      qrImage: qrImage,
-      notificationsDropdownHtml: notificationsDropdownHtml,
-      notificationCount: unreadCount,
-      userFirstName: user.firstName,
-      userLastName: user.lastName,
-      userRole: user.role,
-      userSchool: user.school,
-      adminInfo: user.admin || null,
-      success: req.query.success,
-      error: req.query.error
-    });
+  title: 'My Profile',
+  user: user,
+  roleData: roleData,
+  avatarUrl: avatarUrl,
+  fallbackAvatar: fallbackAvatar,
+  notificationsDropdownHtml: notificationsDropdownHtml,
+  notificationCount: unreadCount,
+  userFirstName: user.firstName,
+  userLastName: user.lastName,
+  userRole: user.role,
+  userSchool: user.school,
+  adminInfo: user.admin || null,
+  success: req.query.success,
+  error: req.query.error,
+  qrImage: qrImage,         
+});
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).render('error/500', { title: 'Server Error' });

@@ -430,15 +430,19 @@ app.use((err, req, res, next) => {
 // QR SCANNER ROUTES
 // ============================================================
 
-// Scanner page (for staff – teachers/admins)
+// Scanner page (only for authenticated staff – optional)
 app.get('/scan', isAuthenticated, (req, res) => {
+  // If you want to allow only teachers/admins, add role check
+  // const allowedRoles = ['teacher', 'admin'];
+  // if (!allowedRoles.includes(req.user.role)) return res.redirect('/');
   res.render('scan');
 });
 
-// Scan API endpoint (public – no login required)
+// Public API endpoint – no login required (so staff can scan without logging in)
 app.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    const prisma = require('./config/database');
     const user = await prisma.user.findUnique({
       where: { qrToken: token },
       include: {
@@ -450,7 +454,6 @@ app.get('/api/scan/:token', async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    // Build response (safe fields only)
     res.json({
       success: true,
       user: {
