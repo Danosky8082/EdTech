@@ -432,6 +432,7 @@ app.use((err, req, res, next) => {
 
 // Scanner page (only for authenticated staff – optional)
 app.get('/scan', isAuthenticated, (req, res) => {
+  console.log('✅ /scan route was hit!');
   // Optionally restrict to specific roles:
   // const allowedRoles = ['teacher', 'admin'];
   // if (!allowedRoles.includes(req.user.role)) return res.redirect('/');
