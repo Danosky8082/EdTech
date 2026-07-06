@@ -6,6 +6,7 @@ const prisma = require('../config/database');
 const { hashPassword } = require('../utils/passwordUtils');
 const { getActivityIcon, getActivityBadgeColor } = require('../utils/activityHelpers');
 const { uploadToBlob } = require('../utils/fileUpload');
+const { generateQR } = require('../utils/qrGenerator');
 // --------------------------------------------
 // ID GENERATION HELPERS
 // --------------------------------------------

@@ -1,7 +1,8 @@
 const prisma = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 const { uploadToBlob } = require('../utils/fileUpload');
-const { generateQR } = require('../utils/qrGenerator');  // <-- NEW: QR generator
+const { generateQR } = require('../utils/qrGenerator');  
+const { generateQR, generateToken } = require('../utils/qrGenerator');
 
 // ============================================================
 // GET PROFILE - for all roles (WITH QR CODE)
