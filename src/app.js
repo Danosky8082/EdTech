@@ -38,7 +38,7 @@ const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/student');
 const teacherRoutes = require('./routes/teacher');
 const adminRoutes = require('./routes/admin');
-const { setSchoolContext, setStudentTuitionStatus } = require('./middleware/auth');  // ✅ added setStudentTuitionStatus
+const { setSchoolContext, setStudentTuitionStatus } = require('./middleware/auth');
 const parentRoutes = require('./routes/parent');
 const accountantRoutes = require('./routes/accountant');
 const cashierRoutes = require('./routes/cashier');
@@ -178,6 +178,7 @@ app.use('/notifications', notificationRoutes);
 // ============================================================
 app.use(setSchoolContext);
 app.use(setStudentTuitionStatus);
+
 // ============================================================
 // User context middleware (populates res.locals for views)
 // ============================================================
@@ -324,7 +325,6 @@ app.use('/parent', parentRoutes);
 app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
 
-
 // ============================================================
 // (setSchoolContext is now global – remove the per‑route ones)
 // ============================================================
@@ -432,7 +432,7 @@ app.use((err, req, res, next) => {
 
 // Scanner page (only for authenticated staff – optional)
 app.get('/scan', isAuthenticated, (req, res) => {
-  // If you want to allow only teachers/admins, add role check
+  // Optionally restrict to specific roles:
   // const allowedRoles = ['teacher', 'admin'];
   // if (!allowedRoles.includes(req.user.role)) return res.redirect('/');
   res.render('scan');
@@ -442,7 +442,7 @@ app.get('/scan', isAuthenticated, (req, res) => {
 app.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const prisma = require('./config/database');
+    // Prisma is already imported at the top
     const user = await prisma.user.findUnique({
       where: { qrToken: token },
       include: {
