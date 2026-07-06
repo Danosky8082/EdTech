@@ -347,10 +347,6 @@ app.get('/', (req, res) => {
   }
 });
 
-// ✅ Test route – add it here
-app.get('/test', (req, res) => {
-  res.send('Test route works!');
-});
 
 // Download route
 app.get('/download/material/:materialId', (req, res) => {
@@ -432,23 +428,23 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================================
-// QR SCANNER ROUTES
+// QR SCANNER ROUTES – MUST BE ABOVE THE 404 HANDLER
 // ============================================================
 
-// Scanner page (only for authenticated staff – optional)
-app.get('/scan', isAuthenticated, (req, res) => {
-  console.log('✅ /scan route was hit!');
-  // Optionally restrict to specific roles:
-  // const allowedRoles = ['teacher', 'admin'];
-  // if (!allowedRoles.includes(req.user.role)) return res.redirect('/');
-  res.render('scan');
+// Simple test route – remove this after it works
+app.get('/test', (req, res) => {
+  res.send('Test route works!');
 });
 
-// Public API endpoint – no login required (so staff can scan without logging in)
+// Scanner page (temporarily remove auth for testing)
+app.get('/scan', (req, res) => {
+  res.send('Scanner page works!');
+});
+
+// API endpoint for scanning
 app.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    // Prisma is already imported at the top
     const user = await prisma.user.findUnique({
       where: { qrToken: token },
       include: {
