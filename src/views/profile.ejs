@@ -152,26 +152,31 @@
                                         </div>
                                         <% } %>
 
-                                        <!-- QR Code Section -->
-                                        <div class="card mt-3">
-                                            <div class="card-header">
-                                                <h5><i class="fas fa-qrcode me-2"></i>Your QR ID</h5>
+                                            <!-- ========== QR CODE SECTION ========== -->
+                                            <div class="card mt-3">
+                                                <div class="card-header">
+                                                    <h5><i class="fas fa-qrcode me-2"></i>Your QR ID</h5>
+                                                </div>
+                                                <div class="card-body text-center">
+                                                    <% if (qrImage) { %>
+                                                        <img src="<%= qrImage %>" alt="QR Code" class="img-fluid"
+                                                            style="max-width: 200px;">
+                                                        <p class="mt-2 text-muted small">Scan this code for
+                                                            identification</p>
+                                                        <a href="<%= qrImage %>" download="qr-<%= user.idNumber %>.png"
+                                                            class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-download me-1"></i>Download
+                                                        </a>
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                            onclick="window.print()">
+                                                            <i class="fas fa-print me-1"></i>Print
+                                                        </button>
+                                                        <% } else { %>
+                                                            <p class="text-muted">QR code could not be generated.</p>
+                                                            <% } %>
+                                                </div>
                                             </div>
-                                            <div class="card-body text-center">
-                                                <% if (qrImage) { %>
-                                                    <img src="<%= qrImage %>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
-                                                    <p class="mt-2 text-muted small">Scan this code for identification</p>
-                                                    <a href="<%= qrImage %>" download="qr-<%= user.idNumber %>.png" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-download me-1"></i>Download
-                                                    </a>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-                                                        <i class="fas fa-print me-1"></i>Print
-                                                    </button>
-                                                    <% } else { %>
-                                                        <p class="text-muted">QR code could not be generated.</p>
-                                                        <% } %>
-                                            </div>
-                                        </div>
+                                            <!-- ========== END QR CODE SECTION ========== -->
                     </div>
 
                     <!-- Right Column: Update Forms -->

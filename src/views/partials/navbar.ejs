@@ -401,9 +401,7 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- ============================================================ -->
-            <!-- ✅ CORRECTED NAVIGATION BLOCK – conditionally shows based on isUnpaidStudent -->
-            <!-- ============================================================ -->
+            <!-- Navigation Links -->
             <ul class="navbar-nav me-auto">
                 <% if (userRole) { %>
                     <% if (!isUnpaidStudent) { %>
@@ -439,10 +437,19 @@
                                                 </span>
                                             </li>
                                             <% } %>
-                                                <% } %>
+
+                                                <!-- Scanner Link for Teachers and Admins (always visible) -->
+                                                <% if (userRole==='teacher' || userRole==='admin' ) { %>
+                                                    <li class="nav-item">
+                                                        <a class="nav-link" href="/scan">
+                                                            <i class="fas fa-qrcode me-1"></i>Scanner
+                                                        </a>
+                                                    </li>
+                                                    <% } %>
+                                                        <% } %>
             </ul>
 
-            <!-- Notification Bell (unchanged) -->
+            <!-- Notification Bell -->
             <div class="notification-wrapper">
                 <div class="dropdown">
                     <button class="notification-bell" id="notificationDropdown" title="Notifications">
@@ -459,7 +466,7 @@
                 </div>
             </div>
 
-            <!-- User dropdown (unchanged) -->
+            <!-- User dropdown -->
             <div class="welcome-section">
                 <ul class="navbar-nav">
                     <% if (userRole) { %>
