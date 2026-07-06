@@ -426,7 +426,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Scanner page (for staff)
+// ============================================================
+// QR SCANNER ROUTES
+// ============================================================
+
+// Scanner page (for staff – teachers/admins)
 app.get('/scan', isAuthenticated, (req, res) => {
   res.render('scan');
 });
@@ -446,6 +450,7 @@ app.get('/api/scan/:token', async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    // Build response (safe fields only)
     res.json({
       success: true,
       user: {

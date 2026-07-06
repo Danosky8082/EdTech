@@ -90,18 +90,18 @@ const getProfile = async (req, res) => {
 
     // ---------- QR CODE GENERATION ----------
     let qrImage = null;
-    let qrToken = user.qrToken;
-    if (!qrToken) {
-      // Generate a new QR token if missing
-      const crypto = require('crypto');
-      qrToken = crypto.randomUUID();
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { qrToken }
-      });
-    }
-    // Generate QR image from the token
-    qrImage = await generateQR(qrToken);
+let qrToken = user.qrToken;
+if (!qrToken) {
+  qrToken = require('crypto').randomUUID();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { qrToken }
+  });
+  // Update local user object
+  user.qrToken = qrToken;
+}
+const { generateQR } = require('../utils/qrGenerator');
+qrImage = await generateQR(user.qrToken);
 
     // Avatar handling
     let avatarUrl = '';
@@ -174,7 +174,7 @@ const getProfile = async (req, res) => {
       roleData: roleData,
       avatarUrl: avatarUrl,
       fallbackAvatar: fallbackAvatar,
-      qrImage: qrImage,                // <-- NEW: QR image data URL
+      qrImage: qrImage,
       notificationsDropdownHtml: notificationsDropdownHtml,
       notificationCount: unreadCount,
       userFirstName: user.firstName,
