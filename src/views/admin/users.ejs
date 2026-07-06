@@ -520,7 +520,12 @@
                                     <label class="form-label">ID Number *</label>
                                     <input type="text" class="form-control" name="idNumber" required>
                                 </div>
+
+                                <button class="btn btn-sm btn-outline-info" onclick="viewQR('<%= user.id %>')">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
                             </div>
+
                             <!-- Row 2: First + Last Name -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
