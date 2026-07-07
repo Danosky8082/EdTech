@@ -53,6 +53,10 @@ model User {
   parent                       Parent?
   student                      Student?
   teacher                      Teacher?
+  
+  // ✅ Added for attendance and library
+  attendanceRecords            Attendance[]          @relation("AttendanceRecorder")
+  libraryRecords               LibraryTransaction[]  @relation("LibraryRecorder")
 
   @@map("users")
 }
@@ -79,6 +83,10 @@ model Student {
   submissions             Submission[]
   tuitionPayments         TuitionPayment[]
   parentPayments          ParentPayment[]
+  
+  // ✅ Added for attendance and library
+  attendances             Attendance[]
+  libraryTransactions     LibraryTransaction[]
 
   @@map("students")
 }
@@ -283,6 +291,9 @@ model Class {
   materials    Material[]
   studentNotes StudentNote[]
   lessonNotes  LessonNote[]  // ✅ ADDED for Lesson Notes feature
+  
+  // ✅ Added for attendance
+  attendances  Attendance[]
 
   @@unique([grade, section, teacherId, name])
   @@map("classes")
@@ -676,4 +687,69 @@ model LessonNote {
   teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("lesson_notes")
+}
+
+// ========== ATTENDANCE & LIBRARY ==========
+model Attendance {
+  id         String   @id @default(cuid())
+  studentId  String
+  classId    String?
+  date       DateTime @default(now())
+  status     String   @default("present") // present, absent, late
+  recordedBy String   // teacher/admin id
+  recordedAt DateTime @default(now())
+  notes      String?
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+  recorder User   @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
+
+  @@map("attendances")
+}
+
+model LibraryTransaction {
+  id         String   @id @default(cuid())
+  studentId  String
+  bookId     String
+  action     String   // borrow, return
+  dueDate    DateTime?
+  returnedAt DateTime?
+  recordedBy String   // librarian/admin id
+  recordedAt DateTime @default(now())
+  notes      String?
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  book    Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  recorder User   @relation("LibraryRecorder", fields: [recordedBy], references: [id])
+
+  @@map("library_transactions")
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String?
+  isbn        String?
+  copies      Int      @default(1)
+  available   Int      @default(1)
+  location    String?
+  category    String?
+  school      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  transactions LibraryTransaction[]
+
+  @@map("books")
+}
+
+model Session {
+  sid        String   @id @default(cuid())
+  sess       Json
+  expire     DateTime
+
+  @@map("session")
 }

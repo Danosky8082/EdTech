@@ -334,17 +334,113 @@ app.get('/scan', (req, res) => {
 app.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    const { action, bookId, classId, notes } = req.query;
+
     const user = await prisma.user.findUnique({
       where: { qrToken: token },
       include: {
-        student: { select: { grade: true, section: true, tuitionStatus: true } },
-        teacher: { select: { subject: true } },
-        parent: { select: { wallet: { select: { balance: true } } } }
+        student: { include: { enrollments: true } },
+        teacher: true,
+        parent: true
       }
     });
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    // If action is 'attendance', record attendance
+    if (action === 'attendance') {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
+      }
+      // Record attendance
+      const attendance = await prisma.attendance.create({
+        data: {
+          studentId: user.student.id,
+          classId: classId || null,
+          status: 'present',
+          recordedBy: req.user.id,
+          notes: notes || 'Scanned via QR'
+        }
+      });
+      return res.json({
+        success: true,
+        user: { ...user, attendance: attendance },
+        message: 'Attendance recorded successfully'
+      });
+    }
+
+    // If action is 'library', handle borrow/return
+    if (action === 'library' && bookId) {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in for library transactions.' });
+      }
+      // Check if book exists and is available
+      const book = await prisma.book.findUnique({ where: { id: bookId } });
+      if (!book) {
+        return res.status(404).json({ success: false, message: 'Book not found' });
+      }
+
+      // Check if student already has this book borrowed
+      const existingBorrow = await prisma.libraryTransaction.findFirst({
+        where: {
+          studentId: user.student.id,
+          bookId: bookId,
+          action: 'borrow',
+          returnedAt: null
+        }
+      });
+
+      if (existingBorrow) {
+        // Return the book
+        const transaction = await prisma.libraryTransaction.create({
+          data: {
+            studentId: user.student.id,
+            bookId: bookId,
+            action: 'return',
+            returnedAt: new Date(),
+            recordedBy: req.user.id,
+            notes: notes || 'Returned via QR scan'
+          }
+        });
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { available: { increment: 1 } }
+        });
+        return res.json({
+          success: true,
+          user: { ...user, transaction: transaction },
+          message: `Book "${book.title}" returned successfully`
+        });
+      } else {
+        // Borrow the book
+        if (book.available <= 0) {
+          return res.status(400).json({ success: false, message: 'No copies available' });
+        }
+        const transaction = await prisma.libraryTransaction.create({
+          data: {
+            studentId: user.student.id,
+            bookId: bookId,
+            action: 'borrow',
+            dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+            recordedBy: req.user.id,
+            notes: notes || 'Borrowed via QR scan'
+          }
+        });
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { available: { decrement: 1 } }
+        });
+        return res.json({
+          success: true,
+          user: { ...user, transaction: transaction },
+          message: `Book "${book.title}" borrowed successfully. Due: ${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}`
+        });
+      }
+    }
+
+    // Default: return user info
     res.json({
       success: true,
       user: {
