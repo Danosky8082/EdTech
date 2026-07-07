@@ -3341,6 +3341,27 @@ const viewAllLiveSessions = async (req, res) => {
   }
 };
 
+// Get borrowing history for the logged-in student
+const getBorrowingHistory = async (req, res) => {
+  try {
+    const studentId = req.session.user.studentId;
+    const transactions = await prisma.libraryTransaction.findMany({
+      where: { studentId: studentId },
+      include: { book: true, recorder: { select: { firstName: true, lastName: true } } },
+      orderBy: { recordedAt: 'desc' }
+    });
+    res.render('student/borrowing-history', {
+      title: 'My Borrowing History',
+      transactions,
+      userSchool: req.userSchool,
+      isSuperAdmin: req.isSuperAdmin
+    });
+  } catch (error) {
+    console.error('Error fetching borrowing history:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
 // ============================================================
 // MODULE EXPORTS
 // ============================================================

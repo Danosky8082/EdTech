@@ -30,6 +30,7 @@
     "mammoth": "^1.11.0",
     "method-override": "^3.0.0",
     "multer": "^2.0.2",
+    "node-cron": "^4.6.0",
     "node-fetch": "^2.7.0",
     "paystack-api": "^2.0.6",
     "prisma": "^6.15.0",

@@ -325,12 +325,12 @@ app.get('/test', (req, res) => {
   res.send('Test route works!');
 });
 
-// Scanner page (temporarily remove auth for testing)
+// Scanner page
 app.get('/scan', (req, res) => {
   res.render('scan');
 });
 
-// API endpoint for scanning
+// API endpoint for scanning – FIXED user ID reference
 app.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
@@ -359,7 +359,7 @@ app.get('/api/scan/:token', async (req, res) => {
           studentId: user.student.id,
           classId: classId || null,
           status: 'present',
-          recordedBy: req.session.user.id,
+          recordedBy: req.session.user.id,  // ✅ FIXED: use session user ID
           notes: notes || 'Scanned via QR'
         }
       });
@@ -400,7 +400,7 @@ app.get('/api/scan/:token', async (req, res) => {
             bookId: bookId,
             action: 'return',
             returnedAt: new Date(),
-            recordedBy: req.user.id,
+            recordedBy: req.session.user.id,  // ✅ FIXED: use session user ID
             notes: notes || 'Returned via QR scan'
           }
         });
@@ -424,7 +424,7 @@ app.get('/api/scan/:token', async (req, res) => {
             bookId: bookId,
             action: 'borrow',
             dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
-            recordedBy: req.user.id,
+            recordedBy: req.session.user.id,  // ✅ FIXED: use session user ID
             notes: notes || 'Borrowed via QR scan'
           }
         });
@@ -441,7 +441,7 @@ app.get('/api/scan/:token', async (req, res) => {
     }
 
     // Default: return user info
-     res.json({
+    res.json({
       success: true,
       user: {
         idNumber: user.idNumber,
@@ -476,10 +476,8 @@ app.use('/accountant', accountantRoutes);
 app.use('/cashier', cashierRoutes);
 
 // ============================================================
-// (setSchoolContext is now global – remove the per‑route ones)
-// ============================================================
-
 // Home route
+// ============================================================
 app.get('/', (req, res) => {
   if (req.session.user) {
     const role = req.session.user.role;

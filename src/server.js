@@ -2,6 +2,16 @@
 const app = require('./app');               // Your Express app
 const http = require('http');
 
+// ============================================================
+// IMPORT CRON JOBS (only if not in Vercel serverless environment)
+// Vercel does not support persistent background processes,
+// so we only run the cron job when the app is running as a
+// standalone server (e.g., locally or on a VPS).
+// ============================================================
+if (!process.env.VERCEL) {
+  require('./jobs/overdueCheck');
+}
+
 // Attach any additional routers (if not already in app.js)
 const teacherRouter = require('./routes/teacher');
 app.use('/teacher', teacherRouter);

@@ -71,4 +71,6 @@ router.get('/debug/material/:id', async (req, res) => {
     res.json({ fileUrl: material?.fileUrl, full: material });
 });
 
+router.get('/borrowing-history', studentController.getBorrowingHistory);
+
 module.exports = router;

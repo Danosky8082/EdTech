@@ -3562,6 +3562,71 @@ const getUserQR = async (req, res) => {
   }
 };
 
+// Get attendance records with filters
+const getAttendanceList = async (req, res) => {
+  try {
+    const { classId, studentId, dateFrom, dateTo } = req.query;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    let whereClause = {};
+
+    if (!isSuperAdmin && userSchool) {
+      whereClause.student = { user: { school: userSchool } };
+    }
+    if (classId) {
+      whereClause.classId = classId;
+    }
+    if (studentId) {
+      whereClause.studentId = studentId;
+    }
+    if (dateFrom) {
+      whereClause.date = { gte: new Date(dateFrom) };
+    }
+    if (dateTo) {
+      whereClause.date = { lte: new Date(dateTo) };
+    }
+
+    const attendances = await prisma.attendance.findMany({
+      where: whereClause,
+      include: {
+        student: { include: { user: true } },
+        class: true,
+        recorder: { select: { firstName: true, lastName: true } }
+      },
+      orderBy: { date: 'desc' },
+      take: 100
+    });
+
+    // Also fetch classes for filter dropdown
+    const classes = await prisma.class.findMany({
+      where: isSuperAdmin ? {} : { teacher: { user: { school: userSchool } } },
+      select: { id: true, name: true }
+    });
+
+    // Fetch students for filter dropdown (optional)
+    const students = await prisma.student.findMany({
+      where: isSuperAdmin ? {} : { user: { school: userSchool } },
+      include: { user: true },
+      take: 50
+    });
+
+    res.render('admin/attendance', {
+      title: 'Attendance Records',
+      attendances,
+      classes,
+      students,
+      filters: { classId, studentId, dateFrom, dateTo },
+      userSchool,
+      isSuperAdmin,
+      adminInfo: req.user?.admin || null
+    });
+  } catch (error) {
+    console.error('Get attendance list error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
 // --------------------------------------------
 // EXPORTS
 // --------------------------------------------
@@ -3620,5 +3685,6 @@ module.exports = {
   schoolSetupPage,
   saveSchoolSetup,
   getNextUserId,
-  getUserQR            
+  getUserQR,
+  getAttendanceList 
 };

@@ -454,6 +454,11 @@
                                                             </a>
                                                         </li>
                                                         <% } %>
+
+                                                        <% if (userRole==='admin' || userRole==='teacher' ) { %>
+                                                            <li class="nav-item"><a class="nav-link" href="/admin/attendance"><i
+                                                                        class="fas fa-clipboard-list me-1"></i>Attendance</a></li>
+                                                            <% } %>
                                                         <% } %>
             </ul>
 

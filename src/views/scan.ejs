@@ -76,14 +76,19 @@
             <!-- Action Buttons -->
             <div id="actionButtons" style="display: none; margin-top: 15px;">
                 <div class="row g-2">
-                    <div class="col-6">
+                    <div class="col-4">
                         <button class="btn btn-primary w-100" onclick="markAttendance()">
                             <i class="fas fa-clipboard-check me-1"></i> Attendance
                         </button>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
                         <button class="btn btn-success w-100" onclick="borrowBook()">
-                            <i class="fas fa-book me-1"></i> Borrow Book
+                            <i class="fas fa-book me-1"></i> Borrow
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-warning w-100" onclick="returnBook()">
+                            <i class="fas fa-undo me-1"></i> Return
                         </button>
                     </div>
                 </div>
@@ -223,6 +228,51 @@
         }
 
         document.addEventListener('DOMContentLoaded', startScanner);
+
+
+        async function returnBook() {
+                if (!currentToken) {
+                    alert('Please scan a QR code first.');
+                    return;
+                }
+
+                try {
+                    // Fetch the student's active borrows
+                    const response = await fetch(`/api/student/${currentToken}/active-borrows`);
+                    const result = await response.json();
+                    if (!result.success || result.borrows.length === 0) {
+                        alert('No books currently borrowed by this student.');
+                        return;
+                    }
+
+                    // Build a select list
+                    const borrowList = result.borrows.map((b, i) =>
+                        `${i + 1}. ${b.book.title} (due: ${new Date(b.dueDate).toLocaleDateString()})`
+                    );
+                    const choice = prompt('Select a book to return:\n' + borrowList.join('\n'));
+                    if (!choice) return;
+
+                    const index = parseInt(choice) - 1;
+                    if (isNaN(index) || index < 0 || index >= result.borrows.length) {
+                        alert('Invalid selection');
+                        return;
+                    }
+
+                    const bookId = result.borrows[index].bookId;
+                    const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(bookId)}`;
+
+                    const returnResponse = await fetch(url);
+                    const data = await returnResponse.json();
+                    if (data.success) {
+                        alert(`✅ ${data.message}`);
+                    } else {
+                        alert('❌ Error: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('❌ Error returning book.');
+                }
+            }
     </script>
 </body>
 

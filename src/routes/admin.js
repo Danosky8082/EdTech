@@ -133,6 +133,32 @@ router.get('/api/scan/:token', async (req, res) => {
 // ============================================================
 router.use(isAuthenticated, isAdmin, setSchoolContext, restrictToSchool);
 
+
+router.get('/api/student/:token/active-borrows', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { qrToken: token },
+      include: { student: true }
+    });
+    if (!user || !user.student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+    const borrows = await prisma.libraryTransaction.findMany({
+      where: {
+        studentId: user.student.id,
+        action: 'borrow',
+        returnedAt: null
+      },
+      include: { book: true }
+    });
+    res.json({ success: true, borrows });
+  } catch (error) {
+    console.error('Error fetching active borrows:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // ============================================================
 // 8. BOOK ROUTES – MUST COME BEFORE ANY DYNAMIC ROUTES
 // ============================================================
@@ -387,9 +413,12 @@ router.get('/parents/debug', async (req, res) => {
   }
 });
 
+
+
 // School setup
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
+router.get('/attendance', adminController.getAttendanceList);
 
 module.exports = router;
