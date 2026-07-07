@@ -169,30 +169,49 @@
             }
         }
 
-        // --- Action: Borrow/Return Book ---
-        async function borrowBook() {
-            if (!currentToken) {
-                alert('Please scan a QR code first.');
-                return;
-            }
-            const bookId = prompt('Enter Book ID:');
-            if (!bookId) return;
-
-            let url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(bookId)}`;
-
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.success) {
-                    alert(`✅ ${data.message}`);
-                } else {
-                    alert('❌ Error: ' + data.message);
+        // Inside borrowBook function
+            async function borrowBook() {
+                if (!currentToken) {
+                    alert('Please scan a QR code first.');
+                    return;
                 }
-            } catch (error) {
-                console.error(error);
-                alert('❌ Error processing library action.');
+
+                // Fetch available books and show a dropdown
+                try {
+                    const response = await fetch('/admin/books/available');
+                    const result = await response.json();
+                    if (!result.success || result.books.length === 0) {
+                        alert('No books available for borrowing.');
+                        return;
+                    }
+
+                    // Build a simple select list (you can make this fancier)
+                    const bookList = result.books.map(b => `${b.title} (${b.available} available)`);
+                    const bookChoice = prompt('Select a book by number:\n' +
+                        bookList.map((b, i) => `${i + 1}. ${b}`).join('\n'));
+                    if (!bookChoice) return;
+
+                    const index = parseInt(bookChoice) - 1;
+                    if (isNaN(index) || index < 0 || index >= result.books.length) {
+                        alert('Invalid selection');
+                        return;
+                    }
+
+                    const bookId = result.books[index].id;
+                    const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(bookId)}`;
+
+                    const borrowResponse = await fetch(url);
+                    const data = await borrowResponse.json();
+                    if (data.success) {
+                        alert(`✅ ${data.message}`);
+                    } else {
+                        alert('❌ Error: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('❌ Error processing library action.');
+                }
             }
-        }
 
         function startScanner() {
             html5QrCode = new Html5Qrcode("reader");

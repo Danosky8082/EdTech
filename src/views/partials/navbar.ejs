@@ -446,6 +446,14 @@
                                                         </a>
                                                     </li>
                                                     <% } %>
+
+                                                    <% if (userRole==='admin' || userRole==='superadmin' ) { %>
+                                                        <li class="nav-item">
+                                                            <a class="nav-link" href="/admin/books">
+                                                                <i class="fas fa-book me-1"></i>Books
+                                                            </a>
+                                                        </li>
+                                                        <% } %>
                                                         <% } %>
             </ul>
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
+const bookController = require('../controllers/bookController');
 
 // ============================================================
 // 1. SINGLE IMPORT – all needed upload middleware
@@ -386,5 +387,14 @@ router.get('/parents/debug', async (req, res) => {
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
+
+// Book Management
+router.get('/books', bookController.getBooks);
+router.get('/books/:bookId', bookController.getBook);
+router.post('/books/create', bookController.createBook);
+router.put('/books/:bookId/update', bookController.updateBook);
+router.delete('/books/:bookId/delete', bookController.deleteBook);
+router.get('/books/available', bookController.getAvailableBooks);
+router.get('/students/:studentId/books', bookController.getStudentBookHistory);
 
 module.exports = router;
