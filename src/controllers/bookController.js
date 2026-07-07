@@ -11,14 +11,12 @@ const getBooks = async (req, res) => {
 
     let whereClause = {};
 
-    // Filter by school
     if (!isSuperAdmin && userSchool) {
       whereClause.school = userSchool;
     } else if (school) {
       whereClause.school = school;
     }
 
-    // Search by title, author, or ISBN
     if (search) {
       whereClause.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -27,7 +25,6 @@ const getBooks = async (req, res) => {
       ];
     }
 
-    // Filter by category
     if (category) {
       whereClause.category = category;
     }
@@ -43,7 +40,6 @@ const getBooks = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Get unique categories for filter dropdown
     const categories = await prisma.book.groupBy({
       by: ['category'],
       where: { category: { not: null } }
@@ -89,7 +85,6 @@ const getBook = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Book not found' });
     }
 
-    // Check if book is currently borrowed
     const currentBorrow = book.transactions.find(t => t.action === 'borrow' && !t.returnedAt);
 
     res.json({
@@ -199,7 +194,6 @@ const deleteBook = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Book not found' });
     }
 
-    // Check if book is currently borrowed
     if (existingBook.transactions.length > 0) {
       return res.status(400).json({
         success: false,
@@ -207,12 +201,10 @@ const deleteBook = async (req, res) => {
       });
     }
 
-    // Delete all transactions first
     await prisma.libraryTransaction.deleteMany({
       where: { bookId: bookId }
     });
 
-    // Delete the book
     await prisma.book.delete({
       where: { id: bookId }
     });
@@ -225,7 +217,7 @@ const deleteBook = async (req, res) => {
 };
 
 // ============================================================
-// GET book borrowing history for a student
+// GET student book history
 // ============================================================
 const getStudentBookHistory = async (req, res) => {
   try {
@@ -248,7 +240,7 @@ const getStudentBookHistory = async (req, res) => {
 };
 
 // ============================================================
-// GET all available books (for scanner dropdown)
+// GET all available books (FIXED)
 // ============================================================
 const getAvailableBooks = async (req, res) => {
   try {
@@ -257,7 +249,10 @@ const getAvailableBooks = async (req, res) => {
 
     let whereClause = { available: { gt: 0 } };
     if (!isSuperAdmin && userSchool) {
-      whereClause.school = userSchool;
+      whereClause.OR = [
+        { school: userSchool },
+        { school: null }
+      ];
     }
 
     const books = await prisma.book.findMany({
@@ -267,11 +262,13 @@ const getAvailableBooks = async (req, res) => {
         title: true,
         author: true,
         available: true,
-        category: true
+        category: true,
+        school: true
       },
       orderBy: { title: 'asc' }
     });
 
+    console.log(`📚 Available books found: ${books.length} for school ${userSchool || 'all'}`);
     res.json({ success: true, books });
   } catch (error) {
     console.error('Get available books error:', error);
