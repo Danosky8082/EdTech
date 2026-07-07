@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <%- include('../partials/alerts') %>
+
+                <h2><i class="fas fa-clipboard-check me-2"></i>My Attendance</h2>
+
+                <!-- Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body text-center">
+                                <h3>
+                                    <%= stats.totalDays %>
+                                </h3>
+                                <p>Total Days</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success">
+                            <div class="card-body text-center">
+                                <h3>
+                                    <%= stats.presentDays %>
+                                </h3>
+                                <p>Present</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body text-center">
+                                <h3>
+                                    <%= stats.absentDays %>
+                                </h3>
+                                <p>Absent</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body text-center">
+                                <h3>
+                                    <%= stats.lateDays %>
+                                </h3>
+                                <p>Late</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4>Attendance Rate</h4>
+                                <h2
+                                    class="<%= stats.attendanceRate >= 80 ? 'text-success' : stats.attendanceRate >= 60 ? 'text-warning' : 'text-danger' %>">
+                                    <%= stats.attendanceRate %>%
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>Summary</h5>
+                                <div class="d-flex justify-content-between">
+                                    <span>Present: <strong>
+                                            <%= stats.presentDays %>
+                                        </strong></span>
+                                    <span>Absent: <strong>
+                                            <%= stats.absentDays %>
+                                        </strong></span>
+                                    <span>Late: <strong>
+                                            <%= stats.lateDays %>
+                                        </strong></span>
+                                </div>
+                                <div class="progress mt-2" style="height: 20px;">
+                                    <div class="progress-bar bg-success" style="width: <%= stats.attendanceRate %>%">
+                                        <%= stats.attendanceRate %>%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance List -->
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Attendance Records</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (attendances && attendances.length> 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Class</th>
+                                            <th>Status</th>
+                                            <th>Recorded By</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% attendances.forEach(att=> { %>
+                                            <tr>
+                                                <td>
+                                                    <%= new Date(att.date).toLocaleDateString() %>
+                                                </td>
+                                                <td>
+                                                    <%= att.class ? att.class.name : 'N/A' %>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge bg-<%= att.status === 'present' ? 'success' : att.status === 'late' ? 'warning' : 'danger' %>">
+                                                        <%= att.status.toUpperCase() %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <%= att.recorder ? att.recorder.firstName + ' ' +
+                                                        att.recorder.lastName : 'System' %>
+                                                </td>
+                                                <td>
+                                                    <%= att.notes || '—' %>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <% } else { %>
+                                <p class="text-muted text-center">No attendance records found.</p>
+                                <% } %>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

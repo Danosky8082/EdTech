@@ -3341,23 +3341,79 @@ const viewAllLiveSessions = async (req, res) => {
   }
 };
 
-// Get borrowing history for the logged-in student
+
+
+// ============================================================
+// VIEW BORROWING HISTORY
+// ============================================================
 const getBorrowingHistory = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
     const transactions = await prisma.libraryTransaction.findMany({
       where: { studentId: studentId },
-      include: { book: true, recorder: { select: { firstName: true, lastName: true } } },
+      include: {
+        book: true,
+        recorder: { select: { firstName: true, lastName: true } }
+      },
       orderBy: { recordedAt: 'desc' }
     });
+
+    // Calculate current borrows (not returned)
+    const currentBorrows = transactions.filter(t => t.action === 'borrow' && !t.returnedAt);
+
     res.render('student/borrowing-history', {
       title: 'My Borrowing History',
       transactions,
-      userSchool: req.userSchool,
-      isSuperAdmin: req.isSuperAdmin
+      currentBorrows,
+      studentId,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
     });
   } catch (error) {
-    console.error('Error fetching borrowing history:', error);
+    console.error('Get borrowing history error:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
+  }
+};
+
+// ============================================================
+// VIEW ATTENDANCE
+// ============================================================
+const viewAttendance = async (req, res) => {
+  try {
+    const studentId = req.session.user.studentId;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    const attendances = await prisma.attendance.findMany({
+      where: { studentId: studentId },
+      include: {
+        class: true,
+        recorder: { select: { firstName: true, lastName: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    // Summary stats
+    const totalDays = attendances.length;
+    const presentDays = attendances.filter(a => a.status === 'present').length;
+    const absentDays = attendances.filter(a => a.status === 'absent').length;
+    const lateDays = attendances.filter(a => a.status === 'late').length;
+    const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+    res.render('student/attendance', {
+      title: 'My Attendance',
+      attendances,
+      stats: { totalDays, presentDays, absentDays, lateDays, attendanceRate },
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
+    });
+  } catch (error) {
+    console.error('View attendance error:', error);
     res.status(500).render('error/500', { title: 'Server Error' });
   }
 };
@@ -3404,5 +3460,7 @@ module.exports = {
   viewAnalytics,
   getRecentNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  getBorrowingHistory,    
+  viewAttendance  
 };

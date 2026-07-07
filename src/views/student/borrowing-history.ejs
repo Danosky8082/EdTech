@@ -15,57 +15,121 @@
     <%- include('../partials/navbar') %>
 
         <div class="container mt-4">
-            <h2>My Borrowing History</h2>
-            <div class="card">
-                <div class="card-body">
-                    <% if (transactions && transactions.length> 0) { %>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Book</th>
-                                        <th>Action</th>
-                                        <th>Date</th>
-                                        <th>Due Date</th>
-                                        <th>Returned</th>
-                                        <th>Recorded By</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% transactions.forEach(t=> { %>
+            <%- include('../partials/alerts') %>
+
+                <h2><i class="fas fa-book-open me-2"></i>My Borrowing History</h2>
+
+                <!-- Current Borrows -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-book me-2"></i>Currently Borrowed</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (currentBorrows && currentBorrows.length> 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
                                         <tr>
-                                            <td>
-                                                <%= t.book.title %>
-                                            </td>
-                                            <td><span
-                                                    class="badge bg-<%= t.action === 'borrow' ? 'primary' : 'success' %>">
-                                                    <%= t.action %>
-                                                </span></td>
-                                            <td>
-                                                <%= new Date(t.recordedAt).toLocaleDateString() %>
-                                            </td>
-                                            <td>
-                                                <%= t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '-' %>
-                                            </td>
-                                            <td>
-                                                <%= t.returnedAt ? new Date(t.returnedAt).toLocaleDateString() : `<span
-                                                    class="badge bg-warning">Not returned</span>` %>
-                                            </td>
-                                            <td>
-                                                <%= t.recorder ? t.recorder.firstName + ' ' + t.recorder.lastName : '-'
-                                                    %>
-                                            </td>
+                                            <th>Book</th>
+                                            <th>Author</th>
+                                            <th>Borrowed On</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
                                         </tr>
-                                        <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                        <% } else { %>
-                            <p>No borrowing history found.</p>
-                            <% } %>
+                                    </thead>
+                                    <tbody>
+                                        <% currentBorrows.forEach(borrow=> { %>
+                                            <tr>
+                                                <td><strong>
+                                                        <%= borrow.book.title %>
+                                                    </strong></td>
+                                                <td>
+                                                    <%= borrow.book.author || 'N/A' %>
+                                                </td>
+                                                <td>
+                                                    <%= new Date(borrow.recordedAt).toLocaleDateString() %>
+                                                </td>
+                                                <td>
+                                                    <%= borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString()
+                                                        : 'N/A' %>
+                                                        <% if (borrow.dueDate && new Date(borrow.dueDate) < new Date())
+                                                            { %>
+                                                            <span class="badge bg-danger ms-2">Overdue</span>
+                                                            <% } %>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-warning">Borrowed</span>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <% } else { %>
+                                <p class="text-muted text-center">You have no books borrowed at the moment.</p>
+                                <% } %>
+                    </div>
                 </div>
-            </div>
+
+                <!-- All Transactions -->
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>All Transactions</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (transactions && transactions.length> 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Book</th>
+                                            <th>Action</th>
+                                            <th>Date</th>
+                                            <th>Due Date</th>
+                                            <th>Returned</th>
+                                            <th>Recorded By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% transactions.forEach(transaction=> { %>
+                                            <tr>
+                                                <td>
+                                                    <%= transaction.book.title %>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge bg-<%= transaction.action === 'borrow' ? 'primary' : 'success' %>">
+                                                        <%= transaction.action.toUpperCase() %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <%= new Date(transaction.recordedAt).toLocaleDateString() %>
+                                                </td>
+                                                <td>
+                                                    <%= transaction.dueDate ? new
+                                                        Date(transaction.dueDate).toLocaleDateString() : 'N/A' %>
+                                                </td>
+                                                <td>
+                                                    <%= transaction.returnedAt ? new
+                                                        Date(transaction.returnedAt).toLocaleDateString() : '—' %>
+                                                </td>
+                                                <td>
+                                                    <%= transaction.recorder ? transaction.recorder.firstName + ' ' +
+                                                        transaction.recorder.lastName : 'System' %>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <% } else { %>
+                                <p class="text-muted text-center">No borrowing history found.</p>
+                                <% } %>
+                    </div>
+                </div>
         </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
