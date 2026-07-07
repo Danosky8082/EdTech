@@ -134,7 +134,18 @@ router.get('/api/scan/:token', async (req, res) => {
 router.use(isAuthenticated, isAdmin, setSchoolContext, restrictToSchool);
 
 // ============================================================
-// 8. PROTECTED ROUTES (all existing admin routes)
+// 8. BOOK ROUTES – MUST COME BEFORE ANY DYNAMIC ROUTES
+// ============================================================
+router.get('/books/available', bookController.getAvailableBooks); // ✅ specific first
+router.get('/books', bookController.getBooks);                   // list
+router.get('/books/:bookId', bookController.getBook);            // dynamic – must come AFTER specific
+router.post('/books/create', bookController.createBook);
+router.put('/books/:bookId/update', bookController.updateBook);
+router.delete('/books/:bookId/delete', bookController.deleteBook);
+router.get('/students/:studentId/books', bookController.getStudentBookHistory);
+
+// ============================================================
+// 9. OTHER PROTECTED ROUTES (all existing admin routes)
 // ============================================================
 
 // Dashboard & analytics
@@ -154,15 +165,7 @@ router.patch('/users/:userId/toggle-status', adminController.toggleUserStatus);
 router.get('/users/check-id/:idNumber', adminController.checkIdNumber);
 router.get('/students/available', adminController.getAvailableStudents);
 
-// ============================================================
-// 9. QR ROUTES (protected – require admin)
-// ============================================================
-
-/**
- * GET /admin/users/:userId/qr
- * Returns the QR token for a specific user (admin only).
- * Admin can view or generate QR for any user.
- */
+// QR routes
 router.get('/users/:userId/qr', adminController.getUserQR);
 
 // Class management
@@ -206,7 +209,7 @@ router.post('/reset-payments', adminController.resetAllPayments);
 router.post('/delete-users', adminController.deleteSelectedUsers);
 router.post('/reset-term', adminController.resetNewTerm);
 
-// Notifications (uses prisma directly – kept here)
+// Notifications
 router.post('/notifications/mark-all-read', async (req, res) => {
   try {
     await prisma.notification.updateMany({
@@ -254,7 +257,7 @@ router.get('/notifications/recent', async (req, res) => {
 router.get('/tuition-analytics', adminController.getTuitionAnalytics);
 
 // ============================================================
-// 10. DEBUG ROUTES (keep as is)
+// 10. DEBUG ROUTES
 // ============================================================
 router.get('/test-db', async (req, res) => {
   try {
@@ -384,17 +387,9 @@ router.get('/parents/debug', async (req, res) => {
   }
 });
 
+// School setup
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
-
-// Book Management
-router.get('/books', bookController.getBooks);
-router.get('/books/:bookId', bookController.getBook);
-router.post('/books/create', bookController.createBook);
-router.put('/books/:bookId/update', bookController.updateBook);
-router.delete('/books/:bookId/delete', bookController.deleteBook);
-router.get('/books/available', bookController.getAvailableBooks);
-router.get('/students/:studentId/books', bookController.getStudentBookHistory);
 
 module.exports = router;
