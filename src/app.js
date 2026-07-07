@@ -327,7 +327,7 @@ app.get('/test', (req, res) => {
 
 // Scanner page (temporarily remove auth for testing)
 app.get('/scan', (req, res) => {
-  res.send('Scanner page works!');
+  res.render('scan');
 });
 
 // API endpoint for scanning
@@ -470,7 +470,7 @@ app.use((err, req, res, next) => {
   }
 
   res.status(statusCode).render(`error/${statusCode}`, {
-    title: statusCode === 404 ? 'Pages Not Found' : 'Server Error',
+    title: statusCode === 404 ? 'Page Not Found' : 'Server Error',
     message: message,
     user: user,
     isSuperAdmin: req.isSuperAdmin || false,
