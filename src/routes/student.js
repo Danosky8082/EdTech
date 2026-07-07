@@ -72,5 +72,6 @@ router.get('/debug/material/:id', async (req, res) => {
 });
 
 router.get('/borrowing-history', studentController.getBorrowingHistory);
+router.get('/attendance', studentController.viewAttendance);
 
 module.exports = router;
