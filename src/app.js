@@ -470,7 +470,7 @@ app.use((err, req, res, next) => {
   }
 
   res.status(statusCode).render(`error/${statusCode}`, {
-    title: statusCode === 404 ? 'Page Not Found' : 'Server Error',
+    title: statusCode === 404 ? 'Pages Not Found' : 'Server Error',
     message: message,
     user: user,
     isSuperAdmin: req.isSuperAdmin || false,
