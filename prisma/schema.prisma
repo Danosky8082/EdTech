@@ -753,3 +753,4 @@ model Session {
 
   @@map("session")
 }
+
