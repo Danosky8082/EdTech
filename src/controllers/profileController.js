@@ -4,7 +4,7 @@ const { uploadToBlob } = require('../utils/fileUpload');
 const { generateQR, generateToken } = require('../utils/qrGenerator');
 
 // ============================================================
-// GET PROFILE - for all roles (WITH QR CODE)
+// GET PROFILE - for all roles
 // ============================================================
 const getProfile = async (req, res) => {
   try {
@@ -88,20 +88,6 @@ const getProfile = async (req, res) => {
       };
     }
 
-    // ---------- QR CODE GENERATION ----------
-    let qrImage = null;
-let qrToken = user.qrToken;
-if (!qrToken) {
-  qrToken = generateToken();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { qrToken }
-  });
-}
-const qrImage = await generateQR(qrToken);
-const { generateQR } = require('../utils/qrGenerator');
-qrImage = await generateQR(user.qrToken);
-
     // Avatar handling
     let avatarUrl = '';
     let fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=6a11cb&color=fff&size=100`;
@@ -112,6 +98,19 @@ qrImage = await generateQR(user.qrToken);
         avatarUrl = '/' + user.avatar;
       }
     }
+
+    // ---------- QR CODE GENERATION ----------
+    let qrImage = null;
+    let qrToken = user.qrToken;
+    if (!qrToken) {
+      qrToken = generateToken();
+      await prisma.user.update({
+        where: { id: userId },
+        data: { qrToken }
+      });
+      user.qrToken = qrToken;
+    }
+    qrImage = await generateQR(qrToken);
 
     // Notifications for navbar
     const notifications = await prisma.notification.findMany({
@@ -168,22 +167,22 @@ qrImage = await generateQR(user.qrToken);
     }
 
     res.render('profile', {
-  title: 'My Profile',
-  user: user,
-  roleData: roleData,
-  avatarUrl: avatarUrl,
-  fallbackAvatar: fallbackAvatar,
-  notificationsDropdownHtml: notificationsDropdownHtml,
-  notificationCount: unreadCount,
-  userFirstName: user.firstName,
-  userLastName: user.lastName,
-  userRole: user.role,
-  userSchool: user.school,
-  adminInfo: user.admin || null,
-  success: req.query.success,
-  error: req.query.error,
-  qrImage: qrImage,         
-});
+      title: 'My Profile',
+      user: user,
+      roleData: roleData,
+      avatarUrl: avatarUrl,
+      fallbackAvatar: fallbackAvatar,
+      qrImage: qrImage,                 // <-- QR code image
+      notificationsDropdownHtml: notificationsDropdownHtml,
+      notificationCount: unreadCount,
+      userFirstName: user.firstName,
+      userLastName: user.lastName,
+      userRole: user.role,
+      userSchool: user.school,
+      adminInfo: user.admin || null,
+      success: req.query.success,
+      error: req.query.error
+    });
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).render('error/500', { title: 'Server Error' });
@@ -191,7 +190,7 @@ qrImage = await generateQR(user.qrToken);
 };
 
 // ============================================================
-// UPDATE PROFILE (unchanged)
+// UPDATE PROFILE (name, email, phone, avatar)
 // ============================================================
 const updateProfile = async (req, res) => {
   try {
@@ -243,7 +242,7 @@ const updateProfile = async (req, res) => {
 };
 
 // ============================================================
-// CHANGE PASSWORD (unchanged)
+// CHANGE PASSWORD
 // ============================================================
 const changePassword = async (req, res) => {
   try {
