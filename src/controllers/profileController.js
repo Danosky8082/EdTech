@@ -92,14 +92,13 @@ const getProfile = async (req, res) => {
     let qrImage = null;
 let qrToken = user.qrToken;
 if (!qrToken) {
-  qrToken = require('crypto').randomUUID();
+  qrToken = generateToken();
   await prisma.user.update({
     where: { id: userId },
     data: { qrToken }
   });
-  // Update local user object
-  user.qrToken = qrToken;
 }
+const qrImage = await generateQR(qrToken);
 const { generateQR } = require('../utils/qrGenerator');
 qrImage = await generateQR(user.qrToken);
 

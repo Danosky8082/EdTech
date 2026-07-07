@@ -351,31 +351,31 @@ app.get('/api/scan/:token', async (req, res) => {
 
     // If action is 'attendance', record attendance
     if (action === 'attendance') {
-      if (!req.user) {
+      if (!req.session.user) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
       }
-      // Record attendance
       const attendance = await prisma.attendance.create({
         data: {
           studentId: user.student.id,
           classId: classId || null,
           status: 'present',
-          recordedBy: req.user.id,
+          recordedBy: req.session.user.id,
           notes: notes || 'Scanned via QR'
         }
       });
       return res.json({
         success: true,
-        user: { ...user, attendance: attendance },
-        message: 'Attendance recorded successfully'
+        message: 'Attendance recorded successfully',
+        attendance
       });
     }
 
     // If action is 'library', handle borrow/return
     if (action === 'library' && bookId) {
-      if (!req.user) {
+      if (!req.session.user) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in for library transactions.' });
       }
+
       // Check if book exists and is available
       const book = await prisma.book.findUnique({ where: { id: bookId } });
       if (!book) {
@@ -441,7 +441,7 @@ app.get('/api/scan/:token', async (req, res) => {
     }
 
     // Default: return user info
-    res.json({
+     res.json({
       success: true,
       user: {
         idNumber: user.idNumber,
