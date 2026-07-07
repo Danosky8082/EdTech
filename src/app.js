@@ -7,6 +7,8 @@ dotenv.config();  // load .env as early as possible
 const app = express();
 app.set('trust proxy', 1);
 
+console.log('🚀 app.js loaded - routes are being registered');
+
 // ============================================================
 // Process error handlers
 // ============================================================
@@ -315,6 +317,58 @@ app.post('/profile', isAuthenticated, uploadProfileSingle('avatar'), profileCont
 app.post('/profile/change-password', isAuthenticated, profileController.changePassword);
 
 // ============================================================
+// QR SCANNER ROUTES – MUST BE ABOVE THE 404 HANDLER
+// ============================================================
+
+// Simple test route – remove this after it works
+app.get('/test', (req, res) => {
+  res.send('Test route works!');
+});
+
+// Scanner page (temporarily remove auth for testing)
+app.get('/scan', (req, res) => {
+  res.send('Scanner page works!');
+});
+
+// API endpoint for scanning
+app.get('/api/scan/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { qrToken: token },
+      include: {
+        student: { select: { grade: true, section: true, tuitionStatus: true } },
+        teacher: { select: { subject: true } },
+        parent: { select: { wallet: { select: { balance: true } } } }
+      }
+    });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json({
+      success: true,
+      user: {
+        idNumber: user.idNumber,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        school: user.school,
+        avatar: user.avatar,
+        grade: user.student?.grade,
+        section: user.student?.section,
+        tuitionStatus: user.student?.tuitionStatus,
+        subject: user.teacher?.subject,
+        walletBalance: user.parent?.wallet?.balance
+      }
+    });
+  } catch (error) {
+    console.error('Scan API error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ============================================================
 // Main routes
 // ============================================================
 app.use('/auth', authRoutes);
@@ -346,7 +400,6 @@ app.get('/', (req, res) => {
     res.redirect('/auth/login');
   }
 });
-
 
 // Download route
 app.get('/download/material/:materialId', (req, res) => {
@@ -425,58 +478,6 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err : null,
     adminInfo: user?.admin || null,
   });
-});
-
-// ============================================================
-// QR SCANNER ROUTES – MUST BE ABOVE THE 404 HANDLER
-// ============================================================
-
-// Simple test route – remove this after it works
-app.get('/test', (req, res) => {
-  res.send('Test route works!');
-});
-
-// Scanner page (temporarily remove auth for testing)
-app.get('/scan', (req, res) => {
-  res.send('Scanner page works!');
-});
-
-// API endpoint for scanning
-app.get('/api/scan/:token', async (req, res) => {
-  try {
-    const { token } = req.params;
-    const user = await prisma.user.findUnique({
-      where: { qrToken: token },
-      include: {
-        student: { select: { grade: true, section: true, tuitionStatus: true } },
-        teacher: { select: { subject: true } },
-        parent: { select: { wallet: { select: { balance: true } } } }
-      }
-    });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-    res.json({
-      success: true,
-      user: {
-        idNumber: user.idNumber,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        school: user.school,
-        avatar: user.avatar,
-        grade: user.student?.grade,
-        section: user.student?.section,
-        tuitionStatus: user.student?.tuitionStatus,
-        subject: user.teacher?.subject,
-        walletBalance: user.parent?.wallet?.balance
-      }
-    });
-  } catch (error) {
-    console.error('Scan API error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
 });
 
 module.exports = app;
