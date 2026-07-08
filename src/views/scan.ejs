@@ -143,16 +143,26 @@
         }
 
         async function markAttendance() {
-            if (!currentToken) { alert('Please scan a QR code first.'); return; }
-            const classId = prompt('Enter Class ID (optional):', '');
-            let url = `/api/scan/${currentToken}?action=attendance`;
-            if (classId) url += `&classId=${encodeURIComponent(classId)}`;
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
-                alert(data.success ? '✅ Attendance recorded successfully!' : '❌ ' + data.message);
-            } catch (e) { alert('❌ Error recording attendance.'); }
-        }
+                if (!currentToken) {
+                    alert('Please scan a QR code first.');
+                    return;
+                }
+                // No longer prompts for class ID – backend will auto‑detect
+                const url = `/api/scan/${currentToken}?action=attendance`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('✅ Attendance recorded successfully!');
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('❌ Error recording attendance.');
+                }
+            }
 
         async function borrowBook() {
             if (!currentToken) { alert('Please scan a QR code first.'); return; }

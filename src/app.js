@@ -347,7 +347,7 @@ app.get('/api/scan/:token', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // --- ATTENDANCE ---
+    // --- ATTENDANCE (auto-detect class) ---
     if (action === 'attendance') {
       if (!req.session.user) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
@@ -377,10 +377,37 @@ app.get('/api/scan/:token', async (req, res) => {
         });
       }
 
+      // Auto-detect class ID
+      let finalClassId = classId || null;
+
+      if (!finalClassId) {
+        // 1. If recorder is a teacher, get their first class
+        if (req.session.user.role === 'teacher') {
+          const teacher = await prisma.teacher.findUnique({
+            where: { userId: req.session.user.id },
+            include: { classes: { take: 1 } }
+          });
+          if (teacher && teacher.classes.length > 0) {
+            finalClassId = teacher.classes[0].id;
+          }
+        }
+
+        // 2. If still not found, try student's first enrollment
+        if (!finalClassId && user.student) {
+          const enrollment = await prisma.enrollment.findFirst({
+            where: { studentId: user.student.id },
+            include: { class: true }
+          });
+          if (enrollment) {
+            finalClassId = enrollment.class.id;
+          }
+        }
+      }
+
       const attendance = await prisma.attendance.create({
         data: {
           studentId: user.student.id,
-          classId: classId || null,
+          classId: finalClassId,
           status: 'present',
           recordedBy: req.session.user.id,
           notes: notes || 'Scanned via QR'
