@@ -1,3 +1,42 @@
+<%
+  // ---------- SAFE VARIABLE INITIALIZATION ----------
+  var safeUser = {};
+  var userRole = '';
+  var safeUserSchool = '';
+  var safeIsSuperAdmin = false;
+  var safeAdminInfo = null;
+  var safeUserAvatar = '';
+  var safeUserFirstName = '';
+  var safeUserLastName = '';
+  var safeUserSchoolProp = '';
+  var safeNotifications = [];
+  var unreadCount = 0;
+
+  if (typeof user !== 'undefined' && user) safeUser = user;
+  if (safeUser.role) userRole = safeUser.role;
+  if (typeof userSchool !== 'undefined') safeUserSchool = userSchool;
+  if (typeof isSuperAdmin !== 'undefined') safeIsSuperAdmin = isSuperAdmin;
+  if (typeof adminInfo !== 'undefined') safeAdminInfo = adminInfo;
+  if (safeUser.avatar) safeUserAvatar = safeUser.avatar;
+  if (safeUser.firstName) safeUserFirstName = safeUser.firstName;
+  if (safeUser.lastName) safeUserLastName = safeUser.lastName;
+  if (safeUser.school) safeUserSchoolProp = safeUser.school;
+  if (typeof notificationsData !== 'undefined' && Array.isArray(notificationsData)) {
+    safeNotifications = notificationsData;
+  }
+  if (Array.isArray(safeNotifications)) {
+    for (var i = 0; i < safeNotifications.length; i++) {
+      if (safeNotifications[i] && !safeNotifications[i].read) unreadCount++;
+    }
+  }
+
+  // Determine if student is unpaid (optional)
+  var isUnpaidStudent = false;
+  if (userRole === 'student' && safeUser.student && safeUser.student.tuitionStatus === 'unpaid') {
+    isUnpaidStudent = true;
+  }
+%>
+
 <style>
     /* Navbar custom styles */
     :root {
@@ -345,17 +384,9 @@
     }
 
     @keyframes blink {
-        0% {
-            opacity: 1;
-        }
-
-        50% {
-            opacity: 0.5;
-        }
-
-        100% {
-            opacity: 1;
-        }
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
     }
 
     @media (max-width: 575.98px) {
@@ -415,128 +446,112 @@
                         </li>
 
                         <!-- Student links -->
-                        <% if (userRole==='student' ) { %>
+                        <% if (userRole === 'student') { %>
                             <li class="nav-item"><a class="nav-link" href="/student/progress"><i
                                         class="fas fa-chart-line me-1"></i>My Progress</a></li>
                             <li class="nav-item"><a class="nav-link" href="/student/classes"><i
                                         class="fas fa-book me-1"></i>My Classes</a></li>
-                            <% } %>
+                        <% } %>
 
-                                <!-- Parent links -->
-                                <% if (userRole==='parent' ) { %>
-                                    <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                                class="fas fa-child me-1"></i>My Children</a></li>
-                                    <% } %>
+                        <!-- Parent links -->
+                        <% if (userRole === 'parent') { %>
+                            <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                        class="fas fa-child me-1"></i>My Children</a></li>
+                        <% } %>
 
-                                        <!-- Teacher dropdown -->
-                                        <% if (userRole==='teacher' ) { %>
-                                            <li class="nav-item dropdown">
-                                                <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown"
-                                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    <i class="fas fa-chalkboard-teacher me-1"></i>Teaching
-                                                </a>
-                                                <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
-                                                    <li><a class="dropdown-item" href="/teacher/classes"><i
-                                                                class="fas fa-chalkboard me-2"></i>My Classes</a></li>
-                                                    <li><a class="dropdown-item" href="/teacher/students"><i
-                                                                class="fas fa-user-graduate me-2"></i>My Students</a>
-                                                    </li>
-                                                    <li><a class="dropdown-item" href="/teacher/assignments"><i
-                                                                class="fas fa-tasks me-2"></i>Assignments</a></li>
-                                                    <li><a class="dropdown-item" href="/teacher/materials"><i
-                                                                class="fas fa-book me-2"></i>Materials</a></li>
-                                                    <li><a class="dropdown-item" href="/teacher/lesson-notes"><i
-                                                                class="fas fa-sticky-note me-2"></i>Lesson Notes</a>
-                                                    </li>
-                                                    <li><a class="dropdown-item" href="/teacher/exams"><i
-                                                                class="fas fa-clipboard-list me-2"></i>Exams</a></li>
-                                                    <li><a class="dropdown-item" href="/teacher/class-works"><i
-                                                                class="fas fa-tasks me-2"></i>Class Works</a></li>
-                                                    <li><a class="dropdown-item" href="/teacher/live-sessions"><i
-                                                                class="fas fa-video me-2"></i>Live Sessions</a></li>
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li><a class="dropdown-item" href="/teacher/grading"><i
-                                                                class="fas fa-check-circle me-2"></i>Grading</a></li>
-                                                </ul>
-                                            </li>
-                                            <% } %>
+                        <!-- Teacher dropdown -->
+                        <% if (userRole === 'teacher') { %>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-chalkboard-teacher me-1"></i>Teaching
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
+                                    <li><a class="dropdown-item" href="/teacher/classes"><i
+                                                class="fas fa-chalkboard me-2"></i>My Classes</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/students"><i
+                                                class="fas fa-user-graduate me-2"></i>My Students</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/assignments"><i
+                                                class="fas fa-tasks me-2"></i>Assignments</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/materials"><i
+                                                class="fas fa-book me-2"></i>Materials</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/lesson-notes"><i
+                                                class="fas fa-sticky-note me-2"></i>Lesson Notes</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/exams"><i
+                                                class="fas fa-clipboard-list me-2"></i>Exams</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/class-works"><i
+                                                class="fas fa-tasks me-2"></i>Class Works</a></li>
+                                    <li><a class="dropdown-item" href="/teacher/live-sessions"><i
+                                                class="fas fa-video me-2"></i>Live Sessions</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/teacher/grading"><i
+                                                class="fas fa-check-circle me-2"></i>Grading</a></li>
+                                </ul>
+                            </li>
+                        <% } %>
 
-                                                <!-- Admin dropdown -->
-                                                <% if (userRole==='admin' ) { %>
-                                                    <li class="nav-item dropdown">
-                                                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
-                                                            role="button" data-bs-toggle="dropdown"
-                                                            aria-expanded="false">
-                                                            <i class="fas fa-user-shield me-1"></i>Admin
-                                                        </a>
-                                                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                                            <li><a class="dropdown-item" href="/admin/users"><i
-                                                                        class="fas fa-users me-2"></i>Users</a></li>
-                                                            <li><a class="dropdown-item" href="/admin/classes"><i
-                                                                        class="fas fa-chalkboard me-2"></i>Classes</a>
-                                                            </li>
-                                                            <li><a class="dropdown-item" href="/admin/tuition"><i
-                                                                        class="fas fa-money-bill-wave me-2"></i>Tuition</a>
-                                                            </li>
-                                                            <li><a class="dropdown-item" href="/admin/analytics"><i
-                                                                        class="fas fa-chart-bar me-2"></i>Analytics</a>
-                                                            </li>
-                                                            <li><a class="dropdown-item" href="/admin/activities"><i
-                                                                        class="fas fa-history me-2"></i>Activities</a>
-                                                            </li>
-                                                            <li><a class="dropdown-item" href="/admin/schools"><i
-                                                                        class="fas fa-school me-2"></i>Schools</a></li>
-                                                            <li>
-                                                                <hr class="dropdown-divider">
-                                                            </li>
-                                                            <li><a class="dropdown-item" href="/admin/system-reset"><i
-                                                                        class="fas fa-redo me-2"></i>System Reset</a>
-                                                            </li>
-                                                        </ul>
-                                                    </li>
-                                                    <% } %>
+                        <!-- Admin dropdown -->
+                        <% if (userRole === 'admin') { %>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-shield me-1"></i>Admin
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                    <li><a class="dropdown-item" href="/admin/users"><i
+                                                class="fas fa-users me-2"></i>Users</a></li>
+                                    <li><a class="dropdown-item" href="/admin/classes"><i
+                                                class="fas fa-chalkboard me-2"></i>Classes</a></li>
+                                    <li><a class="dropdown-item" href="/admin/tuition"><i
+                                                class="fas fa-money-bill-wave me-2"></i>Tuition</a></li>
+                                    <li><a class="dropdown-item" href="/admin/analytics"><i
+                                                class="fas fa-chart-bar me-2"></i>Analytics</a></li>
+                                    <li><a class="dropdown-item" href="/admin/activities"><i
+                                                class="fas fa-history me-2"></i>Activities</a></li>
+                                    <li><a class="dropdown-item" href="/admin/schools"><i
+                                                class="fas fa-school me-2"></i>Schools</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/admin/system-reset"><i
+                                                class="fas fa-redo me-2"></i>System Reset</a></li>
+                                </ul>
+                            </li>
+                        <% } %>
 
-                                                        <!-- Shared links -->
-                                                        <% if (userRole==='teacher' || userRole==='admin' ) { %>
-                                                            <li class="nav-item">
-                                                                <a class="nav-link" href="/scan">
-                                                                    <i class="fas fa-qrcode me-1"></i>Scanner
-                                                                </a>
-                                                            </li>
-                                                            <% } %>
+                        <!-- Shared links -->
+                        <% if (userRole === 'teacher' || userRole === 'admin') { %>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/scan">
+                                    <i class="fas fa-qrcode me-1"></i>Scanner
+                                </a>
+                            </li>
+                        <% } %>
 
-                                                                <% if (userRole==='admin' || userRole==='teacher' ) { %>
-                                                                    <li class="nav-item">
-                                                                        <a class="nav-link" href="/admin/attendance">
-                                                                            <i
-                                                                                class="fas fa-clipboard-list me-1"></i>Attendance
-                                                                        </a>
-                                                                    </li>
-                                                                    <% } %>
+                        <% if (userRole === 'admin' || userRole === 'teacher') { %>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/attendance">
+                                    <i class="fas fa-clipboard-list me-1"></i>Attendance
+                                </a>
+                            </li>
+                        <% } %>
 
-                                                                        <% if (userRole==='admin' ) { %>
-                                                                            <li class="nav-item">
-                                                                                <a class="nav-link" href="/admin/books">
-                                                                                    <i
-                                                                                        class="fas fa-book me-1"></i>Books
-                                                                                </a>
-                                                                            </li>
-                                                                            <% } %>
+                        <% if (userRole === 'admin') { %>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/books">
+                                    <i class="fas fa-book me-1"></i>Books
+                                </a>
+                            </li>
+                        <% } %>
 
-                                                                                <% } else { %>
-                                                                                    <!-- Unpaid student: show only a warning message -->
-                                                                                    <li class="nav-item">
-                                                                                        <span
-                                                                                            class="nav-link text-warning">
-                                                                                            <i
-                                                                                                class="fas fa-exclamation-triangle me-1"></i>
-                                                                                            Payment Required
-                                                                                        </span>
-                                                                                    </li>
-                                                                                    <% } %>
-                                                                                        <% } %>
+                    <% } else { %>
+                        <!-- Unpaid student: show only a warning message -->
+                        <li class="nav-item">
+                            <span class="nav-link text-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Payment Required
+                            </span>
+                        </li>
+                    <% } %>
+                <% } %>
             </ul>
 
             <!-- Notification Bell -->
@@ -544,14 +559,58 @@
                 <div class="dropdown">
                     <button class="notification-bell" id="notificationDropdown" title="Notifications">
                         <i class="fas fa-bell"></i>
-                        <% if (notificationCount> 0) { %>
+                        <% if (unreadCount > 0) { %>
                             <span class="notification-badge blink" id="notificationBadge">
-                                <%= notificationCount> 9 ? '9+' : notificationCount %>
+                                <%= unreadCount > 9 ? '9+' : unreadCount %>
                             </span>
-                            <% } %>
+                        <% } %>
                     </button>
                     <ul class="notification-dropdown" id="notificationDropdownMenu">
-                        <%- notificationsDropdownHtml %>
+                        <li class="notification-header">
+                            <span>Notifications</span>
+                            <% if (unreadCount > 0) { %>
+                                <span class="badge bg-primary rounded-pill"><%= unreadCount %></span>
+                            <% } %>
+                        </li>
+                        <% if (safeNotifications.length > 0) { %>
+                            <% for (var i = 0; i < Math.min(safeNotifications.length, 5); i++) {
+                                var n = safeNotifications[i];
+                                var isRead = n.read || false;
+                                var nId = n.id || n._id || '';
+                                var icon = n.icon || 'fa-info-circle';
+                                var title = n.title || 'Notification';
+                                var msg = n.message || n.description || '';
+                                var time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+                            %>
+                                <li class="notification-item <%= isRead ? 'read' : 'unread' %>" data-notification-id="<%= nId %>">
+                                    <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
+                                    <div class="notification-content">
+                                        <div class="notification-title">
+                                            <%= title %>
+                                            <% if (!isRead) { %><span class="badge bg-danger ms-1">New</span><% } %>
+                                        </div>
+                                        <div class="notification-message"><%= msg %></div>
+                                        <div class="notification-time"><%= time %></div>
+                                        <% if (!isRead) { %>
+                                            <div class="notification-actions">
+                                                <button class="notification-action-btn mark-as-read-btn"
+                                                    onclick="event.stopPropagation(); markNotificationAsRead('<%= nId %>')">
+                                                    Mark as read
+                                                </button>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                </li>
+                            <% } %>
+                            <li class="mark-all-read" onclick="markAllNotificationsAsRead()">
+                                <i class="fas fa-check-double me-1"></i> Mark all as read
+                            </li>
+                        <% } else { %>
+                            <li class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications</p>
+                            </li>
+                        <% } %>
                     </ul>
                 </div>
             </div>
@@ -563,60 +622,43 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
                                 role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <% if (avatarUrl) { %>
-                                    <img src="<%= avatarUrl %>" alt="Profile" class="profile-img-nav"
-                                        onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
-                                    <% } else { %>
-                                        <img src="<%= fallbackAvatar %>" alt="Profile" class="profile-img-nav">
-                                        <% } %>
-                                            <span class="navbar-text">
-                                                <%= userFirstName %>
-                                                    <%= userLastName %>
-                                            </span>
+                                <% if (safeUserAvatar) { %>
+                                    <img src="<%= safeUserAvatar.startsWith('http') ? safeUserAvatar : '/' + safeUserAvatar %>" alt="Profile" class="profile-img-nav"
+                                        onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36'">
+                                <% } else { %>
+                                    <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36" alt="Profile" class="profile-img-nav">
+                                <% } %>
+                                <span class="navbar-text">
+                                    <%= safeUserFirstName %> <%= safeUserLastName %>
+                                </span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown"
-                                id="userDropdownMenu">
-                                <li><a class="dropdown-item" href="/profile"><i
-                                            class="fas fa-user-edit me-2"></i>Profile</a></li>
-                                <li><a class="dropdown-item" href="/settings"><i
-                                            class="fas fa-cog me-2"></i>Settings</a></li>
-                                <% if (userSchool) { %>
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li class="dropdown-item-text"><small class="text-muted"><i
-                                                class="fas fa-school me-1"></i>
-                                            <%= userSchool %>
-                                        </small></li>
-                                    <% } %>
-                                        <% if (userRole==='admin' && adminInfo && adminInfo.roleLevel==='superadmin' ) {
-                                            %>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li class="dropdown-item-text"><span class="badge bg-danger"><i
-                                                        class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
-                                            <% } %>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li><a class="dropdown-item text-danger" href="/auth/logout"><i
-                                                            class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user-edit me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <% if (safeUserSchoolProp) { %>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text"><small class="text-muted"><i class="fas fa-school me-1"></i> <%= safeUserSchoolProp %></small></li>
+                                <% } %>
+                                <% if (userRole === 'admin' && safeAdminInfo && safeAdminInfo.roleLevel === 'superadmin') { %>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text"><span class="badge bg-danger"><i class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
+                                <% } %>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                             </ul>
                         </li>
-                        <% } else { %>
-                            <li class="nav-item"><a class="nav-link" href="/login"><i
-                                        class="fas fa-sign-in-alt me-1"></i>Login</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/register"><i
-                                        class="fas fa-user-plus me-1"></i>Register</a></li>
-                            <% } %>
+                    <% } else { %>
+                        <li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt me-1"></i>Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/register"><i class="fas fa-user-plus me-1"></i>Register</a></li>
+                    <% } %>
                 </ul>
             </div>
         </div>
     </div>
 </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ❌ DUPLICATE BOOTSTRAP SCRIPT REMOVED – Bootstrap JS is now loaded in the main layout <head> -->
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // --- Dropdown toggles (manual fallback) ---
@@ -650,15 +692,14 @@
             });
         }
 
-        // --- ✅ FIX: Re-initialize all dropdowns to ensure they work on every page ---
-        // This resolves the issue where the Teaching dropdown works on some pages but not others.
+        // --- Re-initialize all Bootstrap dropdowns ---
         document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (toggle) {
             try {
                 if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
                     new bootstrap.Dropdown(toggle);
                 }
             } catch (e) {
-                // Ignore – dropdown already initialized
+                // ignore – already initialized
             }
         });
 
@@ -698,7 +739,8 @@
                         updateUnreadBadge();
                         var menu = document.getElementById('notificationDropdownMenu');
                         if (menu && !menu.querySelector('.notification-item')) {
-                            menu.innerHTML = '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
+                            menu.innerHTML = '<li class="notification-header"><span>Notifications</span></li>' +
+                                '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
                         }
                     } else {
                         console.error('Failed to mark all as read:', data.error);
