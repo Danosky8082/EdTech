@@ -514,5 +514,7 @@ router.get('/attendance', adminController.adminAttendance);
 // Attendance report (monthly summary)
 router.get('/attendance/report', adminController.getAttendanceReport);
 router.post('/attendance/clear-today', adminController.clearTodayAttendance);
+// Reset all attendance records (admin only)
+router.post('/attendance/reset-all', adminController.resetAllAttendance);
 
 module.exports = router;

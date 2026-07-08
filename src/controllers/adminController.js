@@ -3636,7 +3636,6 @@ const adminAttendance = async (req, res) => {
     const isSuperAdmin = req.isSuperAdmin;
     const userId = req.session.user.id;
 
-    // Get teacher info if user is a teacher
     let teacherId = null;
     if (req.user.role === 'teacher') {
       const teacher = await prisma.teacher.findUnique({
@@ -3646,27 +3645,18 @@ const adminAttendance = async (req, res) => {
       if (teacher) teacherId = teacher.id;
     }
 
-    // ---------- 1. Read filters ----------
     const { classId, studentId, dateFrom, dateTo, status } = req.query;
 
-    // ---------- 2. Determine target date (single day) ----------
     let targetDate = new Date();
-    if (dateFrom) {
-      targetDate = new Date(dateFrom);
-    }
+    if (dateFrom) targetDate = new Date(dateFrom);
     targetDate.setHours(0, 0, 0, 0);
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
-    // ---------- 3. Build filter for students ----------
     let studentWhere = {};
-
-    // School filter
     if (!isSuperAdmin && userSchool) {
       studentWhere.user = { school: userSchool };
     }
-
-    // Teacher restriction (if teacher)
     if (teacherId) {
       const classIds = await prisma.class.findMany({
         where: { teacherId: teacherId },
@@ -3679,8 +3669,6 @@ const adminAttendance = async (req, res) => {
         studentWhere.id = null;
       }
     }
-
-    // Class filter (if provided in query)
     if (classId) {
       if (studentWhere.enrollments) {
         studentWhere.enrollments.some.classId = classId;
@@ -3688,40 +3676,27 @@ const adminAttendance = async (req, res) => {
         studentWhere.enrollments = { some: { classId: classId } };
       }
     }
-
-    // Student filter (if provided)
     if (studentId) {
       studentWhere.id = studentId;
     }
 
-    // ---------- 4. Fetch all students with their enrollments and classes ----------
     const students = await prisma.student.findMany({
       where: studentWhere,
       include: {
         user: true,
-        enrollments: {
-          include: {
-            class: true
-          }
-        }
+        enrollments: { include: { class: true } }
       },
       orderBy: { user: { firstName: 'asc' } }
     });
 
-    // ---------- 5. Fetch existing attendance records for the target day ----------
     let attendanceWhere = {
       date: { gte: targetDate, lt: nextDay }
     };
-
     if (!isSuperAdmin && userSchool) {
       attendanceWhere.student = { user: { school: userSchool } };
     }
-    if (classId) {
-      attendanceWhere.classId = classId;
-    }
-    if (studentId) {
-      attendanceWhere.studentId = studentId;
-    }
+    if (classId) attendanceWhere.classId = classId;
+    if (studentId) attendanceWhere.studentId = studentId;
     if (teacherId) {
       const classIds = await prisma.class.findMany({
         where: { teacherId: teacherId },
@@ -3744,24 +3719,20 @@ const adminAttendance = async (req, res) => {
       }
     });
 
-    // ---------- 6. Build combined list: each student with status ----------
     const combined = [];
     for (const student of students) {
-      // Find if this student has a record for the target day
       const record = actualAttendances.find(a => a.studentId === student.id);
       if (record) {
         combined.push(record);
       } else {
-        // Synthetic absent record – try to get the first enrolled class
         let syntheticClass = null;
         if (student.enrollments && student.enrollments.length > 0) {
-          // Use the first enrollment's class (you could also pick the one matching the filter)
           syntheticClass = student.enrollments[0].class;
         }
         combined.push({
           id: null,
           student: student,
-          class: syntheticClass,   // now we have a class object
+          class: syntheticClass,
           status: 'absent',
           date: targetDate,
           recorder: null,
@@ -3770,26 +3741,16 @@ const adminAttendance = async (req, res) => {
       }
     }
 
-    // ---------- 7. Apply status filter (if provided) ----------
     let filteredCombined = combined;
     if (status) {
       filteredCombined = combined.filter(a => a.status === status);
     }
 
-    // ---------- 8. Fetch classes and students for filter dropdowns ----------
     let classWhere = {};
     if (!isSuperAdmin && userSchool) {
-      classWhere = {
-        teacher: {
-          user: {
-            school: userSchool
-          }
-        }
-      };
+      classWhere = { teacher: { user: { school: userSchool } } };
     }
-    if (teacherId) {
-      classWhere.teacherId = teacherId;
-    }
+    if (teacherId) classWhere.teacherId = teacherId;
     const classes = await prisma.class.findMany({
       where: classWhere,
       select: { id: true, name: true, grade: true, section: true }
@@ -3817,7 +3778,6 @@ const adminAttendance = async (req, res) => {
       orderBy: { user: { firstName: 'asc' } }
     });
 
-    // ---------- 9. Render ----------
     res.render('admin/attendance', {
       title: 'Attendance Management',
       attendances: filteredCombined,
@@ -4022,6 +3982,24 @@ const clearTodayAttendance = async (req, res) => {
     }
 };
 
+// ============================================================
+// RESET ALL ATTENDANCE RECORDS (for testing)
+// ============================================================
+const resetAllAttendance = async (req, res) => {
+  try {
+    // Only superadmin or admin can reset
+    if (!req.isSuperAdmin && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Permission denied' });
+    }
+
+    const result = await prisma.attendance.deleteMany({});
+    res.json({ success: true, message: `✅ All attendance records deleted (${result.count} records).` });
+  } catch (error) {
+    console.error('Reset all attendance error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // --------------------------------------------
 // EXPORTS
 // --------------------------------------------
@@ -4085,5 +4063,6 @@ module.exports = {
   adminAttendance,
   getAttendanceReport,
   renderAttendanceReport,
-  clearTodayAttendance 
+  clearTodayAttendance,
+  resetAllAttendance
 };
