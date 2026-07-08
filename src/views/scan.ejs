@@ -54,7 +54,6 @@
     </div>
 
     <div class="container py-4">
-        <!-- Back Button -->
         <div class="mb-3">
             <a href="javascript:history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back
@@ -83,7 +82,6 @@
                 <p class="mb-0"><strong>Tuition Status:</strong> <span id="resultTuition" class="badge"></span></p>
             </div>
 
-            <!-- Action Buttons -->
             <div id="actionButtons" style="display: none; margin-top: 15px;">
                 <div class="row g-2">
                     <div class="col-6">
@@ -109,42 +107,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-        let html5QrCode;
-        let currentToken = null;
+        let html5QrCode, currentToken = null;
 
-        function onScanSuccess(decodedText, decodedResult) {
-            html5QrCode.stop().then(() => {
-                currentToken = decodedText;
-                fetchUser(decodedText);
-            }).catch(err => console.error(err));
+        function onScanSuccess(decodedText) {
+            html5QrCode.stop().then(() => { currentToken = decodedText; fetchUser(decodedText); }).catch(console.error);
         }
 
         async function fetchUser(token) {
             try {
-                const response = await fetch(`/api/scan/${token}`);
-                const data = await response.json();
+                const res = await fetch(`/api/scan/${token}`);
+                const data = await res.json();
                 if (data.success) {
-                    const user = data.user;
-                    document.getElementById('resultAvatar').src = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6a11cb&color=fff&size=80`;
-                    document.getElementById('resultName').textContent = user.name;
-                    document.getElementById('resultId').textContent = `ID: ${user.idNumber}`;
-                    document.getElementById('resultRole').textContent = user.role;
-                    document.getElementById('resultSchool').textContent = user.school || 'No School';
-                    document.getElementById('resultEmail').textContent = user.email || 'N/A';
-                    document.getElementById('resultPhone').textContent = user.phone || 'N/A';
-                    const tuition = user.tuitionStatus || 'N/A';
-                    const badgeColor = tuition === 'paid' ? 'bg-success' : tuition === 'partial' ? 'bg-warning' : 'bg-danger';
+                    const u = data.user;
+                    document.getElementById('resultAvatar').src = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=6a11cb&color=fff&size=80`;
+                    document.getElementById('resultName').textContent = u.name;
+                    document.getElementById('resultId').textContent = `ID: ${u.idNumber}`;
+                    document.getElementById('resultRole').textContent = u.role;
+                    document.getElementById('resultSchool').textContent = u.school || 'No School';
+                    document.getElementById('resultEmail').textContent = u.email || 'N/A';
+                    document.getElementById('resultPhone').textContent = u.phone || 'N/A';
+                    const tuition = u.tuitionStatus || 'N/A';
                     document.getElementById('resultTuition').textContent = tuition.toUpperCase();
-                    document.getElementById('resultTuition').className = `badge ${badgeColor}`;
+                    document.getElementById('resultTuition').className = `badge ${tuition === 'paid' ? 'bg-success' : tuition === 'partial' ? 'bg-warning' : 'bg-danger'}`;
                     document.getElementById('result').style.display = 'block';
                     document.getElementById('actionButtons').style.display = 'block';
-                } else {
-                    alert('User not found');
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Error fetching user');
-            }
+                } else alert('User not found');
+            } catch (e) { alert('Error fetching user'); }
         }
 
         function resetScanner() {
@@ -154,123 +142,49 @@
             startScanner();
         }
 
-        // --- Attendance ---
         async function markAttendance() {
-            if (!currentToken) {
-                alert('Please scan a QR code first.');
-                return;
-            }
+            if (!currentToken) { alert('Please scan a QR code first.'); return; }
             const classId = prompt('Enter Class ID (optional):', '');
             let url = `/api/scan/${currentToken}?action=attendance`;
             if (classId) url += `&classId=${encodeURIComponent(classId)}`;
-
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.success) {
-                    alert('✅ Attendance recorded successfully!');
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('❌ Error recording attendance.');
-            }
+                const res = await fetch(url);
+                const data = await res.json();
+                alert(data.success ? '✅ Attendance recorded successfully!' : '❌ ' + data.message);
+            } catch (e) { alert('❌ Error recording attendance.'); }
         }
 
-        // --- Borrow / Return ---
         async function borrowBook() {
-            if (!currentToken) {
-                alert('Please scan a QR code first.');
-                return;
-            }
-
+            if (!currentToken) { alert('Please scan a QR code first.'); return; }
             try {
-                // 1. Fetch active borrows for this student
-                const activeResponse = await fetch(`/api/student/${currentToken}/active-borrows`);
-                const activeData = await activeResponse.json();
+                const activeRes = await fetch(`/api/student/${currentToken}/active-borrows`);
+                const activeData = await activeRes.json();
                 const activeBooks = activeData.success ? activeData.activeBorrows : [];
-
-                // 2. Fetch available books (with copies > 0)
-                const response = await fetch('/admin/books/available');
-                const result = await response.json();
-                if (!result.success) {
-                    alert('Error fetching books: ' + result.message);
-                    return;
-                }
-
+                const booksRes = await fetch('/admin/books/available');
+                const result = await booksRes.json();
+                if (!result.success) { alert('Error fetching books: ' + result.message); return; }
                 const allBooks = result.books;
-                if (allBooks.length === 0 && activeBooks.length === 0) {
-                    alert('No books available for borrowing or returning.');
-                    return;
-                }
-
-                // Build a combined list: active borrows first (to return), then available books (to borrow)
-                let bookList = [];
-                let index = 1;
-
-                if (activeBooks.length > 0) {
-                    activeBooks.forEach(b => {
-                        bookList.push({
-                            id: b.bookId,
-                            title: b.book.title + ' (📖 Return)',
-                            isReturn: true,
-                            index: index++
-                        });
-                    });
-                }
-
-                allBooks.forEach(b => {
-                    if (!activeBooks.some(a => a.bookId === b.id)) {
-                        bookList.push({
-                            id: b.id,
-                            title: b.title + ` (${b.available} available)`,
-                            isReturn: false,
-                            index: index++
-                        });
-                    }
-                });
-
-                if (bookList.length === 0) {
-                    alert('No books available for borrowing or returning.');
-                    return;
-                }
-
-                const promptText = 'Select a book:\n' +
-                    bookList.map(b => `${b.index}. ${b.title}`).join('\n');
-
+                if (allBooks.length === 0 && activeBooks.length === 0) { alert('No books available.'); return; }
+                let bookList = [], index = 1;
+                activeBooks.forEach(b => bookList.push({ id: b.bookId, title: b.book.title + ' (📖 Return)', isReturn: true, index: index++ }));
+                allBooks.forEach(b => { if (!activeBooks.some(a => a.bookId === b.id)) bookList.push({ id: b.id, title: b.title + ` (${b.available} available)`, isReturn: false, index: index++ }); });
+                if (bookList.length === 0) { alert('No books available.'); return; }
+                const promptText = 'Select a book:\n' + bookList.map(b => `${b.index}. ${b.title}`).join('\n');
                 const choice = prompt(promptText);
                 if (!choice) return;
-
                 const selectedIndex = parseInt(choice) - 1;
-                if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= bookList.length) {
-                    alert('Invalid selection');
-                    return;
-                }
-
+                if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= bookList.length) { alert('Invalid selection'); return; }
                 const selected = bookList[selectedIndex];
                 const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(selected.id)}`;
-
-                const borrowResponse = await fetch(url);
-                const data = await borrowResponse.json();
-                if (data.success) {
-                    alert(`✅ ${data.message}`);
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('❌ Error processing library action.');
-            }
+                const borrowRes = await fetch(url);
+                const data = await borrowRes.json();
+                alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
+            } catch (e) { alert('❌ Error processing library action.'); }
         }
 
         function startScanner() {
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess
-            ).catch(err => console.error(err));
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess).catch(console.error);
         }
 
         document.addEventListener('DOMContentLoaded', startScanner);

@@ -510,11 +510,11 @@ router.get('/parents/debug', async (req, res) => {
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
+// Attendance routes
 router.get('/attendance', adminController.adminAttendance);
-// Attendance report (monthly summary)
-router.get('/attendance/report', adminController.getAttendanceReport);
 router.post('/attendance/clear-today', adminController.clearTodayAttendance);
-// Reset all attendance records (admin only)
 router.post('/attendance/reset-all', adminController.resetAllAttendance);
+router.get('/attendance/report', adminController.getAttendanceReport);
+router.get('/attendance-report', adminController.renderAttendanceReport);
 
 module.exports = router;
