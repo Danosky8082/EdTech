@@ -199,9 +199,111 @@ app.use((req, res, next) => {
 // Enhanced navbar data middleware (notifications + avatar)
 // ============================================================
 app.use(async (req, res, next) => {
-  // ... (unchanged – keep your existing code) ...
-  // For brevity, I'm not pasting the full notification middleware here,
-  // but you should keep it as it is.
+  // Default values (no user)
+  res.locals.notificationCount = 0;
+  res.locals.notificationsDropdownHtml = '';
+  res.locals.avatarUrl = '';
+  res.locals.fallbackAvatar = '';
+  res.locals.userFirstName = '';
+  res.locals.userLastName = '';
+  res.locals.userRole = '';
+
+  if (!req.session || !req.session.user) {
+    return next();
+  }
+
+  const user = req.session.user;
+  const userId = user.id;
+
+  // ----- 1. Notification data -----
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: userId,
+        OR: [
+          { expiresAt: { gt: new Date() } },
+          { expiresAt: null }
+        ]
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+    res.locals.notificationCount = unreadCount;
+
+    let dropdownHtml = '';
+    if (notifications && notifications.length > 0) {
+      let itemsHtml = '';
+      const display = notifications.slice(0, 5);
+      display.forEach(n => {
+        const isRead = n.read ? 'read' : 'unread';
+        const icon = n.icon || 'fa-info-circle';
+        const title = n.title || 'Notification';
+        const msg = n.message || '';
+        const time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
+        const notifId = n.id || '';
+        const newBadge = !n.read ? `<span class="badge bg-danger ms-1">New</span>` : '';
+        const actions = !n.read
+          ? `<div class="notification-actions">
+               <button class="notification-action-btn mark-as-read-btn" onclick="event.stopPropagation(); markNotificationAsRead('${notifId}')">Mark as read</button>
+             </div>`
+          : '';
+        itemsHtml += `
+          <li class="notification-item ${isRead}" data-notification-id="${notifId}">
+            <div class="notification-icon"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+              <div class="notification-title">${title} ${newBadge}</div>
+              <div class="notification-message">${msg}</div>
+              <div class="notification-time">${time}</div>
+              ${actions}
+            </div>
+          </li>
+        `;
+      });
+      const header = `<li class="notification-header">
+                        <span>Notifications</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                      </li>`;
+      const markAll = `<li class="mark-all-read" onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double me-1"></i> Mark all as read</li>`;
+      dropdownHtml = header + itemsHtml + markAll;
+    } else {
+      dropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>`;
+    }
+    res.locals.notificationsDropdownHtml = dropdownHtml;
+
+  } catch (error) {
+    console.error('Error fetching notifications for navbar:', error);
+    res.locals.notificationCount = 0;
+    res.locals.notificationsDropdownHtml = `<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>Error loading notifications</p></li>`;
+  }
+
+  // ----- 2. Avatar and user info -----
+  try {
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    res.locals.userFirstName = firstName;
+    res.locals.userLastName = lastName;
+    res.locals.userRole = user.role || '';
+
+    let avatarUrl = '';
+    let fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+    if (user.avatar) {
+      if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+        avatarUrl = user.avatar;
+      } else {
+        avatarUrl = '/' + user.avatar;
+      }
+    }
+    res.locals.avatarUrl = avatarUrl;
+    res.locals.fallbackAvatar = fallbackAvatar;
+
+  } catch (error) {
+    console.error('Error processing avatar data:', error);
+    res.locals.avatarUrl = '';
+    res.locals.fallbackAvatar = '';
+  }
+
   next();
 });
 
