@@ -351,24 +351,49 @@ app.get('/api/scan/:token', async (req, res) => {
 
     // If action is 'attendance', record attendance
     if (action === 'attendance') {
-      if (!req.session.user) {
-        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
+  }
+
+  // Check if attendance already recorded today for this student
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const existing = await prisma.attendance.findFirst({
+    where: {
+      studentId: user.student.id,
+      date: {
+        gte: today,
+        lt: tomorrow
       }
-      const attendance = await prisma.attendance.create({
-        data: {
-          studentId: user.student.id,
-          classId: classId || null,
-          status: 'present',
-          recordedBy: req.session.user.id,  // ✅ FIXED: use session user ID
-          notes: notes || 'Scanned via QR'
-        }
-      });
-      return res.json({
-        success: true,
-        message: 'Attendance recorded successfully',
-        attendance
-      });
     }
+  });
+
+  if (existing) {
+    return res.json({
+      success: false,
+      message: 'Attendance already recorded for today.',
+      attendance: existing
+    });
+  }
+
+  const attendance = await prisma.attendance.create({
+    data: {
+      studentId: user.student.id,
+      classId: classId || null,
+      status: 'present',
+      recordedBy: req.session.user.id,
+      notes: notes || 'Scanned via QR'
+    }
+  });
+  return res.json({
+    success: true,
+    message: 'Attendance recorded successfully',
+    attendance
+  });
+}
 
     // If action is 'library', handle borrow/return
     if (action === 'library' && bookId) {
@@ -573,5 +598,7 @@ app.use((err, req, res, next) => {
     adminInfo: user?.admin || null,
   });
 });
+
+
 
 module.exports = app;

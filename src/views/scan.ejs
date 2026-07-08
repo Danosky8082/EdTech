@@ -174,50 +174,114 @@
             }
         }
 
-        // Inside borrowBook function
-            async function borrowBook() {
-                if (!currentToken) {
-                    alert('Please scan a QR code first.');
+        // ============================================================
+        // ENHANCED BORROW / RETURN (combined)
+        // ============================================================
+        async function borrowBook() {
+            if (!currentToken) {
+                alert('Please scan a QR code first.');
+                return;
+            }
+
+            try {
+                // 1. Get active borrows for this student
+                const activeResponse = await fetch(`/api/student/${currentToken}/active-borrows`);
+                const activeData = await activeResponse.json();
+                const activeBooks = activeData.success ? activeData.activeBorrows : [];
+
+                // 2. Get available books (with copies > 0)
+                const response = await fetch('/admin/books/available');
+                const result = await response.json();
+                if (!result.success) {
+                    alert('Error fetching books: ' + result.message);
                     return;
                 }
 
-                // Fetch available books and show a dropdown
-                try {
-                    const response = await fetch('/admin/books/available');
-                    const result = await response.json();
-                    if (!result.success || result.books.length === 0) {
-                        alert('No books available for borrowing.');
-                        return;
-                    }
-
-                    // Build a simple select list (you can make this fancier)
-                    const bookList = result.books.map(b => `${b.title} (${b.available} available)`);
-                    const bookChoice = prompt('Select a book by number:\n' +
-                        bookList.map((b, i) => `${i + 1}. ${b}`).join('\n'));
-                    if (!bookChoice) return;
-
-                    const index = parseInt(bookChoice) - 1;
-                    if (isNaN(index) || index < 0 || index >= result.books.length) {
-                        alert('Invalid selection');
-                        return;
-                    }
-
-                    const bookId = result.books[index].id;
-                    const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(bookId)}`;
-
-                    const borrowResponse = await fetch(url);
-                    const data = await borrowResponse.json();
-                    if (data.success) {
-                        alert(`✅ ${data.message}`);
-                    } else {
-                        alert('❌ Error: ' + data.message);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert('❌ Error processing library action.');
+                const allBooks = result.books;
+                if (allBooks.length === 0 && activeBooks.length === 0) {
+                    alert('No books available for borrowing or returning.');
+                    return;
                 }
-            }
 
+                // 3. Build combined list
+                let bookList = [];
+                let index = 1;
+
+                // Show active borrows first (to return)
+                if (activeBooks.length > 0) {
+                    activeBooks.forEach(b => {
+                        bookList.push({
+                            id: b.bookId,
+                            title: b.book.title + ' (📖 Return)',
+                            isReturn: true,
+                            index: index++
+                        });
+                    });
+                }
+
+                // Show available books (to borrow) – exclude already borrowed
+                allBooks.forEach(b => {
+                    if (!activeBooks.some(a => a.bookId === b.id)) {
+                        bookList.push({
+                            id: b.id,
+                            title: b.title + ` (${b.available} available)`,
+                            isReturn: false,
+                            index: index++
+                        });
+                    }
+                });
+
+                if (bookList.length === 0) {
+                    alert('No books available for borrowing or returning.');
+                    return;
+                }
+
+                // 4. Show prompt
+                const promptText = 'Select a book:\n' +
+                    bookList.map(b => `${b.index}. ${b.title}`).join('\n');
+
+                const choice = prompt(promptText);
+                if (!choice) return;
+
+                const selectedIndex = parseInt(choice) - 1;
+                if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= bookList.length) {
+                    alert('Invalid selection');
+                    return;
+                }
+
+                const selected = bookList[selectedIndex];
+                const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(selected.id)}`;
+
+                const borrowResponse = await fetch(url);
+                const data = await borrowResponse.json();
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('❌ Error processing library action.');
+            }
+        }
+
+        // ============================================================
+        // RETURN BOOK (calls the same combined function)
+        // ============================================================
+        async function returnBook() {
+            if (!currentToken) {
+                alert('Please scan a QR code first.');
+                return;
+            }
+            // Use the same logic but we can filter only active borrows
+            // For simplicity, we just call borrowBook which already shows active borrows with "Return" label.
+            // Alternatively, we could show only active borrows, but the combined function is fine.
+            await borrowBook();
+        }
+
+        // ============================================================
+        // SCANNER INITIALISATION
+        // ============================================================
         function startScanner() {
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
@@ -228,51 +292,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', startScanner);
-
-
-        async function returnBook() {
-                if (!currentToken) {
-                    alert('Please scan a QR code first.');
-                    return;
-                }
-
-                try {
-                    // Fetch the student's active borrows
-                    const response = await fetch(`/api/student/${currentToken}/active-borrows`);
-                    const result = await response.json();
-                    if (!result.success || result.borrows.length === 0) {
-                        alert('No books currently borrowed by this student.');
-                        return;
-                    }
-
-                    // Build a select list
-                    const borrowList = result.borrows.map((b, i) =>
-                        `${i + 1}. ${b.book.title} (due: ${new Date(b.dueDate).toLocaleDateString()})`
-                    );
-                    const choice = prompt('Select a book to return:\n' + borrowList.join('\n'));
-                    if (!choice) return;
-
-                    const index = parseInt(choice) - 1;
-                    if (isNaN(index) || index < 0 || index >= result.borrows.length) {
-                        alert('Invalid selection');
-                        return;
-                    }
-
-                    const bookId = result.borrows[index].bookId;
-                    const url = `/api/scan/${currentToken}?action=library&bookId=${encodeURIComponent(bookId)}`;
-
-                    const returnResponse = await fetch(url);
-                    const data = await returnResponse.json();
-                    if (data.success) {
-                        alert(`✅ ${data.message}`);
-                    } else {
-                        alert('❌ Error: ' + data.message);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert('❌ Error returning book.');
-                }
-            }
     </script>
 </body>
 

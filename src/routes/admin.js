@@ -415,6 +415,8 @@ router.get('/parents/debug', async (req, res) => {
 
 
 
+
+
 // School setup
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
