@@ -3627,6 +3627,141 @@ const getAttendanceList = async (req, res) => {
   }
 };
 
+// ============================================================
+// ADMIN ATTENDANCE – view attendance records
+// ============================================================
+const adminAttendance = async (req, res) => {
+  try {
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+    const userId = req.session.user.id;
+
+    // Get teacher info if user is a teacher
+    let teacherId = null;
+    if (req.user.role === 'teacher') {
+      const teacher = await prisma.teacher.findUnique({
+        where: { userId: userId },
+        select: { id: true }
+      });
+      if (teacher) teacherId = teacher.id;
+    }
+
+    // Build filter
+    let whereClause = {};
+
+    // Super admin sees all, others see their school only
+    if (!isSuperAdmin && userSchool) {
+      whereClause = {
+        student: {
+          user: {
+            school: userSchool
+          }
+        }
+      };
+    }
+
+    // If teacher, further restrict to students in their classes
+    if (teacherId) {
+      const classIds = await prisma.class.findMany({
+        where: { teacherId: teacherId },
+        select: { id: true }
+      });
+      const classIdList = classIds.map(c => c.id);
+      if (classIdList.length > 0) {
+        whereClause.classId = { in: classIdList };
+      } else {
+        // No classes => no students
+        whereClause.id = null;
+      }
+    }
+
+    // Get filter parameters from query
+    const { classId, studentId, dateFrom, dateTo, status } = req.query;
+
+    if (classId) whereClause.classId = classId;
+    if (studentId) whereClause.studentId = studentId;
+    if (status) whereClause.status = status;
+    if (dateFrom || dateTo) {
+      whereClause.date = {};
+      if (dateFrom) whereClause.date.gte = new Date(dateFrom);
+      if (dateTo) whereClause.date.lte = new Date(dateTo);
+    }
+
+    // Fetch attendance records
+    const attendances = await prisma.attendance.findMany({
+      where: whereClause,
+      include: {
+        student: {
+          include: { user: true }
+        },
+        class: true,
+        recorder: {
+          select: { firstName: true, lastName: true }
+        }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    // Get list of classes (for filter dropdown)
+    let classWhere = {};
+    if (!isSuperAdmin && userSchool) {
+      classWhere = {
+        teacher: {
+          user: {
+            school: userSchool
+          }
+        }
+      };
+    }
+    if (teacherId) {
+      classWhere.teacherId = teacherId;
+    }
+    const classes = await prisma.class.findMany({
+      where: classWhere,
+      select: { id: true, name: true, grade: true, section: true }
+    });
+
+    // Get students (for filter dropdown)
+    let studentWhere = {};
+    if (!isSuperAdmin && userSchool) {
+      studentWhere = { user: { school: userSchool } };
+    }
+    if (teacherId) {
+      // Only students in teacher's classes
+      const classIds = await prisma.class.findMany({
+        where: { teacherId: teacherId },
+        select: { id: true }
+      });
+      const classIdList = classIds.map(c => c.id);
+      if (classIdList.length > 0) {
+        studentWhere.enrollments = { some: { classId: { in: classIdList } } };
+      } else {
+        studentWhere.id = null;
+      }
+    }
+    const students = await prisma.student.findMany({
+      where: studentWhere,
+      include: { user: true },
+      orderBy: { user: { firstName: 'asc' } }
+    });
+
+    res.render('admin/attendance', {
+      title: 'Attendance Management',
+      attendances,
+      classes,
+      students,
+      filters: { classId, studentId, dateFrom, dateTo, status },
+      userSchool,
+      isSuperAdmin,
+      adminInfo: req.user?.admin || null,
+      user: req.session.user
+    });
+  } catch (error) {
+    console.error('Admin attendance error:', error);
+    res.status(500).render('error/500', { title: 'Server Error', adminInfo: req.user?.admin || null });
+  }
+};
+
 // --------------------------------------------
 // EXPORTS
 // --------------------------------------------
@@ -3686,5 +3821,6 @@ module.exports = {
   saveSchoolSetup,
   getNextUserId,
   getUserQR,
-  getAttendanceList 
+  getAttendanceList,
+  adminAttendance 
 };

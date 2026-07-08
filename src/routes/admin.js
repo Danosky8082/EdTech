@@ -510,5 +510,6 @@ router.get('/parents/debug', async (req, res) => {
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
+router.get('/attendance', adminController.adminAttendance);
 
 module.exports = router;
