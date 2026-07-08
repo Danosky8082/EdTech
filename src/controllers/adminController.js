@@ -3985,6 +3985,36 @@ const renderAttendanceReport = async (req, res) => {
   }
 };
 
+
+// ============================================================
+// CLEAR TODAY'S ATTENDANCE (for testing)
+// ============================================================
+const clearTodayAttendance = async (req, res) => {
+    try {
+        if (!req.isSuperAdmin && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Permission denied' });
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const deleted = await prisma.attendance.deleteMany({
+            where: {
+                date: {
+                    gte: today,
+                    lt: tomorrow
+                }
+            }
+        });
+
+        res.json({ success: true, message: `Cleared ${deleted.count} attendance records for today.` });
+    } catch (error) {
+        console.error('Clear attendance error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // --------------------------------------------
 // EXPORTS
 // --------------------------------------------
@@ -4047,5 +4077,6 @@ module.exports = {
   getAttendanceList,
   adminAttendance,
   getAttendanceReport,
-  renderAttendanceReport
+  renderAttendanceReport,
+  clearTodayAttendance 
 };

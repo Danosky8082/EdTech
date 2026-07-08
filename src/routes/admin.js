@@ -513,5 +513,6 @@ router.get('/next-id', adminController.getNextUserId);
 router.get('/attendance', adminController.adminAttendance);
 // Attendance report (monthly summary)
 router.get('/attendance/report', adminController.getAttendanceReport);
+router.post('/attendance/clear-today', adminController.clearTodayAttendance);
 
 module.exports = router;
