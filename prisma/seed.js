@@ -47,9 +47,9 @@ async function main() {
       password: hashedPassword,
       firstName: 'School',
       lastName: 'Principal',
-      email: 'principal@school.edu',
+      email: 'principal@green.edu',
       role: 'admin',
-      school: 'Greenwood High School',
+      school: 'Green Spring College',
       isTemporaryPassword: false
     }
   });
@@ -75,9 +75,9 @@ async function main() {
       password: hashedPassword,
       firstName: 'Sarah',
       lastName: 'Johnson',
-      email: 'sarah.johnson@school.edu',
+      email: 'sarah.johnson@corona.edu',
       role: 'admin',
-      school: 'Greenwood High School',
+      school: 'Corona College',
       isTemporaryPassword: false
     }
   });
@@ -95,16 +95,16 @@ async function main() {
 
   // Create sample teacher
   const teacherUser = await prisma.user.upsert({
-    where: { idNumber: 'teacher001' },
+    where: { idNumber: 'GSC-TCH-001' },
     update: {},
     create: {
-      idNumber: 'teacher001',
+      idNumber: 'gsc-tch-001',
       password: hashedPassword,
       firstName: 'John',
-      lastName: 'Doe',
-      email: 'johndoe@school.edu',
+      lastName: 'Casey',
+      email: 'john@green.edu',
       role: 'teacher',
-      school: 'Greenwood High School',
+      school: 'Green Spring College',
       isTemporaryPassword: false
     }
   });
@@ -118,20 +118,20 @@ async function main() {
     }
   });
 
-  console.log('✅ Teacher created: teacher001 / 12345');
+  console.log('✅ Teacher created: gsc-tch-001 / 12345');
 
   // Create another teacher from a different school
   const teacherUser2 = await prisma.user.upsert({
-    where: { idNumber: 'teacher002' },
+    where: { idNumber: 'cor-tch-001' },
     update: {},
     create: {
-      idNumber: 'teacher002',
+      idNumber: 'cor-tch-001',
       password: hashedPassword,
       firstName: 'Emily',
       lastName: 'Chen',
-      email: 'emily.chen@riverview.edu',
+      email: 'emily@corona.edu',
       role: 'teacher',
-      school: 'Riverview Academy',
+      school: 'Corona College',
       isTemporaryPassword: false
     }
   });
@@ -145,7 +145,7 @@ async function main() {
     }
   });
 
-  console.log('✅ Teacher (different school) created: teacher002 / 12345');
+  console.log('✅ Teacher (different school) created: cor-tch-001 / 12345');
 
   // Create sample class - FIXED: Use create instead of upsert with hardcoded ID
   const mathClass = await prisma.class.create({

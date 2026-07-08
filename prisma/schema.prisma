@@ -252,13 +252,16 @@ model Teacher {
   // Relations
   assignments        Assignment[]
   classWorks         ClassWork[]
-  classes            Class[]       @relation("TeacherClasses")
+  classes            Class[]       @relation("TeacherClasses")      // Homeroom classes (Class.teacherId)
   gradedExamAttempts ExamAttempt[] @relation("GradedAttempts")
   exams              Exam[]
   liveSessions       LiveSession[]
   materials          Material[]
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessonNotes        LessonNote[]  // ✅ ADDED for Lesson Notes feature
+  lessonNotes        LessonNote[]
+  
+  // ✅ NEW: Subject assignments to classes (many-to-many via ClassTeacher)
+  classTeachers      ClassTeacher[]
 
   @@map("teachers")
 }
@@ -274,12 +277,31 @@ model Admin {
   @@map("admins")
 }
 
+// ============================================
+// NEW: ClassTeacher join table
+// ============================================
+model ClassTeacher {
+  id        String   @id @default(cuid())
+  classId   String
+  teacherId String
+  subject   String?  // e.g., "Mathematics", "English", "Art" – optional
+  role      String   @default("subject") // "class_teacher" or "subject"
+  createdAt DateTime @default(now())
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // A teacher can teach a specific subject only once per class
+  @@unique([classId, teacherId, subject])
+  @@map("class_teachers")
+}
+
 model Class {
   id           String        @id @default(cuid())
   name         String
   grade        String
   section      String
-  teacherId    String
+  teacherId    String        // Homeroom / class teacher (single)
   
   // Relations
   assignments  Assignment[]
@@ -290,8 +312,11 @@ model Class {
   liveSessions LiveSession[]
   materials    Material[]
   studentNotes StudentNote[]
-  lessonNotes  LessonNote[]  // ✅ ADDED for Lesson Notes feature
+  lessonNotes  LessonNote[]
   
+  // ✅ NEW: Subject teachers via join table
+  classTeachers ClassTeacher[]
+
   // ✅ Added for attendance
   attendances  Attendance[]
 
@@ -372,7 +397,7 @@ model Submission {
   studentId      String
   fileUrl        String?
   submittedAt    DateTime   @default(now())
-  grade          Int?       // Keep as Int? for now
+  grade          Int?
   feedback       String?
   submissionType String?    @default("file")
   content        String?
@@ -380,8 +405,8 @@ model Submission {
   textTitle      String?
   wordCount      Int?
   status         String?    @default("submitted")
-  score          Float?     // For decimal scores
-  gradedAt       DateTime?  // When graded
+  score          Float?
+  gradedAt       DateTime?
   
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -657,11 +682,11 @@ model Accountant {
 
 model SchoolSettings {
   id         String   @id @default(cuid())
-  school     String   @unique        // matches User.school
-  idPrefix   String                  // e.g., "STU", "TCH"
-  idCounter  Int      @default(1)    // next available number
-  idSeparator String @default("-")   // optional, default "-"
-  includeYear Boolean @default(true) // include current year?
+  school     String   @unique
+  idPrefix   String
+  idCounter  Int      @default(1)
+  idSeparator String @default("-")
+  includeYear Boolean @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -674,8 +699,8 @@ model LessonNote {
   title       String
   content     String   @db.Text
   description String?  @db.Text
-  classId     String?  // Foreign key (optional)
-  teacherId   String   // Foreign key (required)
+  classId     String?
+  teacherId   String
   isPublic    Boolean  @default(true)
   attachments Json?    @default("[]")
   tags        Json?    @default("[]")
@@ -753,4 +778,3 @@ model Session {
 
   @@map("session")
 }
-
