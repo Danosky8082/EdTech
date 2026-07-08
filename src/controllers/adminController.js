@@ -3681,11 +3681,10 @@ const adminAttendance = async (req, res) => {
       }
     }
 
-    // Class filter (if provided in query)
+    // Class filter (if provided in query) – override teacher's class list if necessary
     if (classId) {
-      // Override the teacher's class list? We'll combine: must be in both teacher's classes AND the selected class
+      // If already restricted to teacher's classes, add the class filter
       if (studentWhere.enrollments) {
-        // If already restricted to teacher's classes, add the class filter
         studentWhere.enrollments.some.classId = classId;
       } else {
         studentWhere.enrollments = { some: { classId: classId } };
@@ -3709,29 +3708,22 @@ const adminAttendance = async (req, res) => {
       date: { gte: targetDate, lt: nextDay }
     };
 
-    // Apply same school/class/student filters to attendance query
+    // Apply school filter to attendance records (so we only get records from the right school)
     if (!isSuperAdmin && userSchool) {
       attendanceWhere.student = { user: { school: userSchool } };
     }
+
+    // Apply class filter to attendance records ONLY if a class is explicitly selected
     if (classId) {
       attendanceWhere.classId = classId;
     }
+
+    // Apply studentId filter if provided
     if (studentId) {
       attendanceWhere.studentId = studentId;
     }
-    // Teacher restriction (already covered by student filters, but we also need to restrict attendance records)
-    if (teacherId) {
-      const classIds = await prisma.class.findMany({
-        where: { teacherId: teacherId },
-        select: { id: true }
-      });
-      const classIdList = classIds.map(c => c.id);
-      if (classIdList.length > 0) {
-        attendanceWhere.classId = { in: classIdList };
-      } else {
-        attendanceWhere.classId = null;
-      }
-    }
+
+    // ❌ NO teacher class restriction on attendance records – that would exclude null-class records
 
     const actualAttendances = await prisma.attendance.findMany({
       where: attendanceWhere,
@@ -3814,7 +3806,7 @@ const adminAttendance = async (req, res) => {
     // ---------- 9. Render ----------
     res.render('admin/attendance', {
       title: 'Attendance Management',
-      attendances: filteredCombined,   // now includes both present and absent
+      attendances: filteredCombined,
       classes,
       students: studentsForDropdown,
       filters: { classId, studentId, dateFrom, dateTo, status },
