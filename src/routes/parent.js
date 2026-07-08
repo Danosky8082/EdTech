@@ -19,7 +19,7 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
                         idNumber: true,
                         email: true,
                         avatar: true,
-                        school: true // Include parent's school
+                        school: true
                     }
                 },
                 students: {
@@ -33,7 +33,7 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
                                         idNumber: true,
                                         email: true,
                                         avatar: true,
-                                        school: true // Include student's school
+                                        school: true
                                     }
                                 },
                                 tuitionPayments: {
@@ -42,7 +42,6 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
                                     },
                                     take: 5
                                 }
-                                
                             }
                         }
                     }
@@ -82,7 +81,7 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
             return res.redirect('/');
         }
 
-        // Group students by school for better organization
+        // Group students by school
         const studentsBySchool = {};
         const allStudents = [];
         
@@ -90,7 +89,6 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
             const student = studentRel.student;
             const school = student.user.school || 'Unknown School';
             
-            // Add to school grouping
             if (!studentsBySchool[school]) {
                 studentsBySchool[school] = [];
             }
@@ -117,7 +115,6 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
             allStudents.push(studentData);
         });
 
-        // Calculate total savings
         const totalSavings = parent.savingsGoals.reduce((total, goal) => total + goal.currentAmount, 0);
 
         res.render('parent/dashboard', {
@@ -134,7 +131,6 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
             success_msg: req.session.success_msg
         });
 
-        // Clear session messages after displaying
         delete req.session.error_msg;
         delete req.session.success_msg;
 
@@ -145,8 +141,9 @@ router.get('/dashboard', ensureAuthenticated, ensureParent, async (req, res) => 
     }
 });
 
-// View Student Details
-// View Student Details - UPDATED to include parentPayments
+// ============================================================
+// FIXED: View Student Details (no parentPayments in include)
+// ============================================================
 router.get('/student/:studentId', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { studentId } = req.params;
@@ -170,7 +167,7 @@ router.get('/student/:studentId', ensureAuthenticated, ensureParent, async (req,
             });
         }
 
-        // Get student details with ALL payments (parentPayments AND tuitionPayments)
+        // Get student details (excluding parentPayments)
         const student = await prisma.student.findUnique({
             where: { id: studentId },
             include: {
@@ -186,24 +183,6 @@ router.get('/student/:studentId', ensureAuthenticated, ensureParent, async (req,
                         school: true
                     }
                 },
-                // Parent payments (payments made by this parent)
-                parentPayments: {
-                    where: {
-                        parentId: parent.id // Only get payments made by this parent
-                    },
-                    orderBy: {
-                        createdAt: 'desc'
-                    },
-                    include: {
-                        cashier: {
-                            select: {
-                                firstName: true,
-                                lastName: true
-                            }
-                        }
-                    }
-                },
-                // Official tuition payments (from school records)
                 tuitionPayments: {
                     orderBy: {
                         createdAt: 'desc'
@@ -211,6 +190,28 @@ router.get('/student/:studentId', ensureAuthenticated, ensureParent, async (req,
                 }
             }
         });
+
+        // Fetch parent payments for this student (made by this parent)
+        const parentPayments = await prisma.parentPayment.findMany({
+            where: {
+                studentId: studentId,
+                parentId: parent.id
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            include: {
+                cashier: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
+
+        // Attach parentPayments to student object for frontend
+        student.parentPayments = parentPayments;
 
         res.json({ 
             success: true, 
@@ -221,19 +222,18 @@ router.get('/student/:studentId', ensureAuthenticated, ensureParent, async (req,
         console.error('Error fetching student details:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Server error' 
+            message: 'Server error: ' + error.message 
         });
     }
 });
 
-// Parent Payment Route (Updated)
+// Parent Payment Route (unchanged)
 router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { studentId, amount, paymentMethod, feeType = 'tuition', description } = req.body;
         
         console.log('💳 Parent payment attempt:', { studentId, amount, paymentMethod, feeType });
 
-        // Verify the student belongs to this parent
         const parent = await prisma.parent.findUnique({
             where: { id: req.session.user.parentId },
             include: {
@@ -251,7 +251,6 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
             });
         }
 
-        // For wallet payments, check balance
         if (paymentMethod === 'wallet') {
             if (!parent.wallet || parent.wallet.balance < parseFloat(amount)) {
                 return res.status(400).json({
@@ -261,10 +260,8 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
             }
         }
 
-        // Generate receipt number with fee type prefix
         const receiptNumber = `${feeType.toUpperCase().substr(0, 3)}-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-        // Create payment record
         const payment = await prisma.parentPayment.create({
             data: {
                 parentId: parent.id,
@@ -302,14 +299,13 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
     }
 });
 
-// Add Funds to Wallet 
+// Add Funds to Wallet (unchanged)
 router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { amount, paymentMethod } = req.body;
         
         console.log('💰 Adding funds to wallet:', { amount, paymentMethod });
 
-        // Validate input
         if (!amount || amount <= 0) {
             return res.status(400).json({
                 success: false,
@@ -329,7 +325,6 @@ router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, 
             });
         }
 
-        // If wallet doesn't exist, create one
         let wallet = parent.wallet;
         if (!wallet) {
             console.log('💳 Creating new wallet for parent');
@@ -343,10 +338,7 @@ router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, 
 
         const parsedAmount = parseFloat(amount);
         
-        // Simulate adding funds (in a real app, this would integrate with a payment gateway)
-        // For now, we'll just add the amount directly
         await prisma.$transaction(async (tx) => {
-            // Update wallet balance
             await tx.wallet.update({
                 where: { id: wallet.id },
                 data: {
@@ -356,7 +348,6 @@ router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, 
                 }
             });
 
-            // Record transaction
             await tx.transaction.create({
                 data: {
                     walletId: wallet.id,
@@ -369,7 +360,6 @@ router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, 
             });
         });
 
-        // Get updated wallet balance
         const updatedWallet = await prisma.wallet.findUnique({
             where: { id: wallet.id }
         });
@@ -391,8 +381,7 @@ router.post('/wallet/add-funds', ensureAuthenticated, ensureParent, async (req, 
     }
 });
 
-
-// Savings Goals Management
+// Savings Goals Management (unchanged)
 router.post('/savings/goals', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { name, targetAmount, targetDate } = req.body;
@@ -433,8 +422,7 @@ router.post('/savings/goals', ensureAuthenticated, ensureParent, async (req, res
     }
 });
 
-// Add to Savings
-// Add to Savings - ENHANCED DEBUGGING
+// Add to Savings (unchanged)
 router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         console.log('💰 Savings deposit request received:', req.body);
@@ -442,7 +430,6 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
 
         const { goalId, amount, description } = req.body;
 
-        // Enhanced validation
         if (!goalId) {
             console.log('❌ Missing goalId');
             return res.status(400).json({
@@ -460,11 +447,10 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
         }
 
         const parsedAmount = parseFloat(amount);
-        const parsedGoalId = String(goalId); // Ensure it's a string for Prisma
+        const parsedGoalId = String(goalId);
 
         console.log('🔍 Parsed data:', { parsedGoalId, parsedAmount });
 
-        // Check if parent exists
         const parent = await prisma.parent.findUnique({
             where: { id: req.session.user.parentId },
             include: {
@@ -506,7 +492,6 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
             });
         }
 
-        // Check wallet balance
         if (parent.wallet.balance < parsedAmount) {
             console.log('❌ Insufficient balance:', {
                 balance: parent.wallet.balance,
@@ -518,9 +503,7 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
             });
         }
 
-        // Start transaction
         await prisma.$transaction(async (tx) => {
-            // Deduct from wallet
             await tx.wallet.update({
                 where: { id: parent.wallet.id },
                 data: {
@@ -530,7 +513,6 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
                 }
             });
 
-            // Add to savings goal
             await tx.savingsGoal.update({
                 where: { id: parsedGoalId },
                 data: {
@@ -540,7 +522,6 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
                 }
             });
 
-            // Create savings deposit
             await tx.savingsDeposit.create({
                 data: {
                     savingsGoalId: parsedGoalId,
@@ -550,7 +531,6 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
                 }
             });
 
-            // Record wallet transaction
             await tx.transaction.create({
                 data: {
                     walletId: parent.wallet.id,
@@ -577,7 +557,7 @@ router.post('/savings/deposit', ensureAuthenticated, ensureParent, async (req, r
     }
 });
 
-// Transfer Savings to Wallet - ENHANCED DEBUGGING
+// Transfer Savings to Wallet (unchanged)
 router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         console.log('🔄 Transfer to wallet request received:', req.body);
@@ -585,7 +565,6 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
 
         const { goalId } = req.body;
 
-        // Enhanced validation
         if (!goalId) {
             console.log('❌ Missing goalId');
             return res.status(400).json({
@@ -594,9 +573,8 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
             });
         }
 
-        const parsedGoalId = String(goalId); // Ensure it's a string for Prisma
+        const parsedGoalId = String(goalId);
 
-        // Check if parent exists
         const parent = await prisma.parent.findUnique({
             where: { id: req.session.user.parentId },
             include: {
@@ -655,9 +633,7 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
 
         const transferAmount = goal.currentAmount;
 
-        // Start transaction
         await prisma.$transaction(async (tx) => {
-            // Add to wallet
             await tx.wallet.update({
                 where: { id: parent.wallet.id },
                 data: {
@@ -667,17 +643,14 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
                 }
             });
 
-            // Reset savings goal and mark as completed
             await tx.savingsGoal.update({
                 where: { id: parsedGoalId },
                 data: {
                     currentAmount: 0,
                     isActive: false,
-                    //completedAt: new Date()
                 }
             });
 
-            // Record wallet transaction
             await tx.transaction.create({
                 data: {
                     walletId: parent.wallet.id,
@@ -688,11 +661,10 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
                 }
             });
 
-            // Create a savings deposit record for the transfer
             await tx.savingsDeposit.create({
                 data: {
                     savingsGoalId: parsedGoalId,
-                    amount: -transferAmount, // Negative amount for withdrawal
+                    amount: -transferAmount,
                     description: `Transferred to wallet`,
                     status: 'completed'
                 }
@@ -714,7 +686,7 @@ router.post('/savings/transfer-to-wallet', ensureAuthenticated, ensureParent, as
     }
 });
 
-// Parent transaction history
+// Parent transaction history (unchanged)
 router.get('/transactions', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const parent = await prisma.parent.findUnique({
@@ -745,7 +717,7 @@ router.get('/transactions', ensureAuthenticated, ensureParent, async (req, res) 
     }
 });
 
-// Recent Activity
+// Recent Activity (unchanged)
 router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const parent = await prisma.parent.findUnique({
@@ -785,10 +757,8 @@ router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, re
             return res.json({ success: true, activities: [] });
         }
 
-        // Combine activities from different sources
         const activities = [];
 
-        // Wallet transactions
         if (parent.wallet) {
             parent.wallet.transactions.forEach(transaction => {
                 activities.push({
@@ -800,7 +770,6 @@ router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, re
             });
         }
 
-        // Savings activities
         parent.savingsGoals.forEach(goal => {
             goal.deposits.forEach(deposit => {
                 activities.push({
@@ -812,7 +781,6 @@ router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, re
             });
         });
 
-        // Payment activities
         parent.payments.forEach(payment => {
             activities.push({
                 title: 'Payment',
@@ -822,7 +790,6 @@ router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, re
             });
         });
 
-        // Sort by timestamp and take latest 10
         activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         const recentActivities = activities.slice(0, 10);
 
@@ -836,7 +803,7 @@ router.get('/recent-activity', ensureAuthenticated, ensureParent, async (req, re
     }
 });
 
-// Contact School
+// Contact School (unchanged)
 router.post('/contact-school', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { subject, message, studentId } = req.body;
@@ -855,7 +822,6 @@ router.post('/contact-school', ensureAuthenticated, ensureParent, async (req, re
             });
         }
 
-        // In a real application, you would send an email or create a ticket
         console.log('📧 Contact message from parent:', {
             parent: `${parent.user.firstName} ${parent.user.lastName}`,
             subject,
@@ -877,7 +843,7 @@ router.post('/contact-school', ensureAuthenticated, ensureParent, async (req, re
     }
 });
 
-// Get specific savings goal
+// Get specific savings goal (unchanged)
 router.get('/savings/goal/:id', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { id } = req.params;
@@ -917,7 +883,6 @@ router.get('/savings/goal/:id', ensureAuthenticated, ensureParent, async (req, r
 
         const goal = parent.savingsGoals[0];
         
-        // Calculate progress
         const progress = goal.targetAmount > 0 
             ? (goal.currentAmount / goal.targetAmount) * 100 
             : 0;
@@ -940,73 +905,7 @@ router.get('/savings/goal/:id', ensureAuthenticated, ensureParent, async (req, r
     }
 });
 
-// Get specific savings goal details
-router.get('/savings/goal/:id', ensureAuthenticated, ensureParent, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const parent = await prisma.parent.findUnique({
-            where: { id: req.session.user.parentId },
-            include: {
-                savingsGoals: {
-                    where: { 
-                        id: id,
-                        isActive: true 
-                    },
-                    include: {
-                        deposits: {
-                            orderBy: {
-                                createdAt: 'desc'
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        if (!parent) {
-            return res.status(404).json({
-                success: false,
-                message: 'Parent not found'
-            });
-        }
-
-        if (parent.savingsGoals.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Savings goal not found or not active'
-            });
-        }
-
-        const goal = parent.savingsGoals[0];
-        
-        // Calculate progress percentage
-        const progress = goal.targetAmount > 0 
-            ? (goal.currentAmount / goal.targetAmount) * 100 
-            : 0;
-        
-        const response = {
-            ...goal,
-            progress: progress.toFixed(1),
-            remainingAmount: goal.targetAmount - goal.currentAmount,
-            isCompleted: goal.currentAmount >= goal.targetAmount
-        };
-
-        res.json({
-            success: true,
-            goal: response
-        });
-
-    } catch (error) {
-        console.error('Error getting savings goal:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-});
-
-// View pending payments
+// View pending payments (unchanged)
 router.get('/pending-payments', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const parent = await prisma.parent.findUnique({
@@ -1050,7 +949,7 @@ router.get('/pending-payments', ensureAuthenticated, ensureParent, async (req, r
     }
 });
 
-// View confirmed payments
+// View confirmed payments (unchanged)
 router.get('/confirmed-payments', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { page = 1, limit = 20 } = req.query;
@@ -1132,14 +1031,13 @@ router.get('/confirmed-payments', ensureAuthenticated, ensureParent, async (req,
     }
 });
 
-// Enhanced payment processing with cashier workflow
+// Enhanced payment processing (unchanged)
 router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { studentId, amount, paymentMethod, description } = req.body;
         
         console.log('💳 Parent payment attempt:', { studentId, amount, paymentMethod });
 
-        // Verify the student belongs to this parent
         const parent = await prisma.parent.findUnique({
             where: { id: req.session.user.parentId },
             include: {
@@ -1157,7 +1055,6 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
             });
         }
 
-        // For wallet payments, check balance but DON'T deduct yet
         if (paymentMethod === 'wallet') {
             if (!parent.wallet || parent.wallet.balance < parseFloat(amount)) {
                 return res.status(400).json({
@@ -1166,8 +1063,6 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
                 });
             }
             
-            // Reserve the amount but don't deduct yet
-            // Create a temporary hold on the wallet
             await prisma.wallet.update({
                 where: { id: parent.wallet.id },
                 data: {
@@ -1177,7 +1072,6 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
                 }
             });
             
-            // Record pending transaction
             await prisma.transaction.create({
                 data: {
                     walletId: parent.wallet.id,
@@ -1190,10 +1084,8 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
             });
         }
 
-        // Generate receipt number
         const receiptNumber = `PAY-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-        // Create payment record (pending cashier confirmation)
         const payment = await prisma.parentPayment.create({
             data: {
                 parentId: parent.id,
@@ -1203,7 +1095,6 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
                 description: description || 'Tuition Fee Payment',
                 status: 'pending',
                 receiptNumber: receiptNumber,
-                // Track the wallet deduction status
                 walletDeducted: paymentMethod === 'wallet'
             }
         });
@@ -1224,7 +1115,7 @@ router.post('/payment', ensureAuthenticated, ensureParent, async (req, res) => {
     }
 });
 
-// Check payment status
+// Check payment status (unchanged)
 router.get('/payment/:paymentId/status', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { paymentId } = req.params;
@@ -1258,7 +1149,6 @@ router.get('/payment/:paymentId/status', ensureAuthenticated, ensureParent, asyn
             });
         }
 
-        // Verify parent owns this payment
         if (payment.parentId !== req.session.user.parentId) {
             return res.status(403).json({
                 success: false,
@@ -1280,7 +1170,7 @@ router.get('/payment/:paymentId/status', ensureAuthenticated, ensureParent, asyn
     }
 });
 
-// View Progress Reports
+// View Progress Reports (unchanged)
 router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         console.log('📊 Loading progress reports for parent:', req.session.user.id);
@@ -1309,7 +1199,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
                                         school: true
                                     }
                                 },
-                                // Get student's academic data
                                 classWorkSubmissions: {
                                     include: {
                                         classWork: true
@@ -1362,22 +1251,18 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
             return res.redirect('/parent/dashboard');
         }
 
-        // Process student data for progress reports
         const studentsWithProgress = await Promise.all(parent.students.map(async (studentRel) => {
             const student = studentRel.student;
             
-            // Calculate overall progress based on submissions
             const totalSubmissions = student.submissions.length;
             const gradedSubmissions = student.submissions.filter(s => s.grade !== null).length;
             const submissionProgress = totalSubmissions > 0 ? (gradedSubmissions / totalSubmissions) * 100 : 0;
             
-            // Calculate average grade
             const grades = student.submissions.filter(s => s.grade !== null).map(s => s.grade);
             const averageGrade = grades.length > 0 
                 ? grades.reduce((sum, grade) => sum + grade, 0) / grades.length 
                 : 0;
             
-            // Get class work scores
             const classWorkScores = student.classWorkSubmissions
                 .filter(cw => cw.score !== null)
                 .map(cw => ({
@@ -1387,7 +1272,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
                     date: cw.submittedAt
                 }));
             
-            // Get exam scores
             const examScores = student.examAttempts
                 .filter(exam => exam.score !== null)
                 .map(exam => ({
@@ -1396,7 +1280,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
                     date: exam.submittedAt
                 }));
             
-            // Get assignment submissions
             const assignmentScores = student.submissions
                 .filter(sub => sub.grade !== null)
                 .map(sub => ({
@@ -1406,7 +1289,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
                     date: sub.submittedAt
                 }));
             
-            // Calculate attendance (mock data for now)
             const attendance = {
                 present: Math.floor(Math.random() * 90) + 10,
                 absent: Math.floor(Math.random() * 10),
@@ -1414,7 +1296,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
             };
             const attendanceRate = (attendance.present / (attendance.present + attendance.absent)) * 100;
             
-            // Get class enrollment info
             const classes = student.enrollments.map(enrollment => ({
                 name: enrollment.class.name,
                 grade: enrollment.class.grade,
@@ -1452,7 +1333,6 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
             success_msg: req.session.success_msg
         });
 
-        // Clear session messages after displaying
         delete req.session.error_msg;
         delete req.session.success_msg;
 
@@ -1463,12 +1343,11 @@ router.get('/progress-reports', ensureAuthenticated, ensureParent, async (req, r
     }
 });
 
-// Download Progress Report as PDF
+// Download Progress Report (unchanged)
 router.get('/progress-reports/:studentId/pdf', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const { studentId } = req.params;
         
-        // Verify the student belongs to this parent
         const parent = await prisma.parent.findUnique({
             where: { id: req.session.user.parentId },
             include: {
@@ -1487,8 +1366,6 @@ router.get('/progress-reports/:studentId/pdf', ensureAuthenticated, ensureParent
             });
         }
 
-        // In a real application, you would generate a PDF here
-        // For now, return a message
         res.json({
             success: true,
             message: 'PDF generation would be implemented here',
@@ -1504,94 +1381,7 @@ router.get('/progress-reports/:studentId/pdf', ensureAuthenticated, ensureParent
     }
 });
 
-// In your parent route file
-router.get('/dashboard', async (req, res) => {
-  try {
-    const userId = req.session.user.id;
-    
-    const parent = await prisma.parent.findFirst({
-      where: { userId },
-      include: {
-        user: true,
-        wallet: {
-          include: {
-            transactions: {
-              orderBy: {
-                createdAt: 'desc'
-              },
-              take: 10
-            }
-          }
-        },
-        students: {
-          include: {
-            student: {
-              include: {
-                user: true,
-                tuitionPayments: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 5
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    if (!parent) {
-      return res.status(404).render('error/404', { title: 'Parent not found' });
-    }
-    
-    // Ensure wallet exists
-    let wallet = parent.wallet;
-    if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          parentId: parent.id,
-          balance: 0
-        }
-      });
-    }
-    
-    // Verify balance
-    const transactions = await prisma.walletTransaction.findMany({
-      where: { walletId: wallet.id }
-    });
-    
-    const calculatedBalance = transactions.reduce((total, t) => {
-      if (t.type === 'deposit' || t.type === 'refund' || t.type === 'savings_transfer') {
-        return total + t.amount;
-      } else if (t.type === 'payment' || t.type === 'withdrawal' || t.type === 'savings_deposit') {
-        return total - t.amount;
-      }
-      return total;
-    }, 0);
-    
-    // Fix if discrepancy
-    if (Math.abs(wallet.balance - calculatedBalance) > 0.01) {
-      wallet = await prisma.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: calculatedBalance }
-      });
-    }
-    
-    // Rest of your dashboard logic...
-    
-    res.render('parent/dashboard', {
-      title: 'Parent Dashboard',
-      user: req.session.user,
-      wallet: wallet,
-      // ... other data
-    });
-    
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    res.status(500).render('error/500', { title: 'Server Error' });
-  }
-});
-
-// Debug: Verify wallet balance
+// Debug: Verify wallet balance (unchanged)
 router.get('/wallet/verify', ensureAuthenticated, ensureParent, async (req, res) => {
     try {
         const parent = await prisma.parent.findUnique({
@@ -1617,12 +1407,11 @@ router.get('/wallet/verify', ensureAuthenticated, ensureParent, async (req, res)
             });
         }
 
-        // Calculate balance from transactions
         const calculatedBalance = parent.wallet.transactions.reduce((total, t) => {
             if (t.type.includes('deposit') || t.type === 'savings_transfer') {
                 return total + t.amount;
             } else if (t.type.includes('payment') || t.type === 'savings_deposit') {
-                return total + t.amount; // t.amount is negative for payments
+                return total + t.amount;
             }
             return total;
         }, 0);
