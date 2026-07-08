@@ -1489,16 +1489,16 @@ const getAvailableStudents = async (req, res) => {
 };
 
 // --------------------------------------------
-// CLASS MANAGEMENT (all functions unchanged)
+// CLASS MANAGEMENT (updated)
 // --------------------------------------------
 const manageClasses = async (req, res) => {
   try {
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
-    
+
     let classWhere = {};
     let teacherWhere = {};
-    
+
     if (userSchool && !isSuperAdmin) {
       classWhere = {
         teacher: {
@@ -1518,7 +1518,7 @@ const manageClasses = async (req, res) => {
       where: classWhere,
       include: {
         teacher: {
-          include: { 
+          include: {
             user: {
               select: {
                 id: true,
@@ -1530,10 +1530,27 @@ const manageClasses = async (req, res) => {
             }
           }
         },
+        // ✅ NEW: Include subject teachers via ClassTeacher
+        classTeachers: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          }
+        },
         enrollments: {
           include: {
             student: {
-              include: { 
+              include: {
                 user: {
                   select: {
                     id: true,
@@ -1551,10 +1568,10 @@ const manageClasses = async (req, res) => {
         name: 'asc'
       }
     });
-    
+
     const teachers = await prisma.teacher.findMany({
       where: teacherWhere,
-      include: { 
+      include: {
         user: {
           select: {
             id: true,
@@ -1571,10 +1588,10 @@ const manageClasses = async (req, res) => {
         }
       }
     });
-    
-    res.render('admin/classes', { 
+
+    res.render('admin/classes', {
       title: 'Class Management',
-      classes, 
+      classes,
       teachers,
       userSchool,
       isSuperAdmin,
@@ -1582,10 +1599,179 @@ const manageClasses = async (req, res) => {
     });
   } catch (error) {
     console.error('Manage classes error:', error);
-    res.status(500).render('error/500', { 
+    res.status(500).render('error/500', {
       title: 'Server Error',
       adminInfo: req.user?.admin || null
     });
+  }
+};
+
+// ============================================================
+// CLASS TEACHER MANAGEMENT (NEW)
+// ============================================================
+
+/**
+ * GET /admin/classes/:classId/teachers
+ * Returns all teacher assignments for a class.
+ */
+const getClassTeachers = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    // Verify class belongs to the admin's school
+    const cls = await prisma.class.findUnique({
+      where: { id: classId },
+      include: { teacher: { include: { user: true } } }
+    });
+    if (!cls) {
+      return res.status(404).json({ success: false, message: 'Class not found' });
+    }
+    if (!isSuperAdmin && cls.teacher.user.school !== userSchool) {
+      return res.status(403).json({ success: false, message: 'Permission denied' });
+    }
+
+    const teachers = await prisma.classTeacher.findMany({
+      where: { classId },
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    res.json({ success: true, teachers });
+  } catch (error) {
+    console.error('Get class teachers error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /admin/classes/:classId/teachers
+ * Adds a teacher assignment to a class.
+ * Body: { teacherId, subject, role }
+ */
+const addClassTeacher = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { teacherId, subject, role = 'subject' } = req.body;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    if (!teacherId) {
+      return res.status(400).json({ success: false, message: 'Teacher ID is required' });
+    }
+
+    // Verify class exists and belongs to the school
+    const cls = await prisma.class.findUnique({
+      where: { id: classId },
+      include: { teacher: { include: { user: true } } }
+    });
+    if (!cls) {
+      return res.status(404).json({ success: false, message: 'Class not found' });
+    }
+    if (!isSuperAdmin && cls.teacher.user.school !== userSchool) {
+      return res.status(403).json({ success: false, message: 'Permission denied' });
+    }
+
+    // Verify teacher exists and belongs to the school
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: teacherId },
+      include: { user: true }
+    });
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: 'Teacher not found' });
+    }
+    if (!isSuperAdmin && teacher.user.school !== userSchool) {
+      return res.status(403).json({ success: false, message: 'Teacher does not belong to your school' });
+    }
+
+    // Check if assignment already exists
+    const existing = await prisma.classTeacher.findFirst({
+      where: {
+        classId,
+        teacherId,
+        subject: subject || null
+      }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'This teacher is already assigned with that subject.' });
+    }
+
+    const assignment = await prisma.classTeacher.create({
+      data: {
+        classId,
+        teacherId,
+        subject: subject || null,
+        role: role || 'subject'
+      }
+    });
+
+    res.json({ success: true, message: 'Teacher assigned successfully', assignment });
+  } catch (error) {
+    console.error('Add class teacher error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * DELETE /admin/classes/:classId/teachers/:assignmentId
+ * Removes a teacher assignment from a class.
+ */
+const removeClassTeacher = async (req, res) => {
+  try {
+    const { classId, assignmentId } = req.params;
+    const userSchool = req.userSchool;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    // Verify class exists and belongs to the school
+    const cls = await prisma.class.findUnique({
+      where: { id: classId },
+      include: { teacher: { include: { user: true } } }
+    });
+    if (!cls) {
+      return res.status(404).json({ success: false, message: 'Class not found' });
+    }
+    if (!isSuperAdmin && cls.teacher.user.school !== userSchool) {
+      return res.status(403).json({ success: false, message: 'Permission denied' });
+    }
+
+    // Find the assignment
+    const assignment = await prisma.classTeacher.findUnique({
+      where: { id: assignmentId },
+      include: { class: true }
+    });
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found' });
+    }
+    if (assignment.classId !== classId) {
+      return res.status(400).json({ success: false, message: 'Assignment does not belong to this class' });
+    }
+    // Prevent removing the class teacher (if you want to protect it)
+    if (assignment.role === 'class_teacher') {
+      return res.status(400).json({ success: false, message: 'Cannot remove the class teacher from the class.' });
+    }
+
+    await prisma.classTeacher.delete({
+      where: { id: assignmentId }
+    });
+
+    res.json({ success: true, message: 'Teacher removed successfully' });
+  } catch (error) {
+    console.error('Remove class teacher error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -4010,4 +4196,7 @@ module.exports = {
   resetAllAttendance,
   getAttendanceReport,
   renderAttendanceReport,
+  getClassTeachers,
+  addClassTeacher,
+  removeClassTeacher,
 };

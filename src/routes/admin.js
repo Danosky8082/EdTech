@@ -517,4 +517,11 @@ router.post('/attendance/reset-all', adminController.resetAllAttendance);
 router.get('/attendance/report', adminController.getAttendanceReport);
 router.get('/attendance-report', adminController.renderAttendanceReport);
 
+// ============================================================
+// CLASS TEACHER MANAGEMENT (NEW)
+// ============================================================
+router.get('/classes/:classId/teachers', adminController.getClassTeachers);
+router.post('/classes/:classId/teachers', adminController.addClassTeacher);
+router.delete('/classes/:classId/teachers/:assignmentId', adminController.removeClassTeacher);
+
 module.exports = router;
