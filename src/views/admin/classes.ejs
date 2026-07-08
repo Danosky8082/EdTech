@@ -26,18 +26,8 @@
             color: #6c757d;
         }
 
-        .teacher-badge {
-            background: #e9ecef;
-            border-radius: 20px;
-            padding: 2px 12px;
-            margin: 2px 4px 2px 0;
-            display: inline-block;
-            font-size: 0.8rem;
-        }
-
-        .teacher-badge .subject {
-            font-weight: bold;
-            color: #0d6efd;
+        .teacher-tag {
+            margin: 2px;
         }
     </style>
 </head>
@@ -57,7 +47,7 @@
 
                 <div class="row">
                     <% if (classes && classes.length> 0) { %>
-                        <% classes.forEach(cls=> { %>
+                        <% classes.forEach(function(cls) { %>
                             <div class="col-md-6 mb-4">
                                 <div class="card">
                                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -73,25 +63,17 @@
                                             <%= cls.teacher.user.firstName %>
                                                 <%= cls.teacher.user.lastName %>
                                         </p>
-                                        <p>
-                                            <strong>Subject Teachers:</strong><br>
-                                            <% // Display subject teachers from classTeachers relation (if available) //
-                                                We'll show them as badges if the data is passed if (cls.classTeachers &&
-                                                cls.classTeachers.length> 0) {
-                                                cls.classTeachers.forEach(ct => {
-                                                %>
-                                                <span class="teacher-badge">
-                                                    <%= ct.teacher.user.firstName %>
-                                                        <%= ct.teacher.user.lastName %>
-                                                            <span class="subject">(<%= ct.subject || 'Subject' %>
-                                                                    )</span>
-                                                            <% if (ct.role==='class_teacher' ) { %>
-                                                                <span class="badge bg-primary">Class Teacher</span>
-                                                                <% } %>
-                                                </span>
-                                                <% }); } else { %>
-                                                    <span class="text-muted">No subject teachers assigned</span>
-                                                    <% } %>
+                                        <p><strong>Subject Teachers:</strong>
+                                            <% if (cls.classTeachers && cls.classTeachers.length> 0) { %>
+                                                <% cls.classTeachers.forEach(function(ct) { %>
+                                                    <span class="badge bg-info teacher-tag">
+                                                        <%= ct.teacher.user.firstName %>
+                                                            <%= ct.teacher.user.lastName %> (<%= ct.subject || 'N/A' %>)
+                                                    </span>
+                                                    <% }); %>
+                                                        <% } else { %>
+                                                            <span class="text-muted">None assigned</span>
+                                                            <% } %>
                                         </p>
                                         <p><strong>Students:</strong>
                                             <%= cls.enrollments.length %>
@@ -99,31 +81,25 @@
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-outline-primary"
                                                 onclick="editClass('<%= cls.id %>')">Edit</button>
-                                            <button class="btn btn-sm btn-outline-success"
-                                                onclick="manageTeachers('<%= cls.id %>')">
-                                                <i class="fas fa-users-cog"></i> Manage Teachers
-                                            </button>
                                             <a href="/admin/classes/<%= cls.id %>/enroll"
-                                                class="btn btn-sm btn-outline-info">
-                                                Manage Students</a>
+                                                class="btn btn-sm btn-outline-info">Manage Students</a>
                                             <button class="btn btn-sm btn-outline-danger"
                                                 onclick="deleteClass('<%= cls.id %>')">Delete</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <% }) %>
+                            <% }); %>
                                 <% } else { %>
                                     <div class="col-12">
-                                        <div class="alert alert-info">
-                                            No classes found. Create your first class to get started.
-                                        </div>
+                                        <div class="alert alert-info">No classes found. Create your first class to get
+                                            started.</div>
                                     </div>
                                     <% } %>
                 </div>
         </div>
 
-        <!-- Create Class Modal (unchanged) -->
+        <!-- Create Class Modal -->
         <div class="modal fade" id="createClassModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -152,15 +128,15 @@
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Class Teacher *</label>
+                                <label class="form-label">Class Teacher (Homeroom) *</label>
                                 <select class="form-select" name="teacherId" required>
                                     <option value="">Select Teacher</option>
-                                    <% teachers.forEach(teacher=> { %>
+                                    <% teachers.forEach(function(teacher) { %>
                                         <option value="<%= teacher.id %>">
                                             <%= teacher.user.firstName %>
                                                 <%= teacher.user.lastName %> - <%= teacher.subject %>
                                         </option>
-                                        <% }) %>
+                                        <% }); %>
                                 </select>
                             </div>
                         </div>
@@ -173,7 +149,7 @@
             </div>
         </div>
 
-        <!-- Edit Class Modal (unchanged) -->
+        <!-- Edit Class Modal -->
         <div class="modal fade" id="editClassModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -183,7 +159,7 @@
                     </div>
                     <form id="editClassForm" method="POST">
                         <div class="modal-body" id="editClassModalBody">
-                            <!-- Content will be loaded dynamically -->
+                            <!-- Content loaded dynamically -->
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -194,176 +170,112 @@
             </div>
         </div>
 
-        <!-- Manage Teachers Modal -->
-        <div class="modal fade" id="manageTeachersModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-users-cog me-2"></i>Manage Teachers - <span
-                                id="manageClassName"></span></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Hidden class ID -->
-                        <input type="hidden" id="manageClassId">
-                        <!-- Current teachers list -->
-                        <h6>Assigned Teachers</h6>
-                        <div id="assignedTeachersList" class="mb-3">
-                            <p class="text-muted">Loading...</p>
-                        </div>
-                        <hr>
-                        <!-- Add new teacher form -->
-                        <h6>Add Subject Teacher</h6>
-                        <form id="addTeacherForm" class="row g-3">
-                            <div class="col-md-5">
-                                <label class="form-label">Teacher</label>
-                                <select class="form-select" id="addTeacherId" required>
-                                    <option value="">Select Teacher</option>
-                                    <% teachers.forEach(teacher=> { %>
-                                        <option value="<%= teacher.id %>">
-                                            <%= teacher.user.firstName %>
-                                                <%= teacher.user.lastName %> - <%= teacher.subject %>
-                                        </option>
-                                        <% }) %>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Subject</label>
-                                <input type="text" class="form-control" id="addTeacherSubject"
-                                    placeholder="e.g., Mathematics">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Role</label>
-                                <select class="form-select" id="addTeacherRole">
-                                    <option value="subject">Subject Teacher</option>
-                                    <option value="class_teacher">Class Teacher</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Add
-                                    Teacher</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // ============================================================
-            // 1. CLASS NAME GENERATION (unchanged)
-            // ============================================================
+            // Auto‑generate class name from grade & section
             function updateClassName() {
                 const grade = document.getElementById('grade') ? document.getElementById('grade').value : '';
                 const section = document.getElementById('section') ? document.getElementById('section').value : '';
-                if (grade && section) {
-                    document.getElementById('className').value = `${grade} ${section}`;
-                } else {
-                    document.getElementById('className').value = '';
+                const nameField = document.getElementById('className');
+                if (nameField) {
+                    nameField.value = (grade && section) ? grade + ' ' + section : '';
                 }
             }
 
             function updateEditClassName() {
                 const grade = document.getElementById('editGrade') ? document.getElementById('editGrade').value : '';
                 const section = document.getElementById('editSection') ? document.getElementById('editSection').value : '';
-                if (grade && section) {
-                    document.getElementById('editClassName').value = `${grade} ${section}`;
-                } else {
-                    document.getElementById('editClassName').value = '';
+                const nameField = document.getElementById('editClassName');
+                if (nameField) {
+                    nameField.value = (grade && section) ? grade + ' ' + section : '';
                 }
             }
 
+            // Attach event listeners after DOM ready
             document.addEventListener('DOMContentLoaded', function () {
                 const gradeInput = document.getElementById('grade');
                 const sectionInput = document.getElementById('section');
                 if (gradeInput) gradeInput.addEventListener('input', updateClassName);
                 if (sectionInput) sectionInput.addEventListener('input', updateClassName);
+
                 const createModal = document.getElementById('createClassModal');
-                if (createModal) createModal.addEventListener('shown.bs.modal', updateClassName);
+                if (createModal) {
+                    createModal.addEventListener('shown.bs.modal', updateClassName);
+                }
             });
 
-            // ============================================================
-            // 2. EDIT CLASS (unchanged)
-            // ============================================================
+            // Edit class
             async function editClass(classId) {
                 try {
                     console.log('Loading class data for:', classId);
-                    const response = await fetch(`/admin/classes/${classId}/edit`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const response = await fetch('/admin/classes/' + classId + '/edit');
+                    if (!response.ok) throw new Error('HTTP error ' + response.status);
                     const result = await response.json();
-                    console.log('Class data loaded:', result);
-
                     if (result.success) {
                         const cls = result.class;
                         const modalBody = document.getElementById('editClassModalBody');
-
+                        let teachersHtml = '<option value="">Select Teacher</option>';
+                        if (result.teachers) {
+                            result.teachers.forEach(function (t) {
+                                const selected = (t.id === cls.teacherId) ? 'selected' : '';
+                                teachersHtml += '<option value="' + t.id + '" ' + selected + '>' +
+                                    t.user.firstName + ' ' + t.user.lastName + ' - ' + (t.subject || 'N/A') +
+                                    '</option>';
+                            });
+                        }
                         modalBody.innerHTML = `
-                            <div class="mb-3">
-                                <label class="form-label">Class Name *</label>
-                                <input type="text" class="form-control" id="editClassName" name="name" value="${cls.name || ''}" readonly>
-                                <div class="form-text">Class name is generated from Grade and Section</div>
+                        <div class="mb-3">
+                            <label class="form-label">Class Name *</label>
+                            <input type="text" class="form-control" id="editClassName" name="name" value="${cls.name || ''}" readonly>
+                            <div class="form-text">Class name is generated from Grade and Section</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Grade/Class *</label>
+                                <input type="text" class="form-control" id="editGrade" name="grade" value="${cls.grade || ''}" required oninput="updateEditClassName()">
                             </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Grade/Class *</label>
-                                    <input type="text" class="form-control" id="editGrade" name="grade" value="${cls.grade || ''}" required 
-                                        oninput="updateEditClassName()">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Section *</label>
-                                    <input type="text" class="form-control" id="editSection" name="section" value="${cls.section || ''}" required 
-                                        oninput="updateEditClassName()">
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Section *</label>
+                                <input type="text" class="form-control" id="editSection" name="section" value="${cls.section || ''}" required oninput="updateEditClassName()">
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Teacher *</label>
-                                <select class="form-select" name="teacherId" required>
-                                    <option value="">Select Teacher</option>
-                                    ${result.teachers ? result.teachers.map(teacher => `
-                                        <option value="${teacher.id}" ${teacher.id === cls.teacherId ? 'selected' : ''}>
-                                            ${teacher.user.firstName} ${teacher.user.lastName} - ${teacher.subject || 'N/A'}
-                                        </option>
-                                    `).join('') : ''}
-                                </select>
-                            </div>
-                            <input type="hidden" name="id" value="${cls.id}">
-                        `;
-
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Class Teacher (Homeroom) *</label>
+                            <select class="form-select" name="teacherId" required>
+                                ${teachersHtml}
+                            </select>
+                        </div>
+                        <input type="hidden" name="id" value="${cls.id}">
+                    `;
+                        // Update class name
                         updateEditClassName();
 
-                        const editClassForm = document.getElementById('editClassForm');
-                        const newForm = editClassForm.cloneNode(true);
-                        editClassForm.parentNode.replaceChild(newForm, editClassForm);
-
-                        newForm.addEventListener('submit', async function (event) {
-                            event.preventDefault();
+                        // Handle form submission
+                        const editForm = document.getElementById('editClassForm');
+                        // Remove old listeners (clone and replace)
+                        const newForm = editForm.cloneNode(true);
+                        editForm.parentNode.replaceChild(newForm, editForm);
+                        newForm.addEventListener('submit', async function (e) {
+                            e.preventDefault();
                             const formData = new FormData(this);
                             const data = {};
                             formData.forEach((value, key) => { data[key] = value; });
-
                             try {
-                                const response = await fetch(`/admin/classes/${classId}/update`, {
+                                const resp = await fetch('/admin/classes/' + classId + '/update', {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(data)
                                 });
-                                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                                const result = await response.json();
-                                if (result.success) {
-                                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editClassModal'));
-                                    editModal.hide();
-                                    alert(result.message || 'Class updated successfully');
+                                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                                const result2 = await resp.json();
+                                if (result2.success) {
+                                    alert(result2.message || 'Class updated');
                                     location.reload();
                                 } else {
-                                    alert('Error: ' + (result.message || 'Failed to update class'));
+                                    alert('Error: ' + result2.message);
                                 }
-                            } catch (error) {
-                                console.error('Error updating class:', error);
-                                alert('An error occurred while updating the class: ' + error.message);
+                            } catch (err) {
+                                alert('Update error: ' + err.message);
                             }
                         });
 
@@ -373,145 +285,29 @@
                         alert('Error: ' + (result.message || 'Failed to load class data'));
                     }
                 } catch (error) {
-                    console.error('Error loading class data:', error);
-                    alert('An error occurred while loading class data: ' + error.message);
+                    console.error('Edit class error:', error);
+                    alert('An error occurred: ' + error.message);
                 }
             }
 
-            // ============================================================
-            // 3. DELETE CLASS (unchanged)
-            // ============================================================
+            // Delete class
             async function deleteClass(classId) {
                 if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) return;
                 try {
-                    const response = await fetch(`/admin/classes/${classId}/delete`, {
+                    const resp = await fetch('/admin/classes/' + classId + '/delete', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' }
                     });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = await response.json();
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const result = await resp.json();
                     if (result.success) {
-                        alert(result.message || 'Class deleted successfully');
+                        alert(result.message || 'Class deleted');
                         location.reload();
                     } else {
-                        alert('Error: ' + (result.message || 'Failed to delete class'));
-                    }
-                } catch (error) {
-                    console.error('Error deleting class:', error);
-                    alert('An error occurred while deleting the class: ' + error.message);
-                }
-            }
-
-            // ============================================================
-            // 4. MANAGE TEACHERS (NEW)
-            // ============================================================
-            let currentManageClassId = null;
-
-            function manageTeachers(classId) {
-                currentManageClassId = classId;
-                document.getElementById('manageClassId').value = classId;
-                // Set the class name in the modal title
-                const classCard = document.querySelector(`button[onclick="manageTeachers('${classId}')"]`).closest('.card');
-                const className = classCard.querySelector('h5').textContent;
-                document.getElementById('manageClassName').textContent = className;
-                loadAssignedTeachers(classId);
-                const modal = new bootstrap.Modal(document.getElementById('manageTeachersModal'));
-                modal.show();
-            }
-
-            async function loadAssignedTeachers(classId) {
-                const container = document.getElementById('assignedTeachersList');
-                container.innerHTML = '<p class="text-muted">Loading...</p>';
-                try {
-                    const response = await fetch(`/admin/classes/${classId}/teachers`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const result = await response.json();
-                    if (result.success) {
-                        const teachers = result.teachers || [];
-                        if (teachers.length === 0) {
-                            container.innerHTML = '<p class="text-muted">No teachers assigned to this class.</p>';
-                            return;
-                        }
-                        let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
-                        html += `<thead><tr><th>Name</th><th>Subject</th><th>Role</th><th>Action</th></tr></thead><tbody>`;
-                        teachers.forEach(ct => {
-                            const teacherName = `${ct.teacher.user.firstName} ${ct.teacher.user.lastName}`;
-                            const subject = ct.subject || 'N/A';
-                            const role = ct.role === 'class_teacher' ? 'Class Teacher' : 'Subject Teacher';
-                            const removeBtn = ct.role === 'class_teacher' ?
-                                `<button class="btn btn-sm btn-outline-danger" disabled title="Cannot remove class teacher">Remove</button>` :
-                                `<button class="btn btn-sm btn-outline-danger" onclick="removeTeacher('${ct.id}')">Remove</button>`;
-                            html += `<tr>
-                                        <td>${teacherName}</td>
-                                        <td>${subject}</td>
-                                        <td><span class="badge ${ct.role === 'class_teacher' ? 'bg-primary' : 'bg-secondary'}">${role}</span></td>
-                                        <td>${removeBtn}</td>
-                                    </tr>`;
-                        });
-                        html += '</tbody></table></div>';
-                        container.innerHTML = html;
-                    } else {
-                        container.innerHTML = `<p class="text-danger">Error: ${result.message}</p>`;
-                    }
-                } catch (error) {
-                    console.error('Error loading teachers:', error);
-                    container.innerHTML = `<p class="text-danger">Error loading teachers: ${error.message}</p>`;
-                }
-            }
-
-            // Add teacher to class
-            document.getElementById('addTeacherForm').addEventListener('submit', async function (e) {
-                e.preventDefault();
-                const classId = document.getElementById('manageClassId').value;
-                const teacherId = document.getElementById('addTeacherId').value;
-                const subject = document.getElementById('addTeacherSubject').value.trim();
-                const role = document.getElementById('addTeacherRole').value;
-
-                if (!teacherId) {
-                    alert('Please select a teacher.');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/admin/classes/${classId}/teachers`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ teacherId, subject, role })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message || 'Teacher assigned successfully.');
-                        loadAssignedTeachers(classId);
-                        document.getElementById('addTeacherId').value = '';
-                        document.getElementById('addTeacherSubject').value = '';
-                    } else {
                         alert('Error: ' + result.message);
                     }
-                } catch (error) {
-                    console.error('Error adding teacher:', error);
-                    alert('Error adding teacher: ' + error.message);
-                }
-            });
-
-            // Remove teacher from class
-            async function removeTeacher(assignmentId) {
-                if (!confirm('Remove this teacher from the class?')) return;
-                const classId = document.getElementById('manageClassId').value;
-                try {
-                    const response = await fetch(`/admin/classes/${classId}/teachers/${assignmentId}`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message || 'Teacher removed.');
-                        loadAssignedTeachers(classId);
-                    } else {
-                        alert('Error: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('Error removing teacher:', error);
-                    alert('Error removing teacher: ' + error.message);
+                } catch (err) {
+                    alert('Delete error: ' + err.message);
                 }
             }
         </script>
