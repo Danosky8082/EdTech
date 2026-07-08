@@ -511,5 +511,7 @@ router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
 router.get('/attendance', adminController.adminAttendance);
+// Attendance report (monthly summary)
+router.get('/attendance/report', adminController.getAttendanceReport);
 
 module.exports = router;

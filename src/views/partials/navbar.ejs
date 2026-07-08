@@ -1,774 +1,804 @@
-<%
-  // ---------- SAFE VARIABLE INITIALIZATION ----------
-  var safeUser = {};
-  var userRole = '';
-  var safeUserSchool = '';
-  var safeIsSuperAdmin = false;
-  var safeAdminInfo = null;
-  var safeUserAvatar = '';
-  var safeUserFirstName = '';
-  var safeUserLastName = '';
-  var safeUserSchoolProp = '';
-  var safeNotifications = [];
-  var unreadCount = 0;
+<% // ---------- SAFE VARIABLE INITIALIZATION ---------- var safeUser={}; var userRole='' ; var safeUserSchool='' ; var
+    safeIsSuperAdmin=false; var safeAdminInfo=null; var safeUserAvatar='' ; var safeUserFirstName='' ; var
+    safeUserLastName='' ; var safeUserSchoolProp='' ; var safeNotifications=[]; var unreadCount=0; if (typeof user
+    !=='undefined' && user) safeUser=user; if (safeUser.role) userRole=safeUser.role; if (typeof userSchool
+    !=='undefined' ) safeUserSchool=userSchool; if (typeof isSuperAdmin !=='undefined' ) safeIsSuperAdmin=isSuperAdmin;
+    if (typeof adminInfo !=='undefined' ) safeAdminInfo=adminInfo; if (safeUser.avatar) safeUserAvatar=safeUser.avatar;
+    if (safeUser.firstName) safeUserFirstName=safeUser.firstName; if (safeUser.lastName)
+    safeUserLastName=safeUser.lastName; if (safeUser.school) safeUserSchoolProp=safeUser.school; if (typeof
+    notificationsData !=='undefined' && Array.isArray(notificationsData)) { safeNotifications=notificationsData; } if
+    (Array.isArray(safeNotifications)) { for (var i=0; i < safeNotifications.length; i++) { if (safeNotifications[i] &&
+    !safeNotifications[i].read) unreadCount++; } } // Determine if student is unpaid (optional) var
+    isUnpaidStudent=false; if (userRole==='student' && safeUser.student && safeUser.student.tuitionStatus==='unpaid' ) {
+    isUnpaidStudent=true; } %>
 
-  if (typeof user !== 'undefined' && user) safeUser = user;
-  if (safeUser.role) userRole = safeUser.role;
-  if (typeof userSchool !== 'undefined') safeUserSchool = userSchool;
-  if (typeof isSuperAdmin !== 'undefined') safeIsSuperAdmin = isSuperAdmin;
-  if (typeof adminInfo !== 'undefined') safeAdminInfo = adminInfo;
-  if (safeUser.avatar) safeUserAvatar = safeUser.avatar;
-  if (safeUser.firstName) safeUserFirstName = safeUser.firstName;
-  if (safeUser.lastName) safeUserLastName = safeUser.lastName;
-  if (safeUser.school) safeUserSchoolProp = safeUser.school;
-  if (typeof notificationsData !== 'undefined' && Array.isArray(notificationsData)) {
-    safeNotifications = notificationsData;
-  }
-  if (Array.isArray(safeNotifications)) {
-    for (var i = 0; i < safeNotifications.length; i++) {
-      if (safeNotifications[i] && !safeNotifications[i].read) unreadCount++;
-    }
-  }
+    <style>
+        /* Navbar custom styles */
+        :root {
+            --primary-gradient: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+            --hover-bg: rgba(255, 255, 255, 0.15);
+            --active-bg: rgba(255, 255, 255, 0.2);
+            --text-light: rgba(255, 255, 255, 0.9);
+        }
 
-  // Determine if student is unpaid (optional)
-  var isUnpaidStudent = false;
-  if (userRole === 'student' && safeUser.student && safeUser.student.tuitionStatus === 'unpaid') {
-    isUnpaidStudent = true;
-  }
-%>
+        .navbar-custom {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+        }
 
-<style>
-    /* Navbar custom styles */
-    :root {
-        --primary-gradient: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-        --hover-bg: rgba(255, 255, 255, 0.15);
-        --active-bg: rgba(255, 255, 255, 0.2);
-        --text-light: rgba(255, 255, 255, 0.9);
-    }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
 
-    .navbar-custom {
-        background: var(--primary-gradient);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 0.5rem 0;
-    }
+        .navbar-brand i {
+            margin-right: 10px;
+            transition: transform 0.3s ease;
+        }
 
-    .navbar-brand {
-        font-weight: 700;
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-    }
-
-    .navbar-brand i {
-        margin-right: 10px;
-        transition: transform 0.3s ease;
-    }
-
-    .navbar-brand:hover i {
-        transform: rotate(-10deg);
-    }
-
-    .nav-link {
-        font-weight: 500;
-        padding: 0.6rem 1rem;
-        margin: 0 0.2rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        position: relative;
-        color: white !important;
-        white-space: nowrap;
-    }
-
-    .nav-link i {
-        margin-right: 8px;
-        font-size: 1.1rem;
-        width: 20px;
-        text-align: center;
-        transition: transform 0.3s ease;
-    }
-
-    .nav-link:hover {
-        background-color: var(--hover-bg);
-        transform: translateY(-2px);
-    }
-
-    .nav-link:hover i {
-        transform: scale(1.2);
-    }
-
-    .nav-link.active {
-        background-color: var(--active-bg);
-        font-weight: 600;
-    }
-
-    .nav-link.active::before {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 10%;
-        width: 80%;
-        height: 3px;
-        background: white;
-        border-radius: 3px;
-    }
-
-    .navbar-text {
-        color: var(--text-light) !important;
-        font-weight: 500;
-    }
-
-    .navbar-toggler {
-        border: none;
-        color: var(--text-light);
-        padding: 0.5rem;
-    }
-
-    .navbar-toggler:focus {
-        box-shadow: none;
-    }
-
-    .navbar-nav.me-auto {
-        margin-right: 2rem !important;
-    }
-
-    .welcome-section {
-        margin-left: 1.5rem;
-        padding-left: 1.5rem;
-        border-left: 1px solid rgba(255, 255, 255, 0.2);
-        flex-shrink: 0;
-    }
-
-    @media (max-width: 991.98px) {
-        .navbar-nav .nav-item {
-            margin: 0.2rem 0;
+        .navbar-brand:hover i {
+            transform: rotate(-10deg);
         }
 
         .nav-link {
-            margin: 0.1rem 0;
-            justify-content: flex-start;
+            font-weight: 500;
+            padding: 0.6rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            position: relative;
+            color: white !important;
+            white-space: nowrap;
+        }
+
+        .nav-link i {
+            margin-right: 8px;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background-color: var(--hover-bg);
+            transform: translateY(-2px);
+        }
+
+        .nav-link:hover i {
+            transform: scale(1.2);
+        }
+
+        .nav-link.active {
+            background-color: var(--active-bg);
+            font-weight: 600;
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .navbar-text {
+            color: var(--text-light) !important;
+            font-weight: 500;
+        }
+
+        .navbar-toggler {
+            border: none;
+            color: var(--text-light);
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-nav.me-auto {
+            margin-right: 2rem !important;
         }
 
         .welcome-section {
-            margin-left: 0;
-            padding-left: 0;
-            border-left: none;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            width: 100%;
+            margin-left: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
         }
 
+        @media (max-width: 991.98px) {
+            .navbar-nav .nav-item {
+                margin: 0.2rem 0;
+            }
+
+            .nav-link {
+                margin: 0.1rem 0;
+                justify-content: flex-start;
+            }
+
+            .welcome-section {
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                width: 100%;
+            }
+
+            .notification-wrapper {
+                margin: 0.5rem 0;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+
+            .notification-bell {
+                width: auto;
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+            }
+
+            .notification-badge {
+                top: -5px;
+                right: -5px;
+            }
+        }
+
+        /* Profile avatar */
+        .profile-img-nav {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            border: 2px solid white !important;
+            margin-right: 8px !important;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-img-nav:hover {
+            transform: scale(1.1);
+        }
+
+        /* Notification styles */
         .notification-wrapper {
-            margin: 0.5rem 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
+            position: relative;
+            margin-right: 15px;
         }
 
         .notification-bell {
-            width: auto;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.6rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            text-decoration: none !important;
+            background: transparent;
+            border: none;
+        }
+
+        .notification-bell:hover {
+            background-color: var(--hover-bg);
+            transform: translateY(-2px);
         }
 
         .notification-badge {
-            top: -5px;
-            right: -5px;
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border: 2px solid #6a11cb;
         }
-    }
 
-    /* Profile avatar */
-    .profile-img-nav {
-        width: 36px !important;
-        height: 36px !important;
-        border-radius: 50% !important;
-        object-fit: cover !important;
-        border: 2px solid white !important;
-        margin-right: 8px !important;
-        transition: transform 0.3s ease;
-    }
-
-    .profile-img-nav:hover {
-        transform: scale(1.1);
-    }
-
-    /* Notification styles */
-    .notification-wrapper {
-        position: relative;
-        margin-right: 15px;
-    }
-
-    .notification-bell {
-        color: white;
-        font-size: 1.2rem;
-        cursor: pointer;
-        padding: 0.6rem;
-        border-radius: 50%;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 42px;
-        height: 42px;
-        text-decoration: none !important;
-        background: transparent;
-        border: none;
-    }
-
-    .notification-bell:hover {
-        background-color: var(--hover-bg);
-        transform: translateY(-2px);
-    }
-
-    .notification-badge {
-        position: absolute;
-        top: 3px;
-        right: 3px;
-        background-color: #ff4757;
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        font-weight: bold;
-        border: 2px solid #6a11cb;
-    }
-
-    .notification-dropdown {
-        width: 380px;
-        max-height: 400px;
-        overflow-y: auto;
-        padding: 0;
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        position: absolute !important;
-        left: auto !important;
-        right: 0 !important;
-        top: 100% !important;
-        display: none !important;
-        z-index: 1000;
-        background: white;
-    }
-
-    .notification-dropdown.show {
-        display: block !important;
-    }
-
-    .notification-header {
-        padding: 12px 15px;
-        border-bottom: 1px solid #f1f2f6;
-        font-weight: 600;
-        background-color: #f8f9fa;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
-    }
-
-    .notification-item {
-        padding: 12px 15px;
-        border-bottom: 1px solid #f1f2f6;
-        display: flex;
-        align-items: flex-start;
-        transition: background-color 0.2s;
-        cursor: pointer;
-    }
-
-    .notification-item:last-child {
-        border-bottom: none;
-    }
-
-    .notification-item.unread {
-        background-color: #f0f7ff;
-        border-left: 4px solid #6a11cb;
-    }
-
-    .notification-item.read {
-        opacity: 0.8;
-    }
-
-    .notification-item:hover {
-        background-color: #e3f2fd;
-        transform: translateX(5px);
-    }
-
-    .notification-icon {
-        margin-right: 12px;
-        font-size: 1.2rem;
-        color: #6a11cb;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .notification-content {
-        flex: 1;
-    }
-
-    .notification-title {
-        font-weight: 600;
-        margin-bottom: 4px;
-        font-size: 0.95rem;
-        color: #2d3436;
-    }
-
-    .notification-message {
-        font-size: 0.85rem;
-        color: #636e72;
-        margin-bottom: 4px;
-        line-height: 1.4;
-    }
-
-    .notification-time {
-        font-size: 0.75rem;
-        color: #747d8c;
-    }
-
-    .notification-empty {
-        padding: 30px 20px;
-        text-align: center;
-        color: #747d8c;
-    }
-
-    .notification-empty i {
-        font-size: 2.5rem;
-        margin-bottom: 10px;
-        opacity: 0.5;
-    }
-
-    .mark-all-read {
-        padding: 10px 15px;
-        border-top: 1px solid #f1f2f6;
-        text-align: center;
-        cursor: pointer;
-        background-color: #f8f9fa;
-        font-weight: 500;
-        color: #6a11cb;
-        transition: background-color 0.2s;
-        border-bottom-left-radius: 10px;
-        border-bottom-right-radius: 10px;
-    }
-
-    .mark-all-read:hover {
-        background-color: #e9ecef;
-    }
-
-    .notification-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 8px;
-    }
-
-    .notification-action-btn {
-        font-size: 0.75rem;
-        padding: 2px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        background-color: #6a11cb;
-        color: white;
-        border: none;
-    }
-
-    .notification-action-btn:hover {
-        background-color: #5a0fb8;
-    }
-
-    .blink {
-        animation: blink 2s infinite;
-    }
-
-    @keyframes blink {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-    }
-
-    @media (max-width: 575.98px) {
         .notification-dropdown {
-            width: 300px;
-            margin-left: -100px;
+            width: 380px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            position: absolute !important;
+            left: auto !important;
+            right: 0 !important;
+            top: 100% !important;
+            display: none !important;
+            z-index: 1000;
+            background: white;
         }
-    }
 
-    /* Dropdown menu */
-    .dropdown-menu {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        padding: 0.5rem 0;
-        min-width: 200px;
-    }
+        .notification-dropdown.show {
+            display: block !important;
+        }
 
-    .dropdown-item {
-        padding: 0.5rem 1.5rem;
-        color: #2d3436;
-        transition: background 0.2s;
-    }
+        .notification-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            font-weight: 600;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
 
-    .dropdown-item:hover {
-        background-color: #f1f2f6;
-        color: #2d3436;
-    }
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f2f6;
+            display: flex;
+            align-items: flex-start;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
 
-    .dropdown-item i {
-        width: 20px;
-        text-align: center;
-        margin-right: 8px;
-    }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
 
-    .dropdown-divider {
-        margin: 0.3rem 0;
-    }
-</style>
+        .notification-item.unread {
+            background-color: #f0f7ff;
+            border-left: 4px solid #6a11cb;
+        }
 
-<nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
-    <div class="container">
-        <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap"></i>EdTech Platform</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- Navigation Links -->
-            <ul class="navbar-nav me-auto">
-                <% if (userRole) { %>
-                    <% if (!isUnpaidStudent) { %>
-                        <!-- Dashboard -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
-                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                            </a>
-                        </li>
+        .notification-item.read {
+            opacity: 0.8;
+        }
 
-                        <!-- Student links -->
-                        <% if (userRole === 'student') { %>
-                            <li class="nav-item"><a class="nav-link" href="/student/progress"><i
-                                        class="fas fa-chart-line me-1"></i>My Progress</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/student/classes"><i
-                                        class="fas fa-book me-1"></i>My Classes</a></li>
-                        <% } %>
+        .notification-item:hover {
+            background-color: #e3f2fd;
+            transform: translateX(5px);
+        }
 
-                        <!-- Parent links -->
-                        <% if (userRole === 'parent') { %>
-                            <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
-                                        class="fas fa-child me-1"></i>My Children</a></li>
-                        <% } %>
+        .notification-icon {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            color: #6a11cb;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
 
-                        <!-- Teacher dropdown -->
-                        <% if (userRole === 'teacher') { %>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown"
-                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-chalkboard-teacher me-1"></i>Teaching
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
-                                    <li><a class="dropdown-item" href="/teacher/classes"><i
-                                                class="fas fa-chalkboard me-2"></i>My Classes</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/students"><i
-                                                class="fas fa-user-graduate me-2"></i>My Students</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/assignments"><i
-                                                class="fas fa-tasks me-2"></i>Assignments</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/materials"><i
-                                                class="fas fa-book me-2"></i>Materials</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/lesson-notes"><i
-                                                class="fas fa-sticky-note me-2"></i>Lesson Notes</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/exams"><i
-                                                class="fas fa-clipboard-list me-2"></i>Exams</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/class-works"><i
-                                                class="fas fa-tasks me-2"></i>Class Works</a></li>
-                                    <li><a class="dropdown-item" href="/teacher/live-sessions"><i
-                                                class="fas fa-video me-2"></i>Live Sessions</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/teacher/grading"><i
-                                                class="fas fa-check-circle me-2"></i>Grading</a></li>
-                                </ul>
-                            </li>
-                        <% } %>
+        .notification-content {
+            flex: 1;
+        }
 
-                        <!-- Admin dropdown -->
-                        <% if (userRole === 'admin') { %>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
-                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-user-shield me-1"></i>Admin
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                    <li><a class="dropdown-item" href="/admin/users"><i
-                                                class="fas fa-users me-2"></i>Users</a></li>
-                                    <li><a class="dropdown-item" href="/admin/classes"><i
-                                                class="fas fa-chalkboard me-2"></i>Classes</a></li>
-                                    <li><a class="dropdown-item" href="/admin/tuition"><i
-                                                class="fas fa-money-bill-wave me-2"></i>Tuition</a></li>
-                                    <li><a class="dropdown-item" href="/admin/analytics"><i
-                                                class="fas fa-chart-bar me-2"></i>Analytics</a></li>
-                                    <li><a class="dropdown-item" href="/admin/activities"><i
-                                                class="fas fa-history me-2"></i>Activities</a></li>
-                                    <li><a class="dropdown-item" href="/admin/schools"><i
-                                                class="fas fa-school me-2"></i>Schools</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/admin/system-reset"><i
-                                                class="fas fa-redo me-2"></i>System Reset</a></li>
-                                </ul>
-                            </li>
-                        <% } %>
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            color: #2d3436;
+        }
 
-                        <!-- Shared links -->
-                        <% if (userRole === 'teacher' || userRole === 'admin') { %>
+        .notification-message {
+            font-size: 0.85rem;
+            color: #636e72;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: #747d8c;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #747d8c;
+        }
+
+        .notification-empty i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .mark-all-read {
+            padding: 10px 15px;
+            border-top: 1px solid #f1f2f6;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #6a11cb;
+            transition: background-color 0.2s;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .mark-all-read:hover {
+            background-color: #e9ecef;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .notification-action-btn {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+        }
+
+        .notification-action-btn:hover {
+            background-color: #5a0fb8;
+        }
+
+        .blink {
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .notification-dropdown {
+                width: 300px;
+                margin-left: -100px;
+            }
+        }
+
+        /* Dropdown menu */
+        .dropdown-menu {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            padding: 0.5rem 0;
+            min-width: 200px;
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 1.5rem;
+            color: #2d3436;
+            transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f2f6;
+            color: #2d3436;
+        }
+
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            margin-right: 8px;
+        }
+
+        .dropdown-divider {
+            margin: 0.3rem 0;
+        }
+    </style>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap"></i>EdTech Platform</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Navigation Links -->
+                <ul class="navbar-nav me-auto">
+                    <% if (userRole) { %>
+                        <% if (!isUnpaidStudent) { %>
+                            <!-- Dashboard -->
                             <li class="nav-item">
-                                <a class="nav-link" href="/scan">
-                                    <i class="fas fa-qrcode me-1"></i>Scanner
+                                <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                                 </a>
                             </li>
-                        <% } %>
 
-                        <% if (userRole === 'admin' || userRole === 'teacher') { %>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin/attendance">
-                                    <i class="fas fa-clipboard-list me-1"></i>Attendance
-                                </a>
-                            </li>
-                        <% } %>
+                            <!-- Student links -->
+                            <% if (userRole==='student' ) { %>
+                                <li class="nav-item"><a class="nav-link" href="/student/progress"><i
+                                            class="fas fa-chart-line me-1"></i>My Progress</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/student/classes"><i
+                                            class="fas fa-book me-1"></i>My Classes</a></li>
+                                <% } %>
 
-                        <% if (userRole === 'admin') { %>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin/books">
-                                    <i class="fas fa-book me-1"></i>Books
-                                </a>
-                            </li>
-                        <% } %>
-
-                    <% } else { %>
-                        <!-- Unpaid student: show only a warning message -->
-                        <li class="nav-item">
-                            <span class="nav-link text-warning">
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                Payment Required
-                            </span>
-                        </li>
-                    <% } %>
-                <% } %>
-            </ul>
-
-            <!-- Notification Bell -->
-            <div class="notification-wrapper">
-                <div class="dropdown">
-                    <button class="notification-bell" id="notificationDropdown" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <% if (unreadCount > 0) { %>
-                            <span class="notification-badge blink" id="notificationBadge">
-                                <%= unreadCount > 9 ? '9+' : unreadCount %>
-                            </span>
-                        <% } %>
-                    </button>
-                    <ul class="notification-dropdown" id="notificationDropdownMenu">
-                        <li class="notification-header">
-                            <span>Notifications</span>
-                            <% if (unreadCount > 0) { %>
-                                <span class="badge bg-primary rounded-pill"><%= unreadCount %></span>
-                            <% } %>
-                        </li>
-                        <% if (safeNotifications.length > 0) { %>
-                            <% for (var i = 0; i < Math.min(safeNotifications.length, 5); i++) {
-                                var n = safeNotifications[i];
-                                var isRead = n.read || false;
-                                var nId = n.id || n._id || '';
-                                var icon = n.icon || 'fa-info-circle';
-                                var title = n.title || 'Notification';
-                                var msg = n.message || n.description || '';
-                                var time = n.createdAt ? new Date(n.createdAt).toLocaleString() : '';
-                            %>
-                                <li class="notification-item <%= isRead ? 'read' : 'unread' %>" data-notification-id="<%= nId %>">
-                                    <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
-                                    <div class="notification-content">
-                                        <div class="notification-title">
-                                            <%= title %>
-                                            <% if (!isRead) { %><span class="badge bg-danger ms-1">New</span><% } %>
-                                        </div>
-                                        <div class="notification-message"><%= msg %></div>
-                                        <div class="notification-time"><%= time %></div>
-                                        <% if (!isRead) { %>
-                                            <div class="notification-actions">
-                                                <button class="notification-action-btn mark-as-read-btn"
-                                                    onclick="event.stopPropagation(); markNotificationAsRead('<%= nId %>')">
-                                                    Mark as read
-                                                </button>
-                                            </div>
+                                    <!-- Parent links -->
+                                    <% if (userRole==='parent' ) { %>
+                                        <li class="nav-item"><a class="nav-link" href="/parent/dashboard"><i
+                                                    class="fas fa-child me-1"></i>My Children</a></li>
                                         <% } %>
-                                    </div>
-                                </li>
-                            <% } %>
-                            <li class="mark-all-read" onclick="markAllNotificationsAsRead()">
-                                <i class="fas fa-check-double me-1"></i> Mark all as read
+
+                                            <!-- Teacher dropdown -->
+                                            <% if (userRole==='teacher' ) { %>
+                                                <li class="nav-item dropdown">
+                                                    <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown"
+                                                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-chalkboard-teacher me-1"></i>Teaching
+                                                    </a>
+                                                    <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
+                                                        <li><a class="dropdown-item" href="/teacher/classes"><i
+                                                                    class="fas fa-chalkboard me-2"></i>My Classes</a>
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="/teacher/students"><i
+                                                                    class="fas fa-user-graduate me-2"></i>My
+                                                                Students</a></li>
+                                                        <li><a class="dropdown-item" href="/teacher/assignments"><i
+                                                                    class="fas fa-tasks me-2"></i>Assignments</a></li>
+                                                        <li><a class="dropdown-item" href="/teacher/materials"><i
+                                                                    class="fas fa-book me-2"></i>Materials</a></li>
+                                                        <li><a class="dropdown-item" href="/teacher/lesson-notes"><i
+                                                                    class="fas fa-sticky-note me-2"></i>Lesson Notes</a>
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="/teacher/exams"><i
+                                                                    class="fas fa-clipboard-list me-2"></i>Exams</a>
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="/teacher/class-works"><i
+                                                                    class="fas fa-tasks me-2"></i>Class Works</a></li>
+                                                        <li><a class="dropdown-item" href="/teacher/live-sessions"><i
+                                                                    class="fas fa-video me-2"></i>Live Sessions</a></li>
+                                                        <li>
+                                                            <hr class="dropdown-divider">
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="/teacher/grading"><i
+                                                                    class="fas fa-check-circle me-2"></i>Grading</a>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                                <% } %>
+
+                                                    <!-- Admin dropdown -->
+                                                    <% if (userRole==='admin' ) { %>
+                                                        <li class="nav-item dropdown">
+                                                            <a class="nav-link dropdown-toggle" href="#"
+                                                                id="adminDropdown" role="button"
+                                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                                                <i class="fas fa-user-shield me-1"></i>Admin
+                                                            </a>
+                                                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                                                <li><a class="dropdown-item" href="/admin/users"><i
+                                                                            class="fas fa-users me-2"></i>Users</a></li>
+                                                                <li><a class="dropdown-item" href="/admin/classes"><i
+                                                                            class="fas fa-chalkboard me-2"></i>Classes</a>
+                                                                </li>
+                                                                <li><a class="dropdown-item" href="/admin/tuition"><i
+                                                                            class="fas fa-money-bill-wave me-2"></i>Tuition</a>
+                                                                </li>
+                                                                <li><a class="dropdown-item" href="/admin/analytics"><i
+                                                                            class="fas fa-chart-bar me-2"></i>Analytics</a>
+                                                                </li>
+                                                                <li><a class="dropdown-item" href="/admin/activities"><i
+                                                                            class="fas fa-history me-2"></i>Activities</a>
+                                                                </li>
+                                                                <li><a class="dropdown-item" href="/admin/schools"><i
+                                                                            class="fas fa-school me-2"></i>Schools</a>
+                                                                </li>
+                                                                <li>
+                                                                    <hr class="dropdown-divider">
+                                                                </li>
+                                                                <li><a class="dropdown-item"
+                                                                        href="/admin/system-reset"><i
+                                                                            class="fas fa-redo me-2"></i>System
+                                                                        Reset</a></li>
+                                                            </ul>
+                                                        </li>
+                                                        <% } %>
+
+                                                            <!-- Shared links -->
+                                                            <% if (userRole==='teacher' || userRole==='admin' ) { %>
+                                                                <li class="nav-item">
+                                                                    <a class="nav-link" href="/scan">
+                                                                        <i class="fas fa-qrcode me-1"></i>Scanner
+                                                                    </a>
+                                                                </li>
+                                                                <% } %>
+
+                                                                    <% if (userRole==='admin' || userRole==='teacher' )
+                                                                        { %>
+                                                                        <li class="nav-item">
+                                                                            <a class="nav-link"
+                                                                                href="/admin/attendance">
+                                                                                <i
+                                                                                    class="fas fa-clipboard-list me-1"></i>Attendance
+                                                                            </a>
+                                                                        </li>
+                                                                        <% } %>
+
+                                                                            <% if (userRole==='admin' ) { %>
+                                                                                <li class="nav-item">
+                                                                                    <a class="nav-link"
+                                                                                        href="/admin/books">
+                                                                                        <i
+                                                                                            class="fas fa-book me-1"></i>Books
+                                                                                    </a>
+                                                                                </li>
+                                                                                <% } %>
+
+                                                                                    <% } else { %>
+                                                                                        <!-- Unpaid student: show only a warning message -->
+                                                                                        <li class="nav-item">
+                                                                                            <span
+                                                                                                class="nav-link text-warning">
+                                                                                                <i
+                                                                                                    class="fas fa-exclamation-triangle me-1"></i>
+                                                                                                Payment Required
+                                                                                            </span>
+                                                                                        </li>
+                                                                                        <% } %>
+                                                                                            <% } %>
+                </ul>
+
+                <!-- Notification Bell -->
+                <div class="notification-wrapper">
+                    <div class="dropdown">
+                        <button class="notification-bell" id="notificationDropdown" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <% if (unreadCount> 0) { %>
+                                <span class="notification-badge blink" id="notificationBadge">
+                                    <%= unreadCount> 9 ? '9+' : unreadCount %>
+                                </span>
+                                <% } %>
+                        </button>
+                        <ul class="notification-dropdown" id="notificationDropdownMenu">
+                            <li class="notification-header">
+                                <span>Notifications</span>
+                                <% if (unreadCount> 0) { %>
+                                    <span class="badge bg-primary rounded-pill">
+                                        <%= unreadCount %>
+                                    </span>
+                                    <% } %>
                             </li>
-                        <% } else { %>
-                            <li class="notification-empty">
-                                <i class="fas fa-bell-slash"></i>
-                                <p>No notifications</p>
+                            <% if (safeNotifications.length> 0) { %>
+                                <% for (var i=0; i < Math.min(safeNotifications.length, 5); i++) { var
+                                    n=safeNotifications[i]; var isRead=n.read || false; var nId=n.id || n._id || '' ;
+                                    var icon=n.icon || 'fa-info-circle' ; var title=n.title || 'Notification' ; var
+                                    msg=n.message || n.description || '' ; var time=n.createdAt ? new
+                                    Date(n.createdAt).toLocaleString() : '' ; %>
+                                    <li class="notification-item <%= isRead ? 'read' : 'unread' %>"
+                                        data-notification-id="<%= nId %>">
+                                        <div class="notification-icon"><i class="fas <%= icon %>"></i></div>
+                                        <div class="notification-content">
+                                            <div class="notification-title">
+                                                <%= title %>
+                                                    <% if (!isRead) { %><span class="badge bg-danger ms-1">New</span>
+                                                        <% } %>
+                                            </div>
+                                            <div class="notification-message">
+                                                <%= msg %>
+                                            </div>
+                                            <div class="notification-time">
+                                                <%= time %>
+                                            </div>
+                                            <% if (!isRead) { %>
+                                                <div class="notification-actions">
+                                                    <button class="notification-action-btn mark-as-read-btn"
+                                                        onclick="event.stopPropagation(); markNotificationAsRead('<%= nId %>')">
+                                                        Mark as read
+                                                    </button>
+                                                </div>
+                                                <% } %>
+                                        </div>
+                                    </li>
+                                    <% } %>
+                                        <li class="mark-all-read" onclick="markAllNotificationsAsRead()">
+                                            <i class="fas fa-check-double me-1"></i> Mark all as read
+                                        </li>
+                                        <% } else { %>
+                                            <li class="notification-empty">
+                                                <i class="fas fa-bell-slash"></i>
+                                                <p>No notifications</p>
+                                            </li>
+                                            <% } %>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- User dropdown -->
+                <div class="welcome-section">
+                    <ul class="navbar-nav">
+                        <% if (userRole) { %>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <% if (safeUserAvatar) { %>
+                                        <img src="<%= safeUserAvatar.startsWith('http') ? safeUserAvatar : '/' + safeUserAvatar %>"
+                                            alt="Profile" class="profile-img-nav"
+                                            onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36'">
+                                        <% } else { %>
+                                            <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36"
+                                                alt="Profile" class="profile-img-nav">
+                                            <% } %>
+                                                <span class="navbar-text">
+                                                    <%= safeUserFirstName %>
+                                                        <%= safeUserLastName %>
+                                                </span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" href="/profile"><i
+                                                class="fas fa-user-edit me-2"></i>Profile</a></li>
+                                    <li><a class="dropdown-item" href="/settings"><i
+                                                class="fas fa-cog me-2"></i>Settings</a></li>
+                                    <% if (safeUserSchoolProp) { %>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li class="dropdown-item-text"><small class="text-muted"><i
+                                                    class="fas fa-school me-1"></i>
+                                                <%= safeUserSchoolProp %>
+                                            </small></li>
+                                        <% } %>
+                                            <% if (userRole==='admin' && safeAdminInfo &&
+                                                safeAdminInfo.roleLevel==='superadmin' ) { %>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li class="dropdown-item-text"><span class="badge bg-danger"><i
+                                                            class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
+                                                <% } %>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li><a class="dropdown-item text-danger" href="/auth/logout"><i
+                                                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                </ul>
                             </li>
-                        <% } %>
+                            <% } else { %>
+                                <li class="nav-item"><a class="nav-link" href="/login"><i
+                                            class="fas fa-sign-in-alt me-1"></i>Login</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/register"><i
+                                            class="fas fa-user-plus me-1"></i>Register</a></li>
+                                <% } %>
                     </ul>
                 </div>
             </div>
-
-            <!-- User dropdown -->
-            <div class="welcome-section">
-                <ul class="navbar-nav">
-                    <% if (userRole) { %>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
-                                role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <% if (safeUserAvatar) { %>
-                                    <img src="<%= safeUserAvatar.startsWith('http') ? safeUserAvatar : '/' + safeUserAvatar %>" alt="Profile" class="profile-img-nav"
-                                        onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36'">
-                                <% } else { %>
-                                    <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(safeUserFirstName + ' ' + safeUserLastName) %>&background=6a11cb&color=fff&size=36" alt="Profile" class="profile-img-nav">
-                                <% } %>
-                                <span class="navbar-text">
-                                    <%= safeUserFirstName %> <%= safeUserLastName %>
-                                </span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user-edit me-2"></i>Profile</a></li>
-                                <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                                <% if (safeUserSchoolProp) { %>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li class="dropdown-item-text"><small class="text-muted"><i class="fas fa-school me-1"></i> <%= safeUserSchoolProp %></small></li>
-                                <% } %>
-                                <% if (userRole === 'admin' && safeAdminInfo && safeAdminInfo.roleLevel === 'superadmin') { %>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li class="dropdown-item-text"><span class="badge bg-danger"><i class="fas fa-shield-alt me-1"></i>Super Admin</span></li>
-                                <% } %>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                            </ul>
-                        </li>
-                    <% } else { %>
-                        <li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt me-1"></i>Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/register"><i class="fas fa-user-plus me-1"></i>Register</a></li>
-                    <% } %>
-                </ul>
-            </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
-<!-- ❌ DUPLICATE BOOTSTRAP SCRIPT REMOVED – Bootstrap JS is now loaded in the main layout <head> -->
+    <!-- ❌ DUPLICATE BOOTSTRAP SCRIPT REMOVED – Bootstrap JS is now loaded in the main layout <head> -->
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // --- Dropdown toggles (manual fallback) ---
-        var userToggle = document.getElementById('userDropdown');
-        var userMenu = document.getElementById('userDropdownMenu');
-        if (userToggle && userMenu) {
-            userToggle.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                userMenu.classList.toggle('show');
-            });
-            document.addEventListener('click', function (e) {
-                if (!userToggle.contains(e.target) && !userMenu.contains(e.target)) {
-                    userMenu.classList.remove('show');
-                }
-            });
-        }
-
-        var notifToggle = document.getElementById('notificationDropdown');
-        var notifMenu = document.getElementById('notificationDropdownMenu');
-        if (notifToggle && notifMenu) {
-            notifToggle.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                notifMenu.classList.toggle('show');
-            });
-            document.addEventListener('click', function (e) {
-                if (!notifToggle.contains(e.target) && !notifMenu.contains(e.target)) {
-                    notifMenu.classList.remove('show');
-                }
-            });
-        }
-
-        // --- Re-initialize all Bootstrap dropdowns ---
-        document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (toggle) {
-            try {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                    new bootstrap.Dropdown(toggle);
-                }
-            } catch (e) {
-                // ignore – already initialized
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Dropdown toggles (manual fallback) ---
+            var userToggle = document.getElementById('userDropdown');
+            var userMenu = document.getElementById('userDropdownMenu');
+            if (userToggle && userMenu) {
+                userToggle.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    userMenu.classList.toggle('show');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!userToggle.contains(e.target) && !userMenu.contains(e.target)) {
+                        userMenu.classList.remove('show');
+                    }
+                });
             }
-        });
 
-        // --- Mark single notification as read ---
-        window.markNotificationAsRead = function (notificationId) {
-            fetch('/notifications/mark-as-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notificationId: notificationId })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        var el = document.querySelector('[data-notification-id="' + notificationId + '"]');
-                        if (el) {
-                            el.remove();
-                            updateUnreadBadge();
-                        }
-                    } else {
-                        console.error('Failed to mark as read:', data.error);
+            var notifToggle = document.getElementById('notificationDropdown');
+            var notifMenu = document.getElementById('notificationDropdownMenu');
+            if (notifToggle && notifMenu) {
+                notifToggle.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    notifMenu.classList.toggle('show');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!notifToggle.contains(e.target) && !notifMenu.contains(e.target)) {
+                        notifMenu.classList.remove('show');
                     }
-                })
-                .catch(err => console.error('Error:', err));
-        };
+                });
+            }
 
-        // --- Mark all as read ---
-        window.markAllNotificationsAsRead = function () {
-            fetch('/notifications/mark-all-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        var items = document.querySelectorAll('.notification-item');
-                        items.forEach(function (el) { el.remove(); });
-                        updateUnreadBadge();
-                        var menu = document.getElementById('notificationDropdownMenu');
-                        if (menu && !menu.querySelector('.notification-item')) {
-                            menu.innerHTML = '<li class="notification-header"><span>Notifications</span></li>' +
-                                '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
-                        }
-                    } else {
-                        console.error('Failed to mark all as read:', data.error);
+            // --- Re-initialize all Bootstrap dropdowns ---
+            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (toggle) {
+                try {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        new bootstrap.Dropdown(toggle);
                     }
-                })
-                .catch(err => console.error('Error:', err));
-        };
+                } catch (e) {
+                    // ignore – already initialized
+                }
+            });
 
-        // --- Update badge count ---
-        function updateUnreadBadge() {
-            var badge = document.getElementById('notificationBadge');
-            if (badge) {
-                fetch('/notifications/unread-count')
+            // --- Mark single notification as read ---
+            window.markNotificationAsRead = function (notificationId) {
+                fetch('/notifications/mark-as-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notificationId: notificationId })
+                })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            var count = data.count;
-                            if (count > 0) {
-                                badge.textContent = count > 9 ? '9+' : count;
-                                badge.style.display = 'flex';
-                                badge.classList.add('blink');
-                            } else {
-                                badge.style.display = 'none';
+                            var el = document.querySelector('[data-notification-id="' + notificationId + '"]');
+                            if (el) {
+                                el.remove();
+                                updateUnreadBadge();
                             }
+                        } else {
+                            console.error('Failed to mark as read:', data.error);
                         }
                     })
-                    .catch(err => console.error('Error fetching unread count:', err));
+                    .catch(err => console.error('Error:', err));
+            };
+
+            // --- Mark all as read ---
+            window.markAllNotificationsAsRead = function () {
+                fetch('/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            var items = document.querySelectorAll('.notification-item');
+                            items.forEach(function (el) { el.remove(); });
+                            updateUnreadBadge();
+                            var menu = document.getElementById('notificationDropdownMenu');
+                            if (menu && !menu.querySelector('.notification-item')) {
+                                menu.innerHTML = '<li class="notification-header"><span>Notifications</span></li>' +
+                                    '<li class="notification-empty"><i class="fas fa-bell-slash"></i><p>No notifications</p></li>';
+                            }
+                        } else {
+                            console.error('Failed to mark all as read:', data.error);
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            };
+
+            // --- Update badge count ---
+            function updateUnreadBadge() {
+                var badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    fetch('/notifications/unread-count')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                var count = data.count;
+                                if (count > 0) {
+                                    badge.textContent = count > 9 ? '9+' : count;
+                                    badge.style.display = 'flex';
+                                    badge.classList.add('blink');
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            }
+                        })
+                        .catch(err => console.error('Error fetching unread count:', err));
+                }
             }
-        }
-    });
-</script>
+        });
+    </script>
