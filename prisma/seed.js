@@ -5,12 +5,11 @@ const prisma = new PrismaClient();
 const defaultPassword = process.env.DEFAULT_PASSWORD || '12345';
 
 async function main() {
-  // Hash default password
   const hashedPassword = await bcrypt.hash(defaultPassword, 10);
   
   console.log('🌱 Starting database seeding...');
 
-  // Create SUPER ADMIN user (no school assigned)
+  // 1. SUPER ADMIN (no school)
   const superAdminUser = await prisma.user.upsert({
     where: { idNumber: 'SUPER001' },
     update: {},
@@ -21,12 +20,10 @@ async function main() {
       lastName: 'Admin',
       email: 'super@admin.com',
       role: 'admin',
-      school: null, // Super admin has no school
+      school: null,
       isTemporaryPassword: false
     }
   });
-  
-  // Create super admin record
   await prisma.admin.upsert({
     where: { userId: superAdminUser.id },
     update: {},
@@ -35,10 +32,9 @@ async function main() {
       roleLevel: 'superadmin'
     }
   });
-
   console.log('✅ Super Admin created: SUPER001 / 12345');
 
-  // Create admin user (with school)
+  // 2. Principal (Greenwood High School)
   const adminUser = await prisma.user.upsert({
     where: { idNumber: 'admin001' },
     update: {},
@@ -47,14 +43,12 @@ async function main() {
       password: hashedPassword,
       firstName: 'School',
       lastName: 'Principal',
-      email: 'principal@green.edu',
+      email: 'principal@school.edu',
       role: 'admin',
-      school: 'Green Spring College',
+      school: 'Greenwood High School',
       isTemporaryPassword: false
     }
   });
-  
-  // Create admin record
   await prisma.admin.upsert({
     where: { userId: adminUser.id },
     update: {},
@@ -63,10 +57,9 @@ async function main() {
       roleLevel: 'principal'
     }
   });
-
   console.log('✅ Principal created: admin001 / 12345');
 
-  // Create head teacher
+  // 3. Head Teacher (Greenwood High School)
   const headTeacherUser = await prisma.user.upsert({
     where: { idNumber: 'headteacher001' },
     update: {},
@@ -75,13 +68,12 @@ async function main() {
       password: hashedPassword,
       firstName: 'Sarah',
       lastName: 'Johnson',
-      email: 'sarah.johnson@corona.edu',
+      email: 'sarah.johnson@school.edu',
       role: 'admin',
-      school: 'Corona College',
+      school: 'Greenwood High School',
       isTemporaryPassword: false
     }
   });
-  
   await prisma.admin.upsert({
     where: { userId: headTeacherUser.id },
     update: {},
@@ -90,75 +82,157 @@ async function main() {
       roleLevel: 'headteacher'
     }
   });
-
   console.log('✅ Head Teacher created: headteacher001 / 12345');
 
-  // Create sample teacher
-  const teacherUser = await prisma.user.upsert({
-    where: { idNumber: 'GSC-TCH-001' },
+  // 4. Class Teacher (Mr John – Art/Class Teacher)
+  const teacherJohn = await prisma.user.upsert({
+    where: { idNumber: 'teacher001' },
     update: {},
     create: {
-      idNumber: 'gsc-tch-001',
+      idNumber: 'teacher001',
       password: hashedPassword,
       firstName: 'John',
-      lastName: 'Casey',
-      email: 'john@green.edu',
+      lastName: 'Doe',
+      email: 'johndoe@school.edu',
       role: 'teacher',
-      school: 'Green Spring College',
+      school: 'Greenwood High School',
       isTemporaryPassword: false
     }
   });
-  
-  const teacher = await prisma.teacher.upsert({
-    where: { userId: teacherUser.id },
+  const johnTeacher = await prisma.teacher.upsert({
+    where: { userId: teacherJohn.id },
     update: {},
     create: {
-      userId: teacherUser.id,
+      userId: teacherJohn.id,
+      subject: 'Art'
+    }
+  });
+  console.log('✅ Teacher John (Art) created: teacher001 / 12345');
+
+  // 5. Subject Teachers (same school)
+  // Miss Sue – Maths
+  const teacherSue = await prisma.user.upsert({
+    where: { idNumber: 'teacher002' },
+    update: {},
+    create: {
+      idNumber: 'teacher002',
+      password: hashedPassword,
+      firstName: 'Sue',
+      lastName: 'Matthews',
+      email: 'sue@school.edu',
+      role: 'teacher',
+      school: 'Greenwood High School',
+      isTemporaryPassword: false
+    }
+  });
+  const sueTeacher = await prisma.teacher.upsert({
+    where: { userId: teacherSue.id },
+    update: {},
+    create: {
+      userId: teacherSue.id,
       subject: 'Mathematics'
     }
   });
 
-  console.log('✅ Teacher created: gsc-tch-001 / 12345');
-
-  // Create another teacher from a different school
-  const teacherUser2 = await prisma.user.upsert({
-    where: { idNumber: 'cor-tch-001' },
+  // Mr Ade – English
+  const teacherAde = await prisma.user.upsert({
+    where: { idNumber: 'teacher003' },
     update: {},
     create: {
-      idNumber: 'cor-tch-001',
+      idNumber: 'teacher003',
       password: hashedPassword,
-      firstName: 'Emily',
-      lastName: 'Chen',
-      email: 'emily@corona.edu',
+      firstName: 'Ade',
+      lastName: 'Okafor',
+      email: 'ade@school.edu',
       role: 'teacher',
-      school: 'Corona College',
+      school: 'Greenwood High School',
       isTemporaryPassword: false
     }
   });
-  
-  await prisma.teacher.upsert({
-    where: { userId: teacherUser2.id },
+  const adeTeacher = await prisma.teacher.upsert({
+    where: { userId: teacherAde.id },
     update: {},
     create: {
-      userId: teacherUser2.id,
+      userId: teacherAde.id,
+      subject: 'English'
+    }
+  });
+
+  // Mrs Ali – Science
+  const teacherAli = await prisma.user.upsert({
+    where: { idNumber: 'teacher004' },
+    update: {},
+    create: {
+      idNumber: 'teacher004',
+      password: hashedPassword,
+      firstName: 'Ali',
+      lastName: 'Hassan',
+      email: 'ali@school.edu',
+      role: 'teacher',
+      school: 'Greenwood High School',
+      isTemporaryPassword: false
+    }
+  });
+  const aliTeacher = await prisma.teacher.upsert({
+    where: { userId: teacherAli.id },
+    update: {},
+    create: {
+      userId: teacherAli.id,
       subject: 'Science'
     }
   });
 
-  console.log('✅ Teacher (different school) created: cor-tch-001 / 12345');
+  console.log('✅ Subject teachers created: Sue (Math), Ade (English), Ali (Science)');
 
-  // Create sample class - FIXED: Use create instead of upsert with hardcoded ID
-  const mathClass = await prisma.class.create({
-    data: {
-      name: 'Mathematics 101',
-      grade: '10',
+  // 6. Create the class: JSS 1 A – with Mr John as class teacher
+  const jss1A = await prisma.class.upsert({
+    where: {
+      grade_section_teacherId_name: {
+        grade: 'JSS 1',
+        section: 'A',
+        teacherId: johnTeacher.id,
+        name: 'JSS 1 A'
+      }
+    },
+    update: {},
+    create: {
+      name: 'JSS 1 A',
+      grade: 'JSS 1',
       section: 'A',
-      teacherId: teacher.id
+      teacherId: johnTeacher.id
     }
   });
+  console.log('✅ Class created: JSS 1 A (class teacher: John)');
 
-  // Create sample students for Greenwood High School
-  const studentUser1 = await prisma.user.upsert({
+  // 7. Assign subject teachers via ClassTeacher
+  const subjectAssignments = [
+    { teacherId: sueTeacher.id, subject: 'Mathematics', role: 'subject' },
+    { teacherId: adeTeacher.id, subject: 'English', role: 'subject' },
+    { teacherId: aliTeacher.id, subject: 'Science', role: 'subject' }
+  ];
+
+  for (const assignment of subjectAssignments) {
+    await prisma.classTeacher.upsert({
+      where: {
+        classId_teacherId_subject: {
+          classId: jss1A.id,
+          teacherId: assignment.teacherId,
+          subject: assignment.subject
+        }
+      },
+      update: {},
+      create: {
+        classId: jss1A.id,
+        teacherId: assignment.teacherId,
+        subject: assignment.subject,
+        role: assignment.role
+      }
+    });
+  }
+  console.log('✅ Subject teachers linked to JSS 1 A');
+
+  // 8. Students (Greenwood High)
+  const student1 = await prisma.user.upsert({
     where: { idNumber: 'student001' },
     update: {},
     create: {
@@ -166,26 +240,25 @@ async function main() {
       password: hashedPassword,
       firstName: 'Jane',
       lastName: 'Smith',
-      email: 'janesmith@school.edu',
+      email: 'jane@school.edu',
       role: 'student',
       school: 'Greenwood High School',
       isTemporaryPassword: true
     }
   });
-  
-  const student1 = await prisma.student.upsert({
-    where: { userId: studentUser1.id },
+  const student1Data = await prisma.student.upsert({
+    where: { userId: student1.id },
     update: {},
     create: {
-      userId: studentUser1.id,
-      grade: '10',
+      userId: student1.id,
+      grade: 'JSS 1',
       section: 'A',
       tuitionStatus: 'paid',
       canChangePassword: true
     }
   });
 
-  const studentUser2 = await prisma.user.upsert({
+  const student2 = await prisma.user.upsert({
     where: { idNumber: 'student002' },
     update: {},
     create: {
@@ -193,28 +266,132 @@ async function main() {
       password: hashedPassword,
       firstName: 'Michael',
       lastName: 'Brown',
-      email: 'michael.brown@school.edu',
+      email: 'michael@school.edu',
       role: 'student',
       school: 'Greenwood High School',
       isTemporaryPassword: true
     }
   });
-  
-  const student2 = await prisma.student.upsert({
-    where: { userId: studentUser2.id },
+  const student2Data = await prisma.student.upsert({
+    where: { userId: student2.id },
     update: {},
     create: {
-      userId: studentUser2.id,
-      grade: '10',
+      userId: student2.id,
+      grade: 'JSS 1',
       section: 'A',
       tuitionStatus: 'partial',
       canChangePassword: false,
-      tempPasswordExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      tempPasswordExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     }
   });
 
-  // Create sample student for Riverview Academy (different school)
-  const studentUser3 = await prisma.user.upsert({
+  console.log('✅ Students created: Jane (paid), Michael (partial)');
+
+  // 9. Enroll students in the class
+  await prisma.enrollment.upsert({
+    where: {
+      classId_studentId: {
+        classId: jss1A.id,
+        studentId: student1Data.id
+      }
+    },
+    update: {},
+    create: {
+      studentId: student1Data.id,
+      classId: jss1A.id
+    }
+  });
+  await prisma.enrollment.upsert({
+    where: {
+      classId_studentId: {
+        classId: jss1A.id,
+        studentId: student2Data.id
+      }
+    },
+    update: {},
+    create: {
+      studentId: student2Data.id,
+      classId: jss1A.id
+    }
+  });
+  console.log('✅ Students enrolled in JSS 1 A');
+
+  // 10. Tuition payment for Jane (paid)
+  await prisma.tuitionPayment.upsert({
+    where: { receiptNumber: 'REC001' },
+    update: {},
+    create: {
+      receiptNumber: 'REC001',
+      amount: 500.00,
+      status: 'verified',
+      verifiedBy: superAdminUser.id,
+      verifiedAt: new Date(),
+      studentId: student1Data.id,
+      semester: '2024-1'
+    }
+  });
+  console.log('✅ Tuition payment record created for Jane');
+
+  // 11. Sample material & assignment (optional)
+  await prisma.material.upsert({
+    where: { id: 'sample-material' }, // Not recommended – better to use a unique field. We'll just create.
+    update: {},
+    create: {
+      id: 'sample-material',
+      title: 'Algebra Basics',
+      description: 'Introduction to algebraic expressions',
+      type: 'textbook',
+      fileUrl: '/materials/algebra.pdf',
+      category: 'Mathematics',
+      tags: ['algebra'],
+      classId: jss1A.id,
+      teacherId: johnTeacher.id,
+      isPublic: true
+    }
+  });
+
+  await prisma.assignment.upsert({
+    where: { id: 'sample-assignment' },
+    update: {},
+    create: {
+      id: 'sample-assignment',
+      title: 'Algebra Assignment 1',
+      description: 'Solve the equations',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      classId: jss1A.id,
+      teacherId: johnTeacher.id,
+      points: 100
+    }
+  });
+  console.log('✅ Sample material and assignment created');
+
+  // 12. (Optional) Teacher from another school – Riverview Academy
+  const teacherRiverview = await prisma.user.upsert({
+    where: { idNumber: 'teacher005' },
+    update: {},
+    create: {
+      idNumber: 'teacher005',
+      password: hashedPassword,
+      firstName: 'Emily',
+      lastName: 'Chen',
+      email: 'emily@riverview.edu',
+      role: 'teacher',
+      school: 'Riverview Academy',
+      isTemporaryPassword: false
+    }
+  });
+  await prisma.teacher.upsert({
+    where: { userId: teacherRiverview.id },
+    update: {},
+    create: {
+      userId: teacherRiverview.id,
+      subject: 'Science'
+    }
+  });
+  console.log('✅ Teacher from Riverview Academy created: teacher005 / 12345');
+
+  // Student at Riverview
+  const studentRiverview = await prisma.user.upsert({
     where: { idNumber: 'student003' },
     update: {},
     create: {
@@ -222,102 +399,40 @@ async function main() {
       password: hashedPassword,
       firstName: 'Alex',
       lastName: 'Rodriguez',
-      email: 'alex.rodriguez@riverview.edu',
+      email: 'alex@riverview.edu',
       role: 'student',
       school: 'Riverview Academy',
       isTemporaryPassword: true
     }
   });
-  
-  const student3 = await prisma.student.upsert({
-    where: { userId: studentUser3.id },
+  await prisma.student.upsert({
+    where: { userId: studentRiverview.id },
     update: {},
     create: {
-      userId: studentUser3.id,
+      userId: studentRiverview.id,
       grade: '11',
       section: 'B',
       tuitionStatus: 'unpaid',
       canChangePassword: false
     }
   });
+  console.log('✅ Student at Riverview Academy created: student003 / 12345');
 
-  console.log('✅ Students created for both schools');
-
-  // Enroll students in classes - FIXED: Use create instead of upsert with wrong constraint name
-  await prisma.enrollment.create({
-    data: {
-      studentId: student1.id,
-      classId: mathClass.id
-    }
-  });
-
-  await prisma.enrollment.create({
-    data: {
-      studentId: student2.id,
-      classId: mathClass.id
-    }
-  });
-
-  // Create tuition payment records
-  await prisma.tuitionPayment.create({
-    data: {
-      receiptNumber: 'REC001',
-      amount: 500.00,
-      status: 'verified',
-      verifiedBy: superAdminUser.id,
-      verifiedAt: new Date(),
-      studentId: student1.id,
-      semester: '2024-1'
-    }
-  });
-
-  console.log('✅ Enrollment and payment records created');
-
-  // Create sample materials and assignments
-  const material = await prisma.material.create({
-    data: {
-      title: 'Algebra Basics',
-      description: 'Introduction to algebraic expressions and equations',
-      type: 'textbook',
-      fileUrl: '/materials/algebra.pdf',
-      category: 'Mathematics',
-      tags: ['algebra', 'basics', 'math'],
-      classId: mathClass.id,
-      teacherId: teacher.id,
-      isPublic: true
-    }
-  });
-
-  const assignment = await prisma.assignment.create({
-    data: {
-      title: 'Algebra Assignment 1',
-      description: 'Solve the algebraic equations',
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      classId: mathClass.id,
-      teacherId: teacher.id,
-      points: 100
-    }
-  });
-
-  console.log('✅ Sample materials and assignments created');
-
-  console.log('\n🎉 Seed data created successfully!');
+  console.log('\n🎉 Seeding completed successfully!');
   console.log('\n📋 Login Credentials:');
   console.log('=====================');
-  console.log('Super Admin:');
-  console.log('  ID: SUPER001, Password: 12345 (Full system access - all schools)');
-  console.log('\nGreenwood High School:');
-  console.log('  Principal: admin001, Password: 12345');
-  console.log('  Head Teacher: headteacher001, Password: 12345');
-  console.log('  Teacher: teacher001, Password: 12345');
-  console.log('  Students: student001 (paid), student002 (partial), Password: 12345');
-  console.log('\nRiverview Academy:');
-  console.log('  Teacher: teacher002, Password: 12345');
-  console.log('  Student: student003 (unpaid), Password: 12345');
-  console.log('\n🏫 Schools created:');
-  console.log('  - Greenwood High School');
-  console.log('  - Riverview Academy');
-  console.log('\n💡 Test the school-based access control by logging in as different users!');
+  console.log('🔹 Super Admin:      SUPER001 / 12345');
+  console.log('🔹 Principal:        admin001 / 12345');
+  console.log('🔹 Head Teacher:     headteacher001 / 12345');
+  console.log('🔹 Class Teacher:    teacher001 / 12345 (John – Art)');
+  console.log('🔹 Subject Teachers: teacher002 / 12345 (Sue – Maths)');
+  console.log('                    teacher003 / 12345 (Ade – English)');
+  console.log('                    teacher004 / 12345 (Ali – Science)');
+  console.log('🔹 Students:         student001 / 12345 (Jane – paid)');
+  console.log('                    student002 / 12345 (Michael – partial)');
+  console.log('🔹 Riverview:        teacher005 / 12345 (Emily)');
+  console.log('                    student003 / 12345 (Alex – unpaid)');
+  console.log('\n🏫 Schools: Greenwood High School, Riverview Academy');
 }
 
 main()
