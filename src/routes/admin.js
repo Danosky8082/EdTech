@@ -55,47 +55,137 @@ router.use(express.json());
 /**
  * GET /api/scan/:token
  * Public endpoint to scan a QR code and retrieve user info.
- * Used by the scanner page (accessible to teachers/admins, but no auth required).
+ * Also handles attendance and library actions.
  */
 router.get('/api/scan/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    const { action, bookId, classId, notes } = req.query;
 
     const user = await prisma.user.findUnique({
       where: { qrToken: token },
       include: {
-        student: {
-          select: {
-            grade: true,
-            section: true,
-            tuitionStatus: true
-          }
-        },
-        teacher: {
-          select: {
-            subject: true
-          }
-        },
-        parent: {
-          select: {
-            wallet: {
-              select: {
-                balance: true
-              }
-            }
-          }
-        }
+        student: true,
+        teacher: true,
+        parent: { include: { wallet: true } }
       }
     });
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // --- ATTENDANCE ---
+    if (action === 'attendance') {
+      if (!req.session.user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to record attendance.' });
+      }
+
+      // Prevent duplicate attendance today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const existing = await prisma.attendance.findFirst({
+        where: {
+          studentId: user.student.id,
+          date: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      });
+
+      if (existing) {
+        return res.json({
+          success: false,
+          message: 'Attendance already recorded for today.',
+          attendance: existing
+        });
+      }
+
+      const attendance = await prisma.attendance.create({
+        data: {
+          studentId: user.student.id,
+          classId: classId || null,
+          status: 'present',
+          recordedBy: req.session.user.id,
+          notes: notes || 'Scanned via QR'
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Attendance recorded successfully',
+        attendance
       });
     }
 
-    // Build response (exclude password and other sensitive fields)
+    // --- LIBRARY ---
+    if (action === 'library' && bookId) {
+      if (!req.session.user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in for library transactions.' });
+      }
+
+      // Check if student already has this book (active borrow)
+      const existingBorrow = await prisma.libraryTransaction.findFirst({
+        where: {
+          studentId: user.student.id,
+          bookId: bookId,
+          action: 'borrow',
+          returnedAt: null
+        }
+      });
+
+      if (existingBorrow) {
+        // Return the book
+        await prisma.libraryTransaction.create({
+          data: {
+            studentId: user.student.id,
+            bookId: bookId,
+            action: 'return',
+            recordedBy: req.session.user.id,
+            returnedAt: new Date(),
+            notes: notes || 'Returned via QR scan'
+          }
+        });
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { available: { increment: 1 } }
+        });
+        return res.json({
+          success: true,
+          message: `Book returned successfully.`
+        });
+      } else {
+        // Borrow the book
+        const book = await prisma.book.findUnique({ where: { id: bookId } });
+        if (!book || book.available <= 0) {
+          return res.status(400).json({ success: false, message: 'Book not available for borrowing' });
+        }
+        await prisma.libraryTransaction.create({
+          data: {
+            studentId: user.student.id,
+            bookId: bookId,
+            action: 'borrow',
+            dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            recordedBy: req.session.user.id,
+            notes: notes || 'Borrowed via QR scan'
+          }
+        });
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { available: { decrement: 1 } }
+        });
+        return res.json({
+          success: true,
+          message: `Book borrowed successfully. Due: ${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}`
+        });
+      }
+    }
+
+    // --- DEFAULT: return user info ---
     const response = {
       success: true,
       user: {
@@ -109,7 +199,6 @@ router.get('/api/scan/:token', async (req, res) => {
         school: user.school,
         avatar: user.avatar,
         isActive: user.isActive,
-        // Role-specific data
         grade: user.student?.grade || null,
         section: user.student?.section || null,
         tuitionStatus: user.student?.tuitionStatus || null,
@@ -121,10 +210,40 @@ router.get('/api/scan/:token', async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('QR scan error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
+ * GET /api/student/:token/active-borrows
+ * Public endpoint to get a student's active borrows (for scanner UI).
+ */
+router.get('/api/student/:token/active-borrows', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { qrToken: token },
+      include: { student: true }
     });
+
+    if (!user || !user.student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const activeBorrows = await prisma.libraryTransaction.findMany({
+      where: {
+        studentId: user.student.id,
+        action: 'borrow',
+        returnedAt: null
+      },
+      include: { book: true }
+    });
+
+    res.json({ success: true, activeBorrows });
+  } catch (error) {
+    console.error('Active borrows error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -133,38 +252,12 @@ router.get('/api/scan/:token', async (req, res) => {
 // ============================================================
 router.use(isAuthenticated, isAdmin, setSchoolContext, restrictToSchool);
 
-
-router.get('/api/student/:token/active-borrows', async (req, res) => {
-  try {
-    const { token } = req.params;
-    const user = await prisma.user.findUnique({
-      where: { qrToken: token },
-      include: { student: true }
-    });
-    if (!user || !user.student) {
-      return res.status(404).json({ success: false, message: 'Student not found' });
-    }
-    const borrows = await prisma.libraryTransaction.findMany({
-      where: {
-        studentId: user.student.id,
-        action: 'borrow',
-        returnedAt: null
-      },
-      include: { book: true }
-    });
-    res.json({ success: true, borrows });
-  } catch (error) {
-    console.error('Error fetching active borrows:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
 // ============================================================
 // 8. BOOK ROUTES – MUST COME BEFORE ANY DYNAMIC ROUTES
 // ============================================================
-router.get('/books/available', bookController.getAvailableBooks); // ✅ specific first
-router.get('/books', bookController.getBooks);                   // list
-router.get('/books/:bookId', bookController.getBook);            // dynamic – must come AFTER specific
+router.get('/books/available', bookController.getAvailableBooks);
+router.get('/books', bookController.getBooks);
+router.get('/books/:bookId', bookController.getBook);
 router.post('/books/create', bookController.createBook);
 router.put('/books/:bookId/update', bookController.updateBook);
 router.delete('/books/:bookId/delete', bookController.deleteBook);
@@ -413,14 +506,9 @@ router.get('/parents/debug', async (req, res) => {
   }
 });
 
-
-
-
-
 // School setup
 router.get('/school-setup', adminController.schoolSetupPage);
 router.post('/school-setup', adminController.saveSchoolSetup);
 router.get('/next-id', adminController.getNextUserId);
-router.get('/attendance', adminController.getAttendanceList);
 
 module.exports = router;

@@ -3356,12 +3356,13 @@ const getBorrowingHistory = async (req, res) => {
       where: { studentId: studentId },
       include: {
         book: true,
-        recorder: { select: { firstName: true, lastName: true } }
+        recorder: {
+          select: { firstName: true, lastName: true }
+        }
       },
       orderBy: { recordedAt: 'desc' }
     });
 
-    // Calculate current borrows (not returned)
     const currentBorrows = transactions.filter(t => t.action === 'borrow' && !t.returnedAt);
 
     res.render('student/borrowing-history', {
@@ -3392,12 +3393,13 @@ const viewAttendance = async (req, res) => {
       where: { studentId: studentId },
       include: {
         class: true,
-        recorder: { select: { firstName: true, lastName: true } }
+        recorder: {
+          select: { firstName: true, lastName: true }
+        }
       },
       orderBy: { date: 'desc' }
     });
 
-    // Summary stats
     const totalDays = attendances.length;
     const presentDays = attendances.filter(a => a.status === 'present').length;
     const absentDays = attendances.filter(a => a.status === 'absent').length;
@@ -3416,7 +3418,7 @@ const viewAttendance = async (req, res) => {
     console.error('View attendance error:', error);
     res.status(500).render('error/500', { title: 'Server Error' });
   }
-};
+};  
 
 // ============================================================
 // MODULE EXPORTS

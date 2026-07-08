@@ -76,19 +76,14 @@
             <!-- Action Buttons -->
             <div id="actionButtons" style="display: none; margin-top: 15px;">
                 <div class="row g-2">
-                    <div class="col-4">
+                    <div class="col-6">
                         <button class="btn btn-primary w-100" onclick="markAttendance()">
                             <i class="fas fa-clipboard-check me-1"></i> Attendance
                         </button>
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <button class="btn btn-success w-100" onclick="borrowBook()">
-                            <i class="fas fa-book me-1"></i> Borrow
-                        </button>
-                    </div>
-                    <div class="col-4">
-                        <button class="btn btn-warning w-100" onclick="returnBook()">
-                            <i class="fas fa-undo me-1"></i> Return
+                            <i class="fas fa-book me-1"></i> Borrow / Return
                         </button>
                     </div>
                 </div>
@@ -132,7 +127,6 @@
                     document.getElementById('resultTuition').textContent = tuition.toUpperCase();
                     document.getElementById('resultTuition').className = `badge ${badgeColor}`;
                     document.getElementById('result').style.display = 'block';
-                    // Show action buttons
                     document.getElementById('actionButtons').style.display = 'block';
                 } else {
                     alert('User not found');
@@ -150,7 +144,7 @@
             startScanner();
         }
 
-        // --- Action: Mark Attendance ---
+        // --- Attendance ---
         async function markAttendance() {
             if (!currentToken) {
                 alert('Please scan a QR code first.');
@@ -166,7 +160,7 @@
                 if (data.success) {
                     alert('✅ Attendance recorded successfully!');
                 } else {
-                    alert('❌ Error: ' + data.message);
+                    alert('❌ ' + data.message);
                 }
             } catch (error) {
                 console.error(error);
@@ -174,9 +168,7 @@
             }
         }
 
-        // ============================================================
-        // ENHANCED BORROW / RETURN (combined)
-        // ============================================================
+        // --- Borrow / Return ---
         async function borrowBook() {
             if (!currentToken) {
                 alert('Please scan a QR code first.');
@@ -184,12 +176,12 @@
             }
 
             try {
-                // 1. Get active borrows for this student
+                // 1. Fetch active borrows for this student
                 const activeResponse = await fetch(`/api/student/${currentToken}/active-borrows`);
                 const activeData = await activeResponse.json();
                 const activeBooks = activeData.success ? activeData.activeBorrows : [];
 
-                // 2. Get available books (with copies > 0)
+                // 2. Fetch available books (with copies > 0)
                 const response = await fetch('/admin/books/available');
                 const result = await response.json();
                 if (!result.success) {
@@ -203,11 +195,10 @@
                     return;
                 }
 
-                // 3. Build combined list
+                // Build a combined list: active borrows first (to return), then available books (to borrow)
                 let bookList = [];
                 let index = 1;
 
-                // Show active borrows first (to return)
                 if (activeBooks.length > 0) {
                     activeBooks.forEach(b => {
                         bookList.push({
@@ -219,7 +210,6 @@
                     });
                 }
 
-                // Show available books (to borrow) – exclude already borrowed
                 allBooks.forEach(b => {
                     if (!activeBooks.some(a => a.bookId === b.id)) {
                         bookList.push({
@@ -236,7 +226,6 @@
                     return;
                 }
 
-                // 4. Show prompt
                 const promptText = 'Select a book:\n' +
                     bookList.map(b => `${b.index}. ${b.title}`).join('\n');
 
@@ -257,7 +246,7 @@
                 if (data.success) {
                     alert(`✅ ${data.message}`);
                 } else {
-                    alert('❌ Error: ' + data.message);
+                    alert('❌ ' + data.message);
                 }
             } catch (error) {
                 console.error(error);
@@ -265,23 +254,6 @@
             }
         }
 
-        // ============================================================
-        // RETURN BOOK (calls the same combined function)
-        // ============================================================
-        async function returnBook() {
-            if (!currentToken) {
-                alert('Please scan a QR code first.');
-                return;
-            }
-            // Use the same logic but we can filter only active borrows
-            // For simplicity, we just call borrowBook which already shows active borrows with "Return" label.
-            // Alternatively, we could show only active borrows, but the combined function is fine.
-            await borrowBook();
-        }
-
-        // ============================================================
-        // SCANNER INITIALISATION
-        // ============================================================
         function startScanner() {
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
