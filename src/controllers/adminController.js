@@ -3628,7 +3628,7 @@ const getAttendanceList = async (req, res) => {
 };
 
 // ============================================================
-// ADMIN ATTENDANCE – view attendance with auto‑absent
+// ADMIN ATTENDANCE – with auto‑absent and class info
 // ============================================================
 const adminAttendance = async (req, res) => {
   try {
@@ -3676,14 +3676,12 @@ const adminAttendance = async (req, res) => {
       if (classIdList.length > 0) {
         studentWhere.enrollments = { some: { classId: { in: classIdList } } };
       } else {
-        // If teacher has no classes, show no students
         studentWhere.id = null;
       }
     }
 
-    // Class filter (if provided in query) – override teacher's class list if necessary
+    // Class filter (if provided in query)
     if (classId) {
-      // If already restricted to teacher's classes, add the class filter
       if (studentWhere.enrollments) {
         studentWhere.enrollments.some.classId = classId;
       } else {
@@ -3696,10 +3694,17 @@ const adminAttendance = async (req, res) => {
       studentWhere.id = studentId;
     }
 
-    // ---------- 4. Fetch all students matching filters ----------
+    // ---------- 4. Fetch all students with their enrollments and classes ----------
     const students = await prisma.student.findMany({
       where: studentWhere,
-      include: { user: true },
+      include: {
+        user: true,
+        enrollments: {
+          include: {
+            class: true
+          }
+        }
+      },
       orderBy: { user: { firstName: 'asc' } }
     });
 
@@ -3708,22 +3713,27 @@ const adminAttendance = async (req, res) => {
       date: { gte: targetDate, lt: nextDay }
     };
 
-    // Apply school filter to attendance records (so we only get records from the right school)
     if (!isSuperAdmin && userSchool) {
       attendanceWhere.student = { user: { school: userSchool } };
     }
-
-    // Apply class filter to attendance records ONLY if a class is explicitly selected
     if (classId) {
       attendanceWhere.classId = classId;
     }
-
-    // Apply studentId filter if provided
     if (studentId) {
       attendanceWhere.studentId = studentId;
     }
-
-    // ❌ NO teacher class restriction on attendance records – that would exclude null-class records
+    if (teacherId) {
+      const classIds = await prisma.class.findMany({
+        where: { teacherId: teacherId },
+        select: { id: true }
+      });
+      const classIdList = classIds.map(c => c.id);
+      if (classIdList.length > 0) {
+        attendanceWhere.classId = { in: classIdList };
+      } else {
+        attendanceWhere.classId = null;
+      }
+    }
 
     const actualAttendances = await prisma.attendance.findMany({
       where: attendanceWhere,
@@ -3742,11 +3752,16 @@ const adminAttendance = async (req, res) => {
       if (record) {
         combined.push(record);
       } else {
-        // Synthetic absent record
+        // Synthetic absent record – try to get the first enrolled class
+        let syntheticClass = null;
+        if (student.enrollments && student.enrollments.length > 0) {
+          // Use the first enrollment's class (you could also pick the one matching the filter)
+          syntheticClass = student.enrollments[0].class;
+        }
         combined.push({
           id: null,
           student: student,
-          class: null,
+          class: syntheticClass,   // now we have a class object
           status: 'absent',
           date: targetDate,
           recorder: null,
@@ -3780,7 +3795,6 @@ const adminAttendance = async (req, res) => {
       select: { id: true, name: true, grade: true, section: true }
     });
 
-    // Students for dropdown (without class filter from query, so we see all possible students)
     let studentDropdownWhere = {};
     if (!isSuperAdmin && userSchool) {
       studentDropdownWhere = { user: { school: userSchool } };
@@ -3813,7 +3827,8 @@ const adminAttendance = async (req, res) => {
       userSchool,
       isSuperAdmin,
       adminInfo: req.user?.admin || null,
-      user: req.session.user
+      user: req.session.user,
+      userRole: req.user?.role || ''
     });
   } catch (error) {
     console.error('Admin attendance error:', error);
