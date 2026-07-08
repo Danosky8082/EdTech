@@ -407,7 +407,7 @@
             <ul class="navbar-nav me-auto">
                 <% if (userRole) { %>
                     <% if (!isUnpaidStudent) { %>
-                        <!-- Dashboard (always visible for logged-in users) -->
+                        <!-- Dashboard -->
                         <li class="nav-item">
                             <a class="nav-link" href="/<%= userRole === 'admin' ? 'admin' : userRole %>/dashboard">
                                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
@@ -428,7 +428,7 @@
                                                 class="fas fa-child me-1"></i>My Children</a></li>
                                     <% } %>
 
-                                        <!-- Teacher links – grouped into a dropdown -->
+                                        <!-- Teacher dropdown -->
                                         <% if (userRole==='teacher' ) { %>
                                             <li class="nav-item dropdown">
                                                 <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown"
@@ -463,7 +463,7 @@
                                             </li>
                                             <% } %>
 
-                                                <!-- Admin links – grouped into a dropdown -->
+                                                <!-- Admin dropdown -->
                                                 <% if (userRole==='admin' ) { %>
                                                     <li class="nav-item dropdown">
                                                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
@@ -498,7 +498,7 @@
                                                     </li>
                                                     <% } %>
 
-                                                        <!-- Shared links (visible to specific roles) -->
+                                                        <!-- Shared links -->
                                                         <% if (userRole==='teacher' || userRole==='admin' ) { %>
                                                             <li class="nav-item">
                                                                 <a class="nav-link" href="/scan">
@@ -649,6 +649,18 @@
                 }
             });
         }
+
+        // --- ✅ FIX: Re-initialize all dropdowns to ensure they work on every page ---
+        // This resolves the issue where the Teaching dropdown works on some pages but not others.
+        document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (toggle) {
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    new bootstrap.Dropdown(toggle);
+                }
+            } catch (e) {
+                // Ignore – dropdown already initialized
+            }
+        });
 
         // --- Mark single notification as read ---
         window.markNotificationAsRead = function (notificationId) {
