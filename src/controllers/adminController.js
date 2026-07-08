@@ -3628,7 +3628,7 @@ const getAttendanceList = async (req, res) => {
 };
 
 // ============================================================
-// ADMIN ATTENDANCE – view attendance records
+// ADMIN ATTENDANCE – view attendance with auto‑absent
 // ============================================================
 const adminAttendance = async (req, res) => {
   try {
@@ -3646,21 +3646,27 @@ const adminAttendance = async (req, res) => {
       if (teacher) teacherId = teacher.id;
     }
 
-    // Build filter
-    let whereClause = {};
+    // ---------- 1. Read filters ----------
+    const { classId, studentId, dateFrom, dateTo, status } = req.query;
 
-    // Super admin sees all, others see their school only
+    // ---------- 2. Determine target date (single day) ----------
+    let targetDate = new Date();
+    if (dateFrom) {
+      targetDate = new Date(dateFrom);
+    }
+    targetDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    // ---------- 3. Build filter for students ----------
+    let studentWhere = {};
+
+    // School filter
     if (!isSuperAdmin && userSchool) {
-      whereClause = {
-        student: {
-          user: {
-            school: userSchool
-          }
-        }
-      };
+      studentWhere.user = { school: userSchool };
     }
 
-    // If teacher, further restrict to students in their classes
+    // Teacher restriction (if teacher)
     if (teacherId) {
       const classIds = await prisma.class.findMany({
         where: { teacherId: teacherId },
@@ -3668,41 +3674,102 @@ const adminAttendance = async (req, res) => {
       });
       const classIdList = classIds.map(c => c.id);
       if (classIdList.length > 0) {
-        whereClause.classId = { in: classIdList };
+        studentWhere.enrollments = { some: { classId: { in: classIdList } } };
       } else {
-        // No classes => no students
-        whereClause.id = null;
+        // If teacher has no classes, show no students
+        studentWhere.id = null;
       }
     }
 
-    // Get filter parameters from query
-    const { classId, studentId, dateFrom, dateTo, status } = req.query;
-
-    if (classId) whereClause.classId = classId;
-    if (studentId) whereClause.studentId = studentId;
-    if (status) whereClause.status = status;
-    if (dateFrom || dateTo) {
-      whereClause.date = {};
-      if (dateFrom) whereClause.date.gte = new Date(dateFrom);
-      if (dateTo) whereClause.date.lte = new Date(dateTo);
+    // Class filter (if provided in query)
+    if (classId) {
+      // Override the teacher's class list? We'll combine: must be in both teacher's classes AND the selected class
+      if (studentWhere.enrollments) {
+        // If already restricted to teacher's classes, add the class filter
+        studentWhere.enrollments.some.classId = classId;
+      } else {
+        studentWhere.enrollments = { some: { classId: classId } };
+      }
     }
 
-    // Fetch attendance records
-    const attendances = await prisma.attendance.findMany({
-      where: whereClause,
-      include: {
-        student: {
-          include: { user: true }
-        },
-        class: true,
-        recorder: {
-          select: { firstName: true, lastName: true }
-        }
-      },
-      orderBy: { date: 'desc' }
+    // Student filter (if provided)
+    if (studentId) {
+      studentWhere.id = studentId;
+    }
+
+    // ---------- 4. Fetch all students matching filters ----------
+    const students = await prisma.student.findMany({
+      where: studentWhere,
+      include: { user: true },
+      orderBy: { user: { firstName: 'asc' } }
     });
 
-    // Get list of classes (for filter dropdown)
+    // ---------- 5. Fetch existing attendance records for the target day ----------
+    let attendanceWhere = {
+      date: { gte: targetDate, lt: nextDay }
+    };
+
+    // Apply same school/class/student filters to attendance query
+    if (!isSuperAdmin && userSchool) {
+      attendanceWhere.student = { user: { school: userSchool } };
+    }
+    if (classId) {
+      attendanceWhere.classId = classId;
+    }
+    if (studentId) {
+      attendanceWhere.studentId = studentId;
+    }
+    // Teacher restriction (already covered by student filters, but we also need to restrict attendance records)
+    if (teacherId) {
+      const classIds = await prisma.class.findMany({
+        where: { teacherId: teacherId },
+        select: { id: true }
+      });
+      const classIdList = classIds.map(c => c.id);
+      if (classIdList.length > 0) {
+        attendanceWhere.classId = { in: classIdList };
+      } else {
+        attendanceWhere.classId = null;
+      }
+    }
+
+    const actualAttendances = await prisma.attendance.findMany({
+      where: attendanceWhere,
+      include: {
+        student: { include: { user: true } },
+        class: true,
+        recorder: { select: { firstName: true, lastName: true } }
+      }
+    });
+
+    // ---------- 6. Build combined list: each student with status ----------
+    const combined = [];
+    for (const student of students) {
+      // Find if this student has a record for the target day
+      const record = actualAttendances.find(a => a.studentId === student.id);
+      if (record) {
+        combined.push(record);
+      } else {
+        // Synthetic absent record
+        combined.push({
+          id: null,
+          student: student,
+          class: null,
+          status: 'absent',
+          date: targetDate,
+          recorder: null,
+          notes: 'Auto-absent (no record)'
+        });
+      }
+    }
+
+    // ---------- 7. Apply status filter (if provided) ----------
+    let filteredCombined = combined;
+    if (status) {
+      filteredCombined = combined.filter(a => a.status === status);
+    }
+
+    // ---------- 8. Fetch classes and students for filter dropdowns ----------
     let classWhere = {};
     if (!isSuperAdmin && userSchool) {
       classWhere = {
@@ -3721,35 +3788,35 @@ const adminAttendance = async (req, res) => {
       select: { id: true, name: true, grade: true, section: true }
     });
 
-    // Get students (for filter dropdown)
-    let studentWhere = {};
+    // Students for dropdown (without class filter from query, so we see all possible students)
+    let studentDropdownWhere = {};
     if (!isSuperAdmin && userSchool) {
-      studentWhere = { user: { school: userSchool } };
+      studentDropdownWhere = { user: { school: userSchool } };
     }
     if (teacherId) {
-      // Only students in teacher's classes
       const classIds = await prisma.class.findMany({
         where: { teacherId: teacherId },
         select: { id: true }
       });
       const classIdList = classIds.map(c => c.id);
       if (classIdList.length > 0) {
-        studentWhere.enrollments = { some: { classId: { in: classIdList } } };
+        studentDropdownWhere.enrollments = { some: { classId: { in: classIdList } } };
       } else {
-        studentWhere.id = null;
+        studentDropdownWhere.id = null;
       }
     }
-    const students = await prisma.student.findMany({
-      where: studentWhere,
+    const studentsForDropdown = await prisma.student.findMany({
+      where: studentDropdownWhere,
       include: { user: true },
       orderBy: { user: { firstName: 'asc' } }
     });
 
+    // ---------- 9. Render ----------
     res.render('admin/attendance', {
       title: 'Attendance Management',
-      attendances,
+      attendances: filteredCombined,   // now includes both present and absent
       classes,
-      students,
+      students: studentsForDropdown,
       filters: { classId, studentId, dateFrom, dateTo, status },
       userSchool,
       isSuperAdmin,
@@ -3758,7 +3825,10 @@ const adminAttendance = async (req, res) => {
     });
   } catch (error) {
     console.error('Admin attendance error:', error);
-    res.status(500).render('error/500', { title: 'Server Error', adminInfo: req.user?.admin || null });
+    res.status(500).render('error/500', {
+      title: 'Server Error',
+      adminInfo: req.user?.admin || null
+    });
   }
 };
 
