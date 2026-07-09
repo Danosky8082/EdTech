@@ -2314,15 +2314,29 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    // ✅ Use the same classWork object (it includes the class relation and all fields)
-    console.log('✅ Rendering take-class-work view');
+    // ✅ Ensure questions is an array (Prisma already parses JSON, but just in case)
+    let questions = classWork.questions || [];
+    if (typeof questions === 'string') {
+      try {
+        questions = JSON.parse(questions);
+      } catch (e) {
+        questions = [];
+      }
+    }
+
+    console.log(`✅ Rendering take-class-work view with ${questions.length} questions`);
+
     res.render('student/take-class-work', {
       title: `Class Work: ${classWork.title}`,
-      classWork: classWork,                         // Pass the full object with class relation
+      classWork: {
+        ...classWork,
+        questions: questions   // explicitly pass parsed questions
+      },
       classId: classWork.classId,
       hasSubmission: !!existingSubmission,
       userSchool: userSchool || 'Unknown School',
-      isSuperAdmin: isSuperAdmin || false
+      isSuperAdmin: isSuperAdmin || false,
+      user: req.session.user
     });
 
   } catch (error) {
@@ -2357,10 +2371,24 @@ const submitClassWork = async (req, res) => {
     const questions = classWork.questions || [];
     
     if (questions.length > 0 && answers) {
+      // answers is an object with numeric keys (0,1,2...)
       questions.forEach((question, index) => {
         const studentAnswer = answers[index];
-        if (studentAnswer && question.correctAnswer && studentAnswer === question.correctAnswer) {
-          score += question.points || 1;
+        if (studentAnswer !== undefined && studentAnswer !== null && studentAnswer !== '') {
+          // For multiple choice, compare to correct answer
+          if (question.type === 'multiple_choice' && question.correctAnswer) {
+            if (studentAnswer === question.correctAnswer) {
+              score += question.points || 1;
+            }
+          } else if (question.type === 'true_false' && question.correctAnswer) {
+            if (studentAnswer === question.correctAnswer) {
+              score += question.points || 1;
+            }
+          } else {
+            // For essay/short answer, give partial credit? For now, give full points if answer is not empty.
+            // In a real app, you'd manually grade these.
+            score += question.points || 1;
+          }
         }
       });
     }

@@ -11,538 +11,214 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .question-card {
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #0d6efd;
+            margin-bottom: 1.5rem;
+            background: #f8f9fa;
         }
 
-        .question-number {
-            background: #007bff;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 15px;
+        .question-card .card-header {
+            background: #e9ecef;
+            font-weight: 600;
         }
 
         .option-label {
             display: block;
-            padding: 15px;
-            margin: 5px 0;
-            border: 1px solid #dee2e6;
+            padding: 8px 12px;
             border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s;
         }
 
         .option-label:hover {
-            background: #f8f9fa;
-            border-color: #007bff;
+            background: #e3f2fd;
         }
 
-        .option-label.selected {
-            background: #e7f1ff;
-            border-color: #007bff;
-            color: #007bff;
+        .option-label input[type="radio"] {
+            margin-right: 10px;
         }
 
-        .option-input {
-            display: none;
+        .essay-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
         }
 
         .timer {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: #dc3545;
-            background: #f8d7da;
-            padding: 10px 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
         }
 
-        .progress-bar {
-            height: 10px;
-            border-radius: 5px;
-            background: #e9ecef;
-            margin: 20px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
-            border-radius: 5px;
-            transition: width 0.3s;
-        }
-
-        .loading-spinner {
-            display: none;
+        .submitted-msg {
+            color: #198754;
+            font-weight: 600;
         }
     </style>
 </head>
 
 <body>
+
     <%- include('../partials/navbar') %>
 
         <div class="container mt-4">
             <%- include('../partials/alerts') %>
 
                 <div class="row">
-                    <div class="col-md-8 offset-md-2">
+                    <div class="col-lg-8 mx-auto">
                         <!-- Header -->
                         <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <h3 class="mb-0"><i class="fas fa-tasks me-2"></i>
-                                    <%= classWork.title %>
-                                </h3>
-                            </div>
                             <div class="card-body">
+                                <h2>
+                                    <%= classWork.title %>
+                                </h2>
+                                <p class="text-muted">
+                                    <i class="fas fa-chalkboard-teacher me-1"></i>
+                                    <%= classWork.class ? classWork.class.name : 'N/A' %>
+                                </p>
+                                <p>
+                                    <strong>Type:</strong>
+                                    <span class="badge bg-primary">
+                                        <%= classWork.type ? classWork.type.charAt(0).toUpperCase() +
+                                            classWork.type.slice(1) : 'Assignment' %>
+                                    </span>
+                                    <span class="badge bg-secondary ms-2">
+                                        <%= classWork.points || 100 %> points
+                                    </span>
+                                    <% if (classWork.dueDate) { %>
+                                        <span class="badge bg-warning ms-2">Due: <%= new
+                                                Date(classWork.dueDate).toLocaleDateString() %></span>
+                                        <% } %>
+                                </p>
                                 <% if (classWork.description) { %>
-                                    <p class="mb-3">
+                                    <p class="card-text">
                                         <%= classWork.description %>
                                     </p>
                                     <% } %>
-
-                                        <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <small class="text-muted d-block">Type:</small>
-                                                <span class="badge bg-info">
-                                                    <%= classWork.type.charAt(0).toUpperCase() + classWork.type.slice(1)
-                                                        %>
-                                                </span>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <small class="text-muted d-block">Points:</small>
-                                                <strong>
-                                                    <%= classWork.points || 100 %> points
-                                                </strong>
-                                            </div>
-                                        </div>
-
-                                        <% if (classWork.dueDate) { %>
-                                            <div class="mb-3">
-                                                <small class="text-muted d-block">Due Date:</small>
-                                                <strong>
-                                                    <%= new Date(classWork.dueDate).toLocaleString() %>
-                                                </strong>
-                                            </div>
-                                            <% } %>
-
-                                                <div class="mb-3">
-                                                    <small class="text-muted d-block">Class:</small>
-                                                    <strong>
-                                                        <%= classWork.class.name %>
-                                                    </strong>
-                                                </div>
-
-                                                <% if (classWork.duration) { %>
-                                                    <div class="timer">
-                                                        <i class="fas fa-hourglass-half me-2"></i>
-                                                        <span id="timerDisplay">--:--</span>
-                                                    </div>
-                                                    <% } %>
-
-                                                        <% if (hasSubmission) { %>
-                                                            <div class="alert alert-warning">
-                                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                                                You have already started this class work. Continue
-                                                                below.
-                                                            </div>
-                                                            <% } %>
                             </div>
                         </div>
 
-                        <!-- Questions Form -->
-                        <form id="classWorkForm">
-                            <% if (classWork.questions && Array.isArray(classWork.questions) &&
-                                classWork.questions.length> 0) { %>
-                                <div id="questionsContainer">
-                                    <% classWork.questions.forEach((question, index)=> { %>
-                                        <div class="question-card" data-question-index="<%= index %>">
-                                            <div class="d-flex align-items-start mb-3">
-                                                <div class="question-number">
-                                                    <%= index + 1 %>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <h5>
-                                                        <%= question.question %>
-                                                    </h5>
-                                                    <% if (question.description) { %>
-                                                        <p class="text-muted">
-                                                            <%= question.description %>
-                                                        </p>
-                                                        <% } %>
-                                                            <small class="text-muted"><i class="fas fa-star me-1"></i>
-                                                                <%= question.points || 1 %> point(s)
-                                                            </small>
-                                                </div>
-                                            </div>
+                        <!-- Questions -->
+                        <% if (classWork.questions && classWork.questions.length> 0) { %>
+                            <form id="classWorkForm" method="POST"
+                                action="/student/class-works/<%= classWork.id %>/submit">
+                                <input type="hidden" name="classWorkId" value="<%= classWork.id %>">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken || '' %>">
 
-                                            <% if (question.type==='multiple_choice' ) { %>
-                                                <div class="options-container">
-                                                    <% question.options.forEach((option, optIndex)=> { %>
+                                <% classWork.questions.forEach(function(q, index) { %>
+                                    <div class="card question-card">
+                                        <div class="card-header">
+                                            <strong>Question <%= index + 1 %>:</strong>
+                                            <% if (q.points) { %><span class="badge bg-secondary float-end">
+                                                    <%= q.points %> pts
+                                                </span>
+                                                <% } %>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="card-text">
+                                                <%= q.question %>
+                                            </p>
+
+                                            <% if (q.type==='multiple_choice' && q.options && q.options.length> 0) { %>
+                                                <div class="options">
+                                                    <% q.options.forEach(function(option, optIndex) { %>
                                                         <label class="option-label">
-                                                            <input type="radio" class="option-input"
-                                                                name="q<%= index %>"
-                                                                value="<%= String.fromCharCode(65 + optIndex) %>">
-                                                            <span class="option-letter me-3">
-                                                                <%= String.fromCharCode(65 + optIndex) %>.
-                                                            </span>
-                                                            <%= option %>
+                                                            <input type="radio" name="answers[<%= index %>]"
+                                                                value="<%= option.text || option %>">
+                                                            <%= option.text || option %>
                                                         </label>
                                                         <% }); %>
                                                 </div>
-                                                <% } else if (question.type==='true_false' ) { %>
-                                                    <div class="options-container">
+                                                <% } else if (q.type==='true_false' ) { %>
+                                                    <div class="options">
                                                         <label class="option-label">
-                                                            <input type="radio" class="option-input"
-                                                                name="q<%= index %>" value="true">
-                                                            <span class="option-letter me-3">True</span>
+                                                            <input type="radio" name="answers[<%= index %>]"
+                                                                value="True"> True
                                                         </label>
                                                         <label class="option-label">
-                                                            <input type="radio" class="option-input"
-                                                                name="q<%= index %>" value="false">
-                                                            <span class="option-letter me-3">False</span>
+                                                            <input type="radio" name="answers[<%= index %>]"
+                                                                value="False"> False
                                                         </label>
                                                     </div>
-                                                    <% } else if (question.type==='short_answer' ) { %>
-                                                        <div class="form-group">
-                                                            <textarea class="form-control" name="q<%= index %>" rows="3"
-                                                                placeholder="Type your answer here..."></textarea>
-                                                        </div>
-                                                        <% } else if (question.type==='essay' ) { %>
-                                                            <div class="form-group">
-                                                                <textarea class="form-control" name="q<%= index %>"
-                                                                    rows="6"
-                                                                    placeholder="Write your essay here..."></textarea>
-                                                            </div>
-                                                            <% } else if (question.type==='file_upload' ) { %>
-                                                                <div class="form-group">
-                                                                    <div class="mb-2"><small class="text-muted">Upload
-                                                                            your file:</small></div>
-                                                                    <input type="file" class="form-control"
-                                                                        name="q<%= index %>_file"
-                                                                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
-                                                                </div>
-                                                                <% } %>
-                                        </div>
-                                        <% }); %>
-                                </div>
-
-                                <!-- Progress -->
-                                <div class="mb-4">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <small>Progress</small>
-                                        <small><span id="answeredCount">0</span>/<%= classWork.questions.length %>
-                                                questions</small>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                                    </div>
-                                </div>
-
-                                <!-- Submit Button -->
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
-                                        <span class="spinner-border spinner-border-sm loading-spinner" role="status"
-                                            aria-hidden="true"></span>
-                                        <span class="btn-text"><i class="fas fa-paper-plane me-2"></i> Submit Class
-                                            Work</span>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
-                                        <i class="fas fa-save me-2"></i> Save Draft
-                                    </button>
-                                </div>
-                                <% } else { %>
-                                    <div class="card">
-                                        <div class="card-body text-center py-5">
-                                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                                            <h4>No Questions Available</h4>
-                                            <p class="text-muted">This class work doesn't have any questions yet.</p>
-                                            <a href="/student/class/<%= classWork.classId %>/class-works"
-                                                class="btn btn-primary">
-                                                <i class="fas fa-arrow-left me-1"></i> Back to Class Works
-                                            </a>
+                                                    <% } else { %>
+                                                        <!-- Essay, short answer, etc. -->
+                                                        <textarea class="essay-textarea" name="answers[<%= index %>]"
+                                                            placeholder="Write your answer here..."></textarea>
+                                                        <% } %>
                                         </div>
                                     </div>
-                                    <% } %>
-                        </form>
-                    </div>
-                </div>
-        </div>
+                                    <% }); %>
 
-        <!-- Confirmation Modal -->
-        <div class="modal fade" id="confirmationModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Confirm Submission</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to submit this class work?</p>
-                        <p class="text-muted"><strong>Note:</strong> Once submitted, you cannot make changes.</p>
-                        <div id="summary"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-success" id="confirmSubmitBtn">Confirm Submit</button>
+                                        <div class="d-grid gap-2 mt-4">
+                                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                                <i class="fas fa-paper-plane me-1"></i> Submit Class Work
+                                            </button>
+                                        </div>
+                            </form>
+                            <% } else { %>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    This class work has no questions yet. Please contact your teacher.
+                                </div>
+                                <% } %>
+
+                                    <!-- Back button -->
+                                    <div class="mt-4">
+                                        <a href="/student/class/<%= classWork.classId %>/class-works"
+                                            class="btn btn-secondary">
+                                            <i class="fas fa-arrow-left me-1"></i> Back to Class Works
+                                        </a>
+                                    </div>
                     </div>
                 </div>
-            </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // ------------------------------------------------------------
-            // 1. Get questions data safely
-            // ------------------------------------------------------------
-            var questions = <% - JSON.stringify(classWork.questions || []) %>;
-            var totalQuestions = questions.length;
-            var classWorkId = '<%= classWork.id %>';
-
-            // ------------------------------------------------------------
-            // 2. Progress update
-            // ------------------------------------------------------------
-            function updateProgress() {
-                var answered = 0;
-                document.querySelectorAll('.question-card').forEach(function (card, index) {
-                    var qType = questions[index] ? questions[index].type : '';
-                    var isAnswered = false;
-                    if (qType === 'multiple_choice' || qType === 'true_false') {
-                        isAnswered = !!card.querySelector('.option-input:checked');
-                    } else if (qType === 'short_answer' || qType === 'essay') {
-                        var textarea = card.querySelector('textarea');
-                        isAnswered = textarea && textarea.value.trim().length > 0;
-                    } else if (qType === 'file_upload') {
-                        var fileInput = card.querySelector('input[type="file"]');
-                        isAnswered = fileInput && fileInput.files.length > 0;
-                    }
-                    if (isAnswered) answered++;
-                });
-
-                document.getElementById('answeredCount').textContent = answered;
-                var progressPercent = totalQuestions > 0 ? (answered / totalQuestions) * 100 : 0;
-                document.getElementById('progressFill').style.width = progressPercent + '%';
-            }
-
-            // ------------------------------------------------------------
-            // 3. Event listeners
-            // ------------------------------------------------------------
-            document.querySelectorAll('.option-input[type="radio"]').forEach(function (radio) {
-                radio.addEventListener('change', function () {
-                    var label = this.closest('.option-label');
-                    var card = this.closest('.question-card');
-                    card.querySelectorAll('.option-label').forEach(function (opt) { opt.classList.remove('selected'); });
-                    label.classList.add('selected');
-                    updateProgress();
-                });
-            });
-
-            document.querySelectorAll('textarea').forEach(function (textarea) {
-                textarea.addEventListener('input', updateProgress);
-            });
-
-            // ------------------------------------------------------------
-            // 4. Form submission flow
-            // ------------------------------------------------------------
-            var submitBtn = document.getElementById('submitBtn');
-            var confirmBtn = document.getElementById('confirmSubmitBtn');
-
-            document.getElementById('classWorkForm').addEventListener('submit', function (e) {
+            document.getElementById('classWorkForm')?.addEventListener('submit', function (e) {
                 e.preventDefault();
-                showConfirmation();
-            });
+                const btn = document.getElementById('submitBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Submitting...';
 
-            function showConfirmation() {
-                var answers = {};
-                var answered = 0;
-
-                document.querySelectorAll('.question-card').forEach(function (card, index) {
-                    var qType = questions[index] ? questions[index].type : '';
-                    var answer = null;
-
-                    if (qType === 'multiple_choice' || qType === 'true_false') {
-                        var selected = card.querySelector('.option-input:checked');
-                        if (selected) {
-                            answer = selected.value;
-                            answered++;
-                        }
-                    } else if (qType === 'short_answer' || qType === 'essay') {
-                        var textarea = card.querySelector('textarea');
-                        if (textarea && textarea.value.trim()) {
-                            answer = textarea.value;
-                            answered++;
-                        }
-                    } else if (qType === 'file_upload') {
-                        var fileInput = card.querySelector('input[type="file"]');
-                        if (fileInput && fileInput.files.length > 0) {
-                            answer = fileInput.files[0].name;
-                            answered++;
-                        }
+                const formData = new FormData(this);
+                const answers = [];
+                // Collect answers from radio groups and textareas
+                const inputs = this.querySelectorAll('input[type="radio"]:checked, textarea');
+                inputs.forEach(input => {
+                    const name = input.name.match(/\[(\d+)\]/);
+                    if (name) {
+                        const idx = parseInt(name[1]);
+                        answers[idx] = input.value;
                     }
-                    answers[index] = answer;
                 });
 
-                var summaryHtml = '<div class="alert ' + (answered === totalQuestions ? 'alert-success' : 'alert-warning') + ' mt-3">' +
-                    '<i class="fas ' + (answered === totalQuestions ? 'fa-check-circle' : 'fa-exclamation-triangle') + ' me-2"></i>' +
-                    answered + ' of ' + totalQuestions + ' questions answered' +
-                    '</div>';
-                document.getElementById('summary').innerHTML = summaryHtml;
-
-                // Store answers for later
-                window.pendingAnswers = answers;
-
-                // Show modal
-                var modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-                modal.show();
-            }
-
-            // Confirm button inside modal
-            confirmBtn.addEventListener('click', function () {
-                // Disable button and show spinner
-                confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Submitting...';
-
-                var modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
-                modal.hide();
-
-                // Show loading on main button
-                submitBtn.disabled = true;
-                var spinner = submitBtn.querySelector('.spinner-border');
-                var btnText = submitBtn.querySelector('.btn-text');
-                if (spinner) spinner.style.display = 'inline-block';
-                if (btnText) btnText.textContent = ' Submitting...';
-
-                // Send request
-                fetch('/student/class-works/' + classWorkId + '/submit', {
+                fetch(this.action, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: window.pendingAnswers })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('input[name="_csrf"]')?.value || ''
+                    },
+                    body: JSON.stringify({ answers: answers })
                 })
-                    .then(function (response) { return response.json(); })
-                    .then(function (data) {
-                        // Reset button
-                        submitBtn.disabled = false;
-                        if (spinner) spinner.style.display = 'none';
-                        if (btnText) btnText.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Submit Class Work';
-
+                    .then(response => response.json())
+                    .then(data => {
                         if (data.success) {
-                            // Show success and redirect
-                            alert('Class work submitted successfully!');
-                            window.location.href = '/student/class-works/' + classWorkId + '/results';
+                            alert('✅ ' + data.message);
+                            window.location.href = `/student/class-works/${data.submissionId || '<%= classWork.id %>'}/results`;
                         } else {
-                            alert('Error: ' + (data.message || 'Unknown error'));
-                            // Re-enable confirm button
-                            confirmBtn.disabled = false;
-                            confirmBtn.innerHTML = 'Confirm Submit';
+                            alert('❌ ' + data.message);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Submit Class Work';
                         }
                     })
-                    .catch(function (error) {
-                        console.error('Error:', error);
-                        alert('Failed to submit class work. Please try again.');
-                        submitBtn.disabled = false;
-                        if (spinner) spinner.style.display = 'none';
-                        if (btnText) btnText.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Submit Class Work';
-                        confirmBtn.disabled = false;
-                        confirmBtn.innerHTML = 'Confirm Submit';
+                    .catch(error => {
+                        alert('❌ An error occurred: ' + error.message);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Submit Class Work';
                     });
             });
-
-            // ------------------------------------------------------------
-            // 5. Draft functions
-            // ------------------------------------------------------------
-            function saveDraft() {
-                var draftData = {
-                    classWorkId: classWorkId,
-                    answers: {},
-                    timestamp: new Date().toISOString()
-                };
-                document.querySelectorAll('.question-card').forEach(function (card, index) {
-                    var qType = questions[index] ? questions[index].type : '';
-                    var answer = null;
-                    if (qType === 'multiple_choice' || qType === 'true_false') {
-                        var selected = card.querySelector('.option-input:checked');
-                        if (selected) answer = selected.value;
-                    } else if (qType === 'short_answer' || qType === 'essay') {
-                        var textarea = card.querySelector('textarea');
-                        if (textarea) answer = textarea.value;
-                    }
-                    if (answer) draftData.answers[index] = answer;
-                });
-                localStorage.setItem('draft_' + classWorkId, JSON.stringify(draftData));
-                alert('Draft saved successfully!');
-            }
-
-            // ------------------------------------------------------------
-            // 6. Load draft on page load
-            // ------------------------------------------------------------
-            document.addEventListener('DOMContentLoaded', function () {
-                var draft = localStorage.getItem('draft_' + classWorkId);
-                if (draft) {
-                    try {
-                        var draftData = JSON.parse(draft);
-                        Object.keys(draftData.answers).forEach(function (index) {
-                            var answer = draftData.answers[index];
-                            var card = document.querySelector('[data-question-index="' + index + '"]');
-                            if (card) {
-                                var qType = questions[index] ? questions[index].type : '';
-                                if (qType === 'multiple_choice' || qType === 'true_false') {
-                                    var radio = card.querySelector('input[value="' + answer + '"]');
-                                    if (radio) {
-                                        radio.checked = true;
-                                        radio.closest('.option-label').classList.add('selected');
-                                    }
-                                } else if (qType === 'short_answer' || qType === 'essay') {
-                                    var textarea = card.querySelector('textarea');
-                                    if (textarea) textarea.value = answer;
-                                }
-                            }
-                        });
-                        updateProgress();
-                        console.log('Draft loaded from', new Date(draftData.timestamp).toLocaleString());
-                    } catch (error) {
-                        console.error('Error loading draft:', error);
-                    }
-                }
-                updateProgress();
-            });
-
-        // ------------------------------------------------------------
-        // 7. Timer (if duration exists)
-        // ------------------------------------------------------------
-        <% if (classWork.duration) { %>
-            var timeLeft = <%= classWork.duration %> * 60;
-                var timerInterval;
-
-                function updateTimer() {
-                    var minutes = Math.floor(timeLeft / 60);
-                    var seconds = timeLeft % 60;
-                    var display = document.getElementById('timerDisplay');
-                    if (display) {
-                        display.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
-                    }
-
-                    if (timeLeft <= 0) {
-                        alert('Time is up! Submitting automatically...');
-                        // Trigger the confirm submit
-                        confirmBtn.click();
-                        clearInterval(timerInterval);
-                    } else {
-                        timeLeft--;
-                    }
-                }
-
-                timerInterval = setInterval(updateTimer, 1000);
-                updateTimer();
-        <% } %>
         </script>
 </body>
 
