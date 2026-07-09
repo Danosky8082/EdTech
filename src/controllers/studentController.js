@@ -2549,14 +2549,11 @@ const viewClassWorkResults = async (req, res) => {
     };
 
     res.render('student/class-work-results', {
-      title: 'Results - ' + classWork.title,
-      classWork: classWork,
-      submission: submission,
-      results: results,
-      user: req.session.user,
-      userSchool: req.userSchool || 'Unknown School',
-      isSuperAdmin: req.isSuperAdmin || false,
-    });
+  title: 'Results - ' + classWork.title,
+  classWork: classWork,
+  submission: submission,
+  results: results
+});
 
   } catch (error) {
     console.error('Error in viewClassWorkResults:', error);
