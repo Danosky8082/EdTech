@@ -61,7 +61,6 @@
             <%- include('../partials/alerts') %>
 
                 <div class="row">
-                    <!-- Sidebar -->
                     <div class="col-md-3">
                         <div class="card card-shadow text-center">
                             <div class="card-body">
@@ -85,15 +84,13 @@
                         </div>
                     </div>
 
-                    <!-- Main Form -->
                     <div class="col-md-9">
                         <div class="card card-shadow">
                             <div class="card-header-custom">
                                 <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Class Work</h4>
                             </div>
                             <div class="card-body">
-                                <form id="createClassWorkForm" novalidate>
-                                    <!-- Hidden input for questions (always sent) -->
+                                <form id="createClassWorkForm">
                                     <input type="hidden" id="questionsInput" name="questions" value="">
 
                                     <div class="row">
@@ -142,36 +139,39 @@
                                         <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
                                     </div>
 
-                                    <!-- ========== QUESTIONS SECTION ========== -->
                                     <hr>
                                     <h5><i class="fas fa-question-circle me-2"></i>Questions</h5>
-                                    <p class="text-muted small">You can upload a .txt/.docx file, or paste JSON directly
-                                        below.</p>
+                                    <p class="text-muted small">Upload a .txt/.docx file, paste JSON, or click
+                                        <strong>"Insert Sample"</strong> to test.</p>
 
                                     <!-- File upload -->
                                     <div class="row g-2 mb-3">
-                                        <div class="col-md-8">
+                                        <div class="col-md-6">
                                             <input type="file" class="form-control" id="questionsFile"
                                                 accept=".txt,.docx,.doc">
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <button type="button" class="btn btn-primary w-100" id="parseBtn">
-                                                <i class="fas fa-upload me-1"></i> Parse & Load
+                                                <i class="fas fa-upload me-1"></i> Parse
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-secondary w-100" id="sampleBtn">
+                                                <i class="fas fa-code me-1"></i> Insert Sample
                                             </button>
                                         </div>
                                     </div>
                                     <div id="uploadStatus" class="small mb-2"></div>
 
-                                    <!-- Textarea for manual JSON (pre-filled by file upload) -->
+                                    <!-- JSON textarea -->
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Questions JSON</label>
                                         <textarea class="form-control" id="questionsTextarea" rows="5"
                                             placeholder='[{"question":"What is 2+2?","type":"multiple_choice","options":["3","4","5"],"correctAnswer":"4","points":1}]'></textarea>
-                                        <div class="form-text">Paste valid JSON array of question objects, or use the
-                                            file upload to generate it.</div>
+                                        <div class="form-text">Must be a valid JSON array of question objects.</div>
                                     </div>
 
-                                    <!-- Preview of parsed questions -->
+                                    <!-- Preview -->
                                     <div id="previewSection" style="display: none;">
                                         <label class="fw-bold">Preview</label>
                                         <div id="previewContainer" class="question-preview"></div>
@@ -199,13 +199,44 @@
                 const previewSection = document.getElementById('previewSection');
                 const previewContainer = document.getElementById('previewContainer');
                 const uploadStatus = document.getElementById('uploadStatus');
-                const parseBtn = document.getElementById('parseBtn');
 
-                // ---------- Parse file and populate textarea ----------
-                parseBtn.addEventListener('click', async function () {
+                // Sample JSON
+                const sampleQuestions = [
+                    {
+                        "question": "What is the capital of France?",
+                        "type": "multiple_choice",
+                        "options": ["London", "Paris", "Berlin", "Madrid"],
+                        "correctAnswer": "Paris",
+                        "points": 2
+                    },
+                    {
+                        "question": "What is 2 + 2?",
+                        "type": "multiple_choice",
+                        "options": ["3", "4", "5", "6"],
+                        "correctAnswer": "4",
+                        "points": 1
+                    },
+                    {
+                        "question": "Explain the process of photosynthesis.",
+                        "type": "descriptive",
+                        "points": 5
+                    }
+                ];
+
+                // Insert sample
+                document.getElementById('sampleBtn').addEventListener('click', function () {
+                    const json = JSON.stringify(sampleQuestions, null, 2);
+                    questionsTextarea.value = json;
+                    questionsInput.value = json;
+                    renderPreview(sampleQuestions);
+                    uploadStatus.innerHTML = '<span class="text-success">✅ Sample questions inserted.</span>';
+                });
+
+                // Parse file
+                document.getElementById('parseBtn').addEventListener('click', async function () {
                     const fileInput = document.getElementById('questionsFile');
                     if (!fileInput.files.length) {
-                        alert('Please select a file first.');
+                        alert('Please select a file.');
                         return;
                     }
 
@@ -224,11 +255,9 @@
                         if (data.success) {
                             const json = JSON.stringify(data.questions, null, 2);
                             questionsTextarea.value = json;
-                            // Also store in hidden input
                             questionsInput.value = json;
-                            // Show preview
                             renderPreview(data.questions);
-                            uploadStatus.innerHTML = `<span class="text-success">✅ ${data.questions.length} questions loaded. You can edit JSON below if needed.</span>`;
+                            uploadStatus.innerHTML = `<span class="text-success">✅ ${data.questions.length} questions loaded.</span>`;
                         } else {
                             uploadStatus.innerHTML = `<span class="text-danger">❌ ${data.message}</span>`;
                             alert('Error: ' + data.message);
@@ -236,28 +265,11 @@
                     } catch (err) {
                         console.error(err);
                         uploadStatus.innerHTML = '<span class="text-danger">❌ Network error</span>';
-                        alert('Network error while parsing file.');
+                        alert('Network error.');
                     }
                 });
 
-                // ---------- Render preview ----------
-                function renderPreview(questions) {
-                    if (!Array.isArray(questions) || questions.length === 0) {
-                        previewSection.style.display = 'none';
-                        return;
-                    }
-                    previewSection.style.display = 'block';
-                    previewContainer.innerHTML = questions.map((q, i) => `
-                    <div class="question-item">
-                        <strong>Q${i + 1}:</strong> ${q.question} 
-                        <span class="badge bg-secondary float-end">${q.points || 1} pts</span>
-                        <br><small class="text-muted">Type: ${q.type || 'unknown'}</small>
-                        ${q.type === 'multiple_choice' && q.options ? `<br><small>Options: ${q.options.map(o => o.text || o).join(', ')}</small>` : ''}
-                    </div>
-                `).join('');
-                }
-
-                // ---------- Live preview when textarea changes ----------
+                // Preview on textarea change
                 questionsTextarea.addEventListener('input', function () {
                     try {
                         const parsed = JSON.parse(this.value);
@@ -272,17 +284,33 @@
                     }
                 });
 
-                // ---------- Form submission ----------
+                function renderPreview(questions) {
+                    if (!Array.isArray(questions) || questions.length === 0) {
+                        previewSection.style.display = 'none';
+                        return;
+                    }
+                    previewSection.style.display = 'block';
+                    previewContainer.innerHTML = questions.map((q, i) => `
+                    <div class="question-item">
+                        <strong>Q${i + 1}:</strong> ${q.question} 
+                        <span class="badge bg-secondary float-end">${q.points || 1} pts</span>
+                        <br><small class="text-muted">Type: ${q.type || 'unknown'}</small>
+                        ${q.type === 'multiple_choice' && q.options ? `<br><small>Options: ${q.options.join(', ')}</small>` : ''}
+                    </div>
+                `).join('');
+                }
+
+                // Form submission
                 form.addEventListener('submit', async function (e) {
                     e.preventDefault();
 
-                    // Ensure the hidden input has the current textarea content
+                    // Ensure hidden input has current textarea content
                     questionsInput.value = questionsTextarea.value;
 
                     const formData = new FormData(this);
                     const data = Object.fromEntries(formData.entries());
 
-                    // Validate questions JSON
+                    // Validate JSON
                     if (data.questions) {
                         try {
                             const parsed = JSON.parse(data.questions);
@@ -290,8 +318,15 @@
                                 alert('Questions must be a JSON array.');
                                 return;
                             }
+                            // Ensure each question has at least a 'question' field
+                            for (let i = 0; i < parsed.length; i++) {
+                                if (!parsed[i].question) {
+                                    alert(`Question ${i + 1} is missing a 'question' field.`);
+                                    return;
+                                }
+                            }
                         } catch (e) {
-                            alert('Invalid JSON in questions field. Please fix it.');
+                            alert('Invalid JSON in questions field: ' + e.message);
                             return;
                         }
                     }
@@ -306,7 +341,7 @@
                         });
                         const result = await res.json();
                         if (result.success) {
-                            alert('✅ Class work created successfully!');
+                            alert('✅ Class work created!');
                             window.location.href = '/teacher/class-works';
                         } else {
                             alert('❌ ' + result.message);

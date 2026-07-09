@@ -2867,35 +2867,38 @@ exports.createClassWorkForm = async (req, res) => {
   }
 };
 
-// Create class work – RELIABLE VERSION
+// Create class work – FINAL RELIABLE VERSION
 exports.createClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
     const { title, description, type, classId, points, dueDate, questions } = req.body;
 
-    console.log('📝 Creating class work, questions raw:', questions);
+    console.log('📝 Received class work data:', { title, classId, questionsType: typeof questions });
 
-    // Validate required
-    if (!title?.trim()) return res.status(400).json({ success: false, message: 'Title is required' });
-    if (!classId) return res.status(400).json({ success: false, message: 'Class is required' });
-
-    // Parse questions – they should be a JSON string
-    let parsedQuestions = [];
-    if (questions) {
-      if (typeof questions === 'string') {
-        try {
-          parsedQuestions = JSON.parse(questions);
-          if (!Array.isArray(parsedQuestions)) parsedQuestions = [];
-        } catch (e) {
-          console.error('JSON parse error:', e.message);
-          parsedQuestions = [];
-        }
-      } else if (Array.isArray(questions)) {
-        parsedQuestions = questions;
-      }
+    // Validate
+    if (!title?.trim()) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+    if (!classId) {
+      return res.status(400).json({ success: false, message: 'Class is required' });
     }
 
-    console.log(`✅ Parsed ${parsedQuestions.length} questions`);
+    // Parse questions
+    let parsedQuestions = [];
+    if (questions) {
+      try {
+        if (typeof questions === 'string') {
+          parsedQuestions = JSON.parse(questions);
+        } else if (Array.isArray(questions)) {
+          parsedQuestions = questions;
+        }
+        if (!Array.isArray(parsedQuestions)) parsedQuestions = [];
+        console.log(`✅ Parsed ${parsedQuestions.length} questions`);
+      } catch (e) {
+        console.error('❌ JSON parse error:', e.message);
+        return res.status(400).json({ success: false, message: 'Invalid JSON in questions: ' + e.message });
+      }
+    }
 
     const data = {
       title: title.trim(),
@@ -2912,7 +2915,7 @@ exports.createClassWork = async (req, res) => {
 
     const classWork = await prisma.classWork.create({ data });
 
-    console.log('✅ Created class work, questions stored:', classWork.questions?.length || 0);
+    console.log('✅ Created class work, questions count:', classWork.questions?.length || 0);
 
     // Notify students
     try {
