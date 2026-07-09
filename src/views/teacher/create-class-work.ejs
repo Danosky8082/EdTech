@@ -40,13 +40,11 @@
                     <!-- Left Sidebar -->
                     <div class="col-md-3">
                         <div class="profile-section text-center">
-                            <% if (teacher.user.avatar) { %>
-                                <img src="<%= teacher.user.avatar.startsWith('/') ? teacher.user.avatar : '/' + teacher.user.avatar %>"
-                                    alt="Teacher Profile" class="profile-img mb-3"
-                                    onerror="this.onerror=null; this.src='/images/default-profile.png'">
+                            <% if (avatarUrl) { %>
+                                <img src="<%= avatarUrl %>" alt="Teacher Profile" class="profile-img mb-3"
+                                    onerror="this.onerror=null; this.src='<%= fallbackAvatar %>'">
                                 <% } else { %>
-                                    <img src="/images/default-profile.png" alt="Teacher Profile"
-                                        class="profile-img mb-3">
+                                    <img src="<%= fallbackAvatar %>" alt="Teacher Profile" class="profile-img mb-3">
                                     <% } %>
                                         <h4>
                                             <%= teacher.user.firstName %>

@@ -2833,6 +2833,7 @@ exports.createClassWorkForm = async (req, res) => {
       }
     });
 
+    // Compute avatar data
     const user = req.session.user;
     let avatarUrl = '';
     let fallbackAvatar = '';
