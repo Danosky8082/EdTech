@@ -2867,39 +2867,27 @@ exports.createClassWorkForm = async (req, res) => {
   }
 };
 
-// Create class work
+// Create class work – RELIABLE VERSION
 exports.createClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
     const { title, description, type, classId, points, dueDate, questions } = req.body;
 
-    console.log('📝 Creating class work:', { 
-      title, 
-      classId, 
-      teacherId, 
-      questionsLength: questions ? questions.length : 0,
-      dueDate 
-    });
+    console.log('📝 Creating class work, questions raw:', questions);
 
-    // Validate
-    if (!title || !title.trim()) {
-      return res.status(400).json({ success: false, message: 'Title is required' });
-    }
-    if (!classId) {
-      return res.status(400).json({ success: false, message: 'Please select a class' });
-    }
+    // Validate required
+    if (!title?.trim()) return res.status(400).json({ success: false, message: 'Title is required' });
+    if (!classId) return res.status(400).json({ success: false, message: 'Class is required' });
 
-    // Parse questions – it's a JSON string from the hidden input
+    // Parse questions – they should be a JSON string
     let parsedQuestions = [];
     if (questions) {
       if (typeof questions === 'string') {
         try {
           parsedQuestions = JSON.parse(questions);
-          if (!Array.isArray(parsedQuestions)) {
-            parsedQuestions = [];
-          }
+          if (!Array.isArray(parsedQuestions)) parsedQuestions = [];
         } catch (e) {
-          console.error('❌ Error parsing questions JSON:', e);
+          console.error('JSON parse error:', e.message);
           parsedQuestions = [];
         }
       } else if (Array.isArray(questions)) {
@@ -2907,31 +2895,29 @@ exports.createClassWork = async (req, res) => {
       }
     }
 
-    console.log(`✅ Parsed questions count: ${parsedQuestions.length}`);
+    console.log(`✅ Parsed ${parsedQuestions.length} questions`);
 
-    // Build data
     const data = {
       title: title.trim(),
-      description: description ? description.trim() : null,
+      description: description?.trim() || null,
       type: type || 'assignment',
-      points: points ? parseInt(points) : 100,
+      points: parseInt(points) || 100,
       dueDate: dueDate ? new Date(dueDate) : null,
-      questions: parsedQuestions,  // Store as array
-      classId: classId,
-      teacherId: teacherId,
+      questions: parsedQuestions,
+      classId,
+      teacherId,
       isActive: true,
       createdAt: new Date()
     };
 
     const classWork = await prisma.classWork.create({ data });
 
-    console.log('✅ Class work created with ID:', classWork.id);
-    console.log('📦 Stored questions count:', classWork.questions ? classWork.questions.length : 0);
+    console.log('✅ Created class work, questions stored:', classWork.questions?.length || 0);
 
-    // Send notifications
+    // Notify students
     try {
       const students = await prisma.enrollment.findMany({
-        where: { classId: classId },
+        where: { classId },
         include: { student: true }
       });
       for (const enrollment of students) {
@@ -2939,28 +2925,21 @@ exports.createClassWork = async (req, res) => {
           data: {
             userId: enrollment.student.userId,
             title: 'New Class Work',
-            message: `New ${type || 'assignment'} "${title}" has been assigned`,
+            message: `New ${type || 'assignment'} "${title}" assigned`,
             icon: 'fa-tasks',
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
           }
         });
       }
     } catch (notifError) {
-      console.error('❌ Error sending notifications:', notifError);
+      console.error('Notification error:', notifError);
     }
 
-    res.json({
-      success: true,
-      message: 'Class work created successfully',
-      classWorkId: classWork.id
-    });
+    res.json({ success: true, message: 'Class work created', classWorkId: classWork.id });
 
   } catch (error) {
-    console.error('❌ Error in createClassWork:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create class work: ' + error.message
-    });
+    console.error('❌ Create class work error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
