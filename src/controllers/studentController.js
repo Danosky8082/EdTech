@@ -2487,7 +2487,6 @@ const viewClassWorkResults = async (req, res) => {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
 
-    // Get the submission with class work and class info
     const submission = await prisma.classWorkSubmission.findUnique({
       where: {
         classWorkId_studentId: {
@@ -2499,9 +2498,7 @@ const viewClassWorkResults = async (req, res) => {
         classWork: {
           include: {
             class: true,
-            teacher: {
-              include: { user: true }
-            }
+            teacher: { include: { user: true } }
           }
         }
       }
@@ -2516,23 +2513,18 @@ const viewClassWorkResults = async (req, res) => {
     let totalPoints = 0;
     let earnedPoints = 0;
 
-    // Calculate points
-    questions.forEach((q, idx) => {
+    questions.forEach(function(q, idx) {
       const points = q.points || 1;
       totalPoints += points;
       const userAnswer = submission.answers ? submission.answers[idx] : null;
-
-      // Only auto-grade multiple-choice and true/false
       if (q.type === 'multiple_choice' || q.type === 'true_false') {
         if (userAnswer && userAnswer === q.correctAnswer) {
           earnedPoints += points;
         }
       } else {
-        // For open-ended, give points if answered (or use teacher-assigned score)
         if (userAnswer && userAnswer.trim().length > 0) {
-          // If teacher set score, use it; otherwise give full points
           if (submission.score !== null) {
-            // We'll use the score field if present
+            // use teacher score later
           } else {
             earnedPoints += points;
           }
@@ -2540,12 +2532,9 @@ const viewClassWorkResults = async (req, res) => {
       }
     });
 
-    // If teacher set a score directly (e.g., after grading), override
     if (submission.score !== null) {
       earnedPoints = submission.score;
     }
-
-    // Clamp to total points
     if (earnedPoints > totalPoints) earnedPoints = totalPoints;
 
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
@@ -2558,7 +2547,7 @@ const viewClassWorkResults = async (req, res) => {
     };
 
     res.render('student/class-work-results', {
-      title: `Results - ${classWork.title}`,
+      title: 'Results - ' + classWork.title,
       classWork: classWork,
       submission: submission,
       results: results,
@@ -2568,11 +2557,8 @@ const viewClassWorkResults = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error in viewClassWorkResults:', error);
-    res.status(500).render('error/500', {
-      title: 'Server Error',
-      message: 'Failed to load results.'
-    });
+    console.error('Error in viewClassWorkResults:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
   }
 };
 
