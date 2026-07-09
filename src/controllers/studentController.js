@@ -2232,7 +2232,7 @@ const viewClassWorks = async (req, res) => {
   }
 };
 
-// Take class work
+// Take class work – DEBUG VERSION
 const takeClassWork = async (req, res) => {
   try {
     const studentId = req.session.user?.studentId || req.user?.studentId;
@@ -2250,7 +2250,6 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    // ✅ Get class work – explicitly select all fields
     const classWork = await prisma.classWork.findUnique({
       where: { id: classWorkId },
       include: {
@@ -2316,34 +2315,54 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    // ✅ CRITICAL: Parse questions – they may be stored as JSON string or already an array
+    // ========== DEBUG: Log the raw questions field ==========
+    console.log('🔍 Raw questions field from DB:', classWork.questions);
+    console.log('🔍 Type of questions:', typeof classWork.questions);
+
+    // ========== PARSE QUESTIONS ==========
     let questions = classWork.questions || [];
-    
-    // If questions is a string, try to parse it
+
+    // If it's a string, try to parse it
     if (typeof questions === 'string') {
       try {
         questions = JSON.parse(questions);
-        console.log('✅ Parsed questions from string:', questions.length);
-      } catch (e) {
-        console.error('❌ Failed to parse questions string:', e);
+        console.log('✅ Parsed questions from string successfully.');
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON string:', parseError.message);
+        // If parsing fails, maybe it's a plain string with line breaks? Treat as empty.
         questions = [];
       }
     }
-    
-    // If questions is an object but not an array, try to convert
+
+    // If it's an object but not an array, try to extract
     if (!Array.isArray(questions) && typeof questions === 'object') {
-      console.log('⚠️ Questions is an object, not array:', questions);
-      // Try to extract from object
+      console.log('⚠️ Questions is an object, not array. Attempting conversion...');
+      // Maybe it's { questions: [...] }?
       if (questions.questions && Array.isArray(questions.questions)) {
         questions = questions.questions;
       } else {
-        questions = Object.values(questions).filter(item => typeof item === 'object' && item.question);
+        // Try to extract values that look like questions
+        const extracted = Object.values(questions).filter(item => 
+          item && typeof item === 'object' && item.question
+        );
+        if (extracted.length > 0) questions = extracted;
       }
     }
 
-    console.log(`✅ Final questions count: ${questions.length}`);
-    console.log('✅ Questions sample:', questions.slice(0, 2));
+    // Ensure it's an array
+    if (!Array.isArray(questions)) {
+      console.warn('⚠️ Questions is still not an array. Setting to empty array.');
+      questions = [];
+    }
 
+    console.log(`✅ Final questions count: ${questions.length}`);
+    if (questions.length > 0) {
+      console.log('✅ Sample question:', questions[0]);
+    } else {
+      console.warn('⚠️ No questions after parsing.');
+    }
+
+    // ========== RENDER ==========
     res.render('student/take-class-work', {
       title: `Class Work: ${classWork.title}`,
       classWork: {
@@ -2354,7 +2373,10 @@ const takeClassWork = async (req, res) => {
       hasSubmission: !!existingSubmission,
       userSchool: userSchool || 'Unknown School',
       isSuperAdmin: isSuperAdmin || false,
-      user: req.session.user
+      user: req.session.user,
+      // Pass debug info to view
+      debugQuestions: classWork.questions,
+      debugParsed: questions
     });
 
   } catch (error) {
@@ -2365,7 +2387,6 @@ const takeClassWork = async (req, res) => {
     });
   }
 };
-
 // Submit class work
 const submitClassWork = async (req, res) => {
   try {

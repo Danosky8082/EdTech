@@ -45,15 +45,15 @@
             border-radius: 5px;
         }
 
-        .timer {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #dc3545;
-        }
-
-        .submitted-msg {
-            color: #198754;
-            font-weight: 600;
+        .debug-box {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -160,6 +160,34 @@
                                 <div class="alert alert-warning">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     This class work has no questions yet. Please contact your teacher.
+                                </div>
+
+                                <!-- ========== DEBUG: Show raw data ========== -->
+                                <div class="card mt-3">
+                                    <div class="card-header bg-secondary text-white">
+                                        <i class="fas fa-bug me-1"></i> Debug Information
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>classWork.questions (raw from DB):</strong></p>
+                                        <div class="debug-box">
+                                            <%= JSON.stringify(debugQuestions !==undefined ? debugQuestions :
+                                                classWork.questions, null, 2) %>
+                                        </div>
+                                        <p class="mt-2"><strong>Parsed questions:</strong></p>
+                                        <div class="debug-box">
+                                            <%= JSON.stringify(debugParsed !==undefined ? debugParsed : [], null, 2) %>
+                                        </div>
+                                        <p class="mt-2"><strong>Type of raw questions:</strong>
+                                            <%= typeof debugQuestions !==undefined ? typeof debugQuestions : typeof
+                                                classWork.questions %>
+                                        </p>
+                                        <p><strong>Is array?</strong>
+                                            <%= Array.isArray(classWork.questions) ? 'Yes' : 'No' %>
+                                        </p>
+                                        <p><strong>Length:</strong>
+                                            <%= classWork.questions ? classWork.questions.length : 0 %>
+                                        </p>
+                                    </div>
                                 </div>
                                 <% } %>
 
