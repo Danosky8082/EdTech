@@ -78,6 +78,9 @@
                             </div>
                             <div class="card-body">
                                 <form id="createClassWorkForm">
+                                    <!-- ========= HIDDEN INPUT FOR QUESTIONS ========= -->
+                                    <input type="hidden" id="questionsInput" name="questions" value="">
+
                                     <div class="mb-3">
                                         <label for="title" class="form-label">Title *</label>
                                         <input type="text" class="form-control" id="title" name="title" required>
@@ -186,6 +189,7 @@
                 const questionsSection = document.getElementById('questionsSection');
                 const questionsContainer = document.getElementById('questionsContainer');
                 const addQuestionBtn = document.getElementById('addQuestionBtn');
+                const questionsInput = document.getElementById('questionsInput'); // ✅ Hidden input
 
                 // ---------- FUNCTION TO ADD A QUESTION CARD ----------
                 function addQuestion(questionData = null) {
@@ -261,6 +265,7 @@
                     // Attach remove question handler
                     questionDiv.querySelector('.remove-question').addEventListener('click', function () {
                         questionDiv.remove();
+                        // Clear hidden input if no questions remain? We'll handle in submission.
                     });
 
                     // Attach add option handler
@@ -347,6 +352,10 @@
                         const result = await response.json();
 
                         if (result.success) {
+                            // ✅ Populate the hidden input with the parsed questions JSON
+                            questionsInput.value = JSON.stringify(result.questions);
+                            console.log('📝 Hidden input populated with', result.questions.length, 'questions');
+
                             // Ensure the quiz type is selected and questions section is visible
                             if (typeSelect.value !== 'quiz') {
                                 typeSelect.value = 'quiz';
@@ -378,36 +387,26 @@
                     const formData = new FormData(form);
                     const data = Object.fromEntries(formData.entries());
 
-                    // Collect questions if quiz
-                    if (typeSelect.value === 'quiz') {
-                        const questions = [];
-                        const questionElements = questionsContainer.querySelectorAll('.card');
-
-                        questionElements.forEach((qEl) => {
-                            const question = {
-                                question: qEl.querySelector('.question-text').value,
-                                type: qEl.querySelector('.question-type').value,
-                                points: parseInt(qEl.querySelector('.question-points').value) || 1,
-                                options: []
-                            };
-
-                            // For multiple choice, collect options
-                            if (question.type === 'multiple_choice') {
-                                const optionItems = qEl.querySelectorAll('.option-item');
-                                optionItems.forEach((optEl) => {
-                                    const radio = optEl.querySelector('input[type="radio"]');
-                                    const textInput = optEl.querySelector('.option-input');
-                                    question.options.push({
-                                        text: textInput.value,
-                                        isCorrect: radio.checked
-                                    });
-                                });
+                    // If hidden input has questions (from file upload), use that
+                    if (questionsInput.value) {
+                        // Use the JSON string from the hidden input
+                        // But we need to ensure it's a valid array
+                        try {
+                            const parsed = JSON.parse(questionsInput.value);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                data.questions = questionsInput.value;
+                                console.log('📤 Using questions from hidden input (file upload)');
+                            } else {
+                                // fallback to manual
+                                collectManualQuestions(data);
                             }
-
-                            questions.push(question);
-                        });
-
-                        data.questions = JSON.stringify(questions);
+                        } catch (e) {
+                            // If invalid, fallback to manual
+                            collectManualQuestions(data);
+                        }
+                    } else {
+                        // Otherwise, collect from UI
+                        collectManualQuestions(data);
                     }
 
                     try {
@@ -431,6 +430,41 @@
                         alert('Error creating class work: ' + error.message);
                     }
                 });
+
+                // Helper to collect questions from the UI
+                function collectManualQuestions(data) {
+                    if (typeSelect.value === 'quiz') {
+                        const questions = [];
+                        const questionElements = questionsContainer.querySelectorAll('.card');
+
+                        questionElements.forEach((qEl) => {
+                            const question = {
+                                question: qEl.querySelector('.question-text').value,
+                                type: qEl.querySelector('.question-type').value,
+                                points: parseInt(qEl.querySelector('.question-points').value) || 1,
+                                options: []
+                            };
+
+                            if (question.type === 'multiple_choice') {
+                                const optionItems = qEl.querySelectorAll('.option-item');
+                                optionItems.forEach((optEl) => {
+                                    const radio = optEl.querySelector('input[type="radio"]');
+                                    const textInput = optEl.querySelector('.option-input');
+                                    if (textInput.value) { // only include non-empty options
+                                        question.options.push({
+                                            text: textInput.value,
+                                            isCorrect: radio.checked
+                                        });
+                                    }
+                                });
+                            }
+
+                            questions.push(question);
+                        });
+
+                        data.questions = JSON.stringify(questions);
+                    }
+                }
             });
         </script>
 </body>

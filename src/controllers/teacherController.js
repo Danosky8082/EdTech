@@ -2874,31 +2874,35 @@ exports.createClassWork = async (req, res) => {
 
     console.log('📝 Creating class work with questions:', questions);
 
-    // Parse questions – they come as a JSON string from the frontend
+    // Parse questions – they come as a JSON string from the front-end
     let parsedQuestions = [];
     if (questions) {
       if (typeof questions === 'string') {
         try {
           parsedQuestions = JSON.parse(questions);
+          console.log('✅ Parsed questions from string:', parsedQuestions.length);
         } catch (e) {
           console.error('❌ Error parsing questions string:', e);
           parsedQuestions = [];
         }
       } else if (Array.isArray(questions)) {
         parsedQuestions = questions;
-      } else if (typeof questions === 'object') {
-        // If it's an object with numeric keys, convert to array
-        parsedQuestions = Object.values(questions).filter(item => item && typeof item === 'object' && item.question);
+        console.log('✅ Questions already array:', parsedQuestions.length);
+      } else {
+        console.warn('⚠️ Questions is neither string nor array:', typeof questions);
+        parsedQuestions = [];
       }
+    } else {
+      console.warn('⚠️ No questions field in request body');
     }
-
-    console.log('✅ Parsed questions count:', parsedQuestions.length);
 
     // Ensure each question has a points field
     parsedQuestions = parsedQuestions.map(q => ({
       ...q,
       points: q.points || 1
     }));
+
+    console.log(`✅ Final questions count: ${parsedQuestions.length}`);
 
     const classWork = await prisma.classWork.create({
       data: {
@@ -2907,7 +2911,7 @@ exports.createClassWork = async (req, res) => {
         type: type || 'assignment',
         points: points ? parseInt(points) : 100,
         dueDate: dueDate ? new Date(dueDate) : null,
-        questions: parsedQuestions,  // ✅ Store as array
+        questions: parsedQuestions,  // ✅ Store the parsed array
         classId: classId,
         teacherId: teacherId,
         isActive: true,
@@ -2916,7 +2920,6 @@ exports.createClassWork = async (req, res) => {
     });
 
     console.log('✅ Class work created with ID:', classWork.id);
-    console.log('✅ Stored questions count:', classWork.questions.length);
 
     // Create notifications for students
     const classStudents = await prisma.enrollment.findMany({
@@ -3809,10 +3812,7 @@ exports.getMaterialIcon = function(type) {
 };
 
 // ========== CLASS WORK QUESTIONS PARSING ==========
-/**
- * POST /teacher/class-works/parse-questions
- * Parses uploaded .txt or .docx file and returns array of question objects
- */
+// POST /teacher/class-works/parse-questions
 exports.parseClassWorkQuestions = async (req, res) => {
   try {
     if (!req.file) {
