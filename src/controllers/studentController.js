@@ -2497,8 +2497,7 @@ const viewClassWorkResults = async (req, res) => {
       include: {
         classWork: {
           include: {
-            class: true,
-            teacher: { include: { user: true } }
+            class: true
           }
         }
       }
@@ -2513,29 +2512,15 @@ const viewClassWorkResults = async (req, res) => {
     let totalPoints = 0;
     let earnedPoints = 0;
 
-    questions.forEach(function(q, idx) {
+    questions.forEach(function(q) {
       const points = q.points || 1;
       totalPoints += points;
-      const userAnswer = submission.answers ? submission.answers[idx] : null;
-      if (q.type === 'multiple_choice' || q.type === 'true_false') {
-        if (userAnswer && userAnswer === q.correctAnswer) {
-          earnedPoints += points;
-        }
-      } else {
-        if (userAnswer && userAnswer.trim().length > 0) {
-          if (submission.score !== null) {
-            // use teacher score later
-          } else {
-            earnedPoints += points;
-          }
-        }
-      }
+      // We'll just pass raw data; we can calculate in the view later
     });
 
     if (submission.score !== null) {
       earnedPoints = submission.score;
     }
-    if (earnedPoints > totalPoints) earnedPoints = totalPoints;
 
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
@@ -2544,6 +2529,8 @@ const viewClassWorkResults = async (req, res) => {
       totalPoints: totalPoints,
       percentage: percentage,
       questions: questions,
+      // pass raw submission answers
+      answers: submission.answers || {}
     };
 
     res.render('student/class-work-results', {
@@ -2551,9 +2538,6 @@ const viewClassWorkResults = async (req, res) => {
       classWork: classWork,
       submission: submission,
       results: results,
-      user: req.session.user,
-      userSchool: req.userSchool || 'Unknown School',
-      isSuperAdmin: req.isSuperAdmin || false,
     });
 
   } catch (error) {
