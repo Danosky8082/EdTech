@@ -111,13 +111,14 @@
                     <div class="result-card mt-4 p-3">
                         <h5><i class="fas fa-list-check me-2"></i>Your Answers</h5>
                         <% if (results.questions && results.questions.length> 0) { %>
-                            <% results.questions.forEach(function(q, idx) { var userAnswer=submission.answers ?
-                                submission.answers[idx] : null; var isCorrect=q.correctAnswer && userAnswer &&
-                                userAnswer===q.correctAnswer; var isAutoGraded=q.type==='multiple_choice' ||
-                                q.type==='true_false' ; %>
+                            <% for (var i=0; i < results.questions.length; i++) { var q=results.questions[i]; var
+                                userAnswer=submission.answers ? submission.answers[i] : null; var
+                                isAutoGraded=q.type==='multiple_choice' || q.type==='true_false' ; var isCorrect=false;
+                                if (isAutoGraded && q.correctAnswer && userAnswer && userAnswer===q.correctAnswer) {
+                                isCorrect=true; } %>
                                 <div class="question-review">
                                     <div class="d-flex justify-content-between">
-                                        <strong>Q<%= idx+1 %>:</strong>
+                                        <strong>Q<%= i+1 %>:</strong>
                                         <span
                                             class="<%= isAutoGraded ? (isCorrect ? 'correct' : 'incorrect') : 'text-muted' %>">
                                             <i
@@ -144,7 +145,7 @@
                                         </div>
                                         <% } %>
                                 </div>
-                                <% }); %>
+                                <% } %>
                                     <% } else { %>
                                         <p class="text-muted">No questions found.</p>
                                         <% } %>
