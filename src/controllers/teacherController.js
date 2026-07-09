@@ -3575,63 +3575,129 @@ exports.deleteLiveSession = async (req, res) => {
   }
 };
 
-// In teacherController.js
+// Get submission details (for both assignment and class work)
 exports.getSubmissionDetails = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        const submission = await prisma.submission.findUnique({
-            where: { id },
-            include: {
-                student: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        avatar: true
-                    }
-                },
-                classWork: {
-                    include: {
-                        questions: true
-                    }
-                }
-            }
-        });
+  try {
+    const { id } = req.params;
 
-        if (!submission) {
-            return res.status(404).json({ success: false, message: 'Submission not found' });
+    // Try ClassWorkSubmission first
+    let classWorkSub = await prisma.classWorkSubmission.findUnique({
+      where: { id: id },
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true
+          }
+        },
+        classWork: {
+          include: { questions: true }
         }
+      }
+    });
 
-        res.json({ success: true, submission, classWork: submission.classWork });
-    } catch (error) {
-        console.error('Error getting submission details:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+    if (classWorkSub) {
+      return res.json({ 
+        success: true, 
+        submission: classWorkSub, 
+        classWork: classWorkSub.classWork,
+        type: 'classwork'
+      });
     }
+
+    // Try Assignment submission
+    let assignmentSub = await prisma.submission.findUnique({
+      where: { id: id },
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true
+          }
+        },
+        assignment: {
+          include: { questions: true }
+        }
+      }
+    });
+
+    if (assignmentSub) {
+      return res.json({ 
+        success: true, 
+        submission: assignmentSub, 
+        assignment: assignmentSub.assignment,
+        type: 'assignment'
+      });
+    }
+
+    return res.status(404).json({ success: false, message: 'Submission not found' });
+  } catch (error) {
+    console.error('Error getting submission details:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 };
 
+// Grade submission – handles both Assignment and ClassWork submissions
 exports.gradeSubmission = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { score, grade, feedback } = req.body;
-        
-        const submission = await prisma.submission.update({
-            where: { id },
-            data: {
-                score: parseFloat(score),
-                grade: grade || null,
-                feedback: feedback || null,
-                status: 'graded',
-                gradedAt: new Date()
-            }
-        });
+  try {
+    const { id } = req.params;
+    const { score, grade, feedback } = req.body;
 
-        res.json({ success: true, submission });
-    } catch (error) {
-        console.error('Error grading submission:', error);
-        res.status(500).json({ success: false, message: 'Failed to grade submission' });
+    console.log(`📝 Grading submission ID: ${id}`);
+
+    // First, try to find it in ClassWorkSubmission
+    let classWorkSub = await prisma.classWorkSubmission.findFirst({
+      where: { id: id },
+      include: { classWork: true }
+    });
+
+    if (classWorkSub) {
+      // It's a class work submission
+      const updated = await prisma.classWorkSubmission.update({
+        where: { id: id },
+        data: {
+          score: parseFloat(score) || null,
+          feedback: feedback || null,
+          gradedAt: new Date(),
+          status: 'graded'
+        }
+      });
+      console.log('✅ Class work submission graded');
+      return res.json({ success: true, message: 'Grade saved successfully', submission: updated });
     }
+
+    // If not found, try Assignment submission
+    let assignmentSub = await prisma.submission.findFirst({
+      where: { id: id },
+      include: { assignment: true }
+    });
+
+    if (assignmentSub) {
+      const gradeInt = parseInt(score);
+      const updated = await prisma.submission.update({
+        where: { id: id },
+        data: {
+          grade: gradeInt,
+          feedback: feedback || null,
+          // Note: no gradedAt field in your schema, but you can add if needed
+        }
+      });
+      console.log('✅ Assignment submission graded');
+      return res.json({ success: true, message: 'Grade saved successfully', submission: updated });
+    }
+
+    // If neither found
+    return res.status(404).json({ success: false, message: 'Submission not found' });
+  } catch (error) {
+    console.error('Error grading submission:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // Delete material - FIXED

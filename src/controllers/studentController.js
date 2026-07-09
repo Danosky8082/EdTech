@@ -2512,28 +2512,27 @@ const viewClassWorkResults = async (req, res) => {
       return res.status(404).render('error/404', { title: 'Submission Not Found' });
     }
 
-    const results = {
-      score: submission.score || 0,
-      totalQuestions: submission.classWork.questions?.length || 0,
-      correctAnswers: Math.round((submission.score || 0) / (submission.classWork.questions?.[0]?.points || 1)),
-      submittedAt: submission.submittedAt
-    };
+    // Compute score and total
+    const score = submission.score || 0;
+    const total = submission.classWork.points || 100;
 
     res.render('student/class-work-results', {
       title: `Results - ${submission.classWork.title}`,
-      results,
       submission: submission,
       classWork: submission.classWork,
       classWorkId,
-      currentPage: 'class-works',
-      userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
+      score,
+      total,
+      percentage: total > 0 ? Math.round((score / total) * 100) : 0,
+      userSchool,
+      isSuperAdmin,
+      user: req.session.user
     });
   } catch (error) {
     console.error('❌ Error in viewClassWorkResults:', error);
     res.status(500).render('error/500', {
-      error: 'Failed to load class work results',
-      message: error.message
+      title: 'Server Error',
+      message: 'Failed to load class work results'
     });
   }
 };
