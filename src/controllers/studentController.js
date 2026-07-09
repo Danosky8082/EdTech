@@ -2250,7 +2250,7 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    // ✅ Get class work with class and enrollment check – includes all scalar fields (like questions)
+    // ✅ Get class work – explicitly select all fields
     const classWork = await prisma.classWork.findUnique({
       where: { id: classWorkId },
       include: {
@@ -2283,6 +2283,8 @@ const takeClassWork = async (req, res) => {
       });
     }
 
+    console.log('🔍 Full class work object:', JSON.stringify(classWork, null, 2));
+
     // Verify enrollment
     if (!classWork.class.enrollments || classWork.class.enrollments.length === 0) {
       console.error('❌ Student not enrolled:', { classWorkId, studentId });
@@ -2314,17 +2316,33 @@ const takeClassWork = async (req, res) => {
       });
     }
 
-    // ✅ Ensure questions is an array (Prisma already parses JSON, but just in case)
+    // ✅ CRITICAL: Parse questions – they may be stored as JSON string or already an array
     let questions = classWork.questions || [];
+    
+    // If questions is a string, try to parse it
     if (typeof questions === 'string') {
       try {
         questions = JSON.parse(questions);
+        console.log('✅ Parsed questions from string:', questions.length);
       } catch (e) {
+        console.error('❌ Failed to parse questions string:', e);
         questions = [];
       }
     }
+    
+    // If questions is an object but not an array, try to convert
+    if (!Array.isArray(questions) && typeof questions === 'object') {
+      console.log('⚠️ Questions is an object, not array:', questions);
+      // Try to extract from object
+      if (questions.questions && Array.isArray(questions.questions)) {
+        questions = questions.questions;
+      } else {
+        questions = Object.values(questions).filter(item => typeof item === 'object' && item.question);
+      }
+    }
 
-    console.log(`✅ Rendering take-class-work view with ${questions.length} questions`);
+    console.log(`✅ Final questions count: ${questions.length}`);
+    console.log('✅ Questions sample:', questions.slice(0, 2));
 
     res.render('student/take-class-work', {
       title: `Class Work: ${classWork.title}`,

@@ -2866,30 +2866,31 @@ exports.createClassWorkForm = async (req, res) => {
   }
 };
 
-// Create class work (unchanged)
+// Create class work
 exports.createClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
     const { title, description, type, classId, points, dueDate, questions } = req.body;
 
-    console.log('Creating class work:', { title, classId, teacherId });
+    console.log('📝 Creating class work with questions:', questions);
 
-    // Basic validation
-    if (!title || !title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title is required'
-      });
+    // Parse questions if they're a string
+    let parsedQuestions = [];
+    if (questions) {
+      if (typeof questions === 'string') {
+        try {
+          parsedQuestions = JSON.parse(questions);
+        } catch (e) {
+          console.error('Error parsing questions string:', e);
+          parsedQuestions = [];
+        }
+      } else if (Array.isArray(questions)) {
+        parsedQuestions = questions;
+      }
     }
 
-    if (!classId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please select a class'
-      });
-    }
+    console.log('✅ Parsed questions count:', parsedQuestions.length);
 
-    // Use string IDs directly
     const classWork = await prisma.classWork.create({
       data: {
         title: title.trim(),
@@ -2897,30 +2898,15 @@ exports.createClassWork = async (req, res) => {
         type: type || 'assignment',
         points: points ? parseInt(points) : 100,
         dueDate: dueDate ? new Date(dueDate) : null,
-        questions: questions ? (typeof questions === 'string' ? JSON.parse(questions) : questions) : [],
-        classId: classId,  // String ID
-        teacherId: teacherId,  // String ID
+        questions: parsedQuestions,  // ✅ Store as array
+        classId: classId,
+        teacherId: teacherId,
         isActive: true,
         createdAt: new Date()
       }
     });
 
-    console.log('✅ Class work created:', classWork.id);
-
-    // Create notifications for students
-    const classStudents = await prisma.enrollment.findMany({
-      where: { classId: classId },
-      include: { student: true }
-    });
-
-    for (const enrollment of classStudents) {
-      await createNotification(
-        enrollment.student.userId,
-        'New Class Work',
-        `New ${type || 'assignment'} "${title}" has been assigned`,
-        'fa-tasks'
-      );
-    }
+    console.log('✅ Class work created with ID:', classWork.id);
 
     res.json({
       success: true,
@@ -3817,8 +3803,15 @@ exports.parseClassWorkQuestions = async (req, res) => {
       });
     }
 
-    if (questions.length > 100) questions = questions.slice(0, 100);
+    // ✅ Ensure each question has a points field
+    questions = questions.map(q => ({
+      ...q,
+      points: q.points || 1
+    }));
+
     console.log(`✅ Parsed ${questions.length} class work questions from ${req.file.originalname}`);
+    console.log('✅ Sample question:', questions[0]);
+
     res.json({ success: true, questions });
 
   } catch (error) {
