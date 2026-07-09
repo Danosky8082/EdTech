@@ -2480,9 +2480,8 @@ const submitClassWork = async (req, res) => {
 };
 
 // ============================================================
-// VIEW CLASS WORK RESULTS
+// VIEW CLASS WORK RESULTS – DIRECT HTML (bypass EJS)
 // ============================================================
-// In studentController.js – replace with this updated version
 const viewClassWorkResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
@@ -2505,59 +2504,117 @@ const viewClassWorkResults = async (req, res) => {
     });
 
     if (!submission) {
-      return res.status(404).render('error/404', { title: 'Submission Not Found' });
+      return res.status(404).send('<h1>Submission not found</h1><a href="/student/dashboard">Back</a>');
     }
 
     const classWork = submission.classWork;
     const questions = classWork.questions || [];
-
-    // Calculate total points
     let totalPoints = 0;
-    questions.forEach(function(q) {
-      totalPoints += q.points || 1;
-    });
-
-    // Use teacher-assigned score if available, otherwise calculate from answers
-    let earnedPoints = submission.score;
-    if (earnedPoints === null) {
-      earnedPoints = 0;
-      questions.forEach(function(q, idx) {
-        const userAnswer = submission.answers ? submission.answers[idx] : null;
-        if (q.type === 'multiple_choice' || q.type === 'true_false') {
-          if (userAnswer && userAnswer === q.correctAnswer) {
-            earnedPoints += q.points || 1;
-          }
-        } else {
-          // For descriptive, give points if answered (or you can give 0)
-          if (userAnswer && userAnswer.trim().length > 0) {
-            earnedPoints += q.points || 1;
-          }
-        }
-      });
-    }
-
-    // Clamp to total points
+    questions.forEach(function(q) { totalPoints += (q.points || 1); });
+    let earnedPoints = submission.score !== null ? submission.score : 0;
     if (earnedPoints > totalPoints) earnedPoints = totalPoints;
-
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
-    const results = {
-      score: earnedPoints,
-      totalPoints: totalPoints,
-      percentage: percentage,
-      questions: questions,
-    };
+    // Build HTML directly – this avoids EJS entirely
+    let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results - ${classWork.title}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background: #f0f2f5; }
+    .result-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .result-header { background: linear-gradient(135deg, #6a11cb, #2575fc); color: white; border-radius: 16px 16px 0 0; padding: 1.5rem; }
+    .score-circle { width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; margin: 0 auto; }
+    .question-review { border-bottom: 1px solid #e9ecef; padding: 1rem 0; }
+    .question-review:last-child { border-bottom: none; }
+    .correct { color: #28a745; }
+    .incorrect { color: #dc3545; }
+    .feedback-box { background: #f8f9fa; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="result-card">
+          <div class="result-header text-center">
+            <h4><i class="fas fa-graduation-cap me-2"></i>${classWork.title}</h4>
+            <p class="mb-0">${classWork.class ? classWork.class.name : ''}</p>
+          </div>
+          <div class="card-body text-center">
+            <div class="score-circle">${earnedPoints} / ${totalPoints}</div>
+            <h5 class="mt-3">Score: <strong>${percentage}%</strong></h5>
+            <p class="text-muted">Submitted: ${new Date(submission.submittedAt).toLocaleString()}</p>
+            <p>
+              <span class="badge bg-${percentage >= 70 ? 'success' : percentage >= 50 ? 'warning' : 'danger'}">
+                ${percentage >= 70 ? 'Passed' : percentage >= 50 ? 'Needs Improvement' : 'Needs Review'}
+              </span>
+            </p>
+          </div>
+        </div>
 
-    res.render('student/class-work-results', {
-  title: 'Results - ' + classWork.title,
-  classWork: classWork,
-  submission: submission,
-  results: results
-});
+        <div class="result-card mt-4 p-3">
+          <h5><i class="fas fa-list-check me-2"></i>Your Answers</h5>`;
+
+    if (questions.length > 0) {
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const userAnswer = submission.answers ? submission.answers[i] : null;
+        const isAutoGraded = q.type === 'multiple_choice' || q.type === 'true_false';
+        let isCorrect = false;
+        if (isAutoGraded && q.correctAnswer && userAnswer && userAnswer === q.correctAnswer) {
+          isCorrect = true;
+        }
+        const correctClass = isAutoGraded ? (isCorrect ? 'correct' : 'incorrect') : 'text-muted';
+        const iconClass = isAutoGraded ? (isCorrect ? 'fa-check-circle' : 'fa-times-circle') : 'fa-ellipsis-h';
+        html += `
+          <div class="question-review">
+            <div class="d-flex justify-content-between">
+              <strong>Q${i+1}:</strong>
+              <span class="${correctClass}">
+                <i class="fas ${iconClass} me-1"></i> ${q.points || 1} pts
+              </span>
+            </div>
+            <p>${q.question}</p>
+            <div>
+              <strong>Your answer:</strong> ${userAnswer || 'Not answered'}
+              ${isAutoGraded && q.correctAnswer ? `<br><span class="text-muted">Correct answer: <strong>${q.correctAnswer}</strong></span>` : ''}
+            </div>
+            ${submission.feedback ? `<div class="feedback-box"><strong>Teacher Feedback:</strong> ${submission.feedback}</div>` : ''}
+          </div>`;
+      }
+    } else {
+      html += `<p class="text-muted">No questions found.</p>`;
+    }
+
+    html += `
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <a href="/student/class/${classWork.classId}/class-works" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Class Works
+          </a>
+          <a href="/student/dashboard" class="btn btn-outline-primary">
+            <i class="fas fa-home me-1"></i> Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`;
+
+    res.send(html);
 
   } catch (error) {
     console.error('Error in viewClassWorkResults:', error);
-    res.status(500).render('error/500', { title: 'Server Error' });
+    res.status(500).send('<h1>Server Error</h1><p>Please try again later.</p><a href="/student/dashboard">Back</a>');
   }
 };
 // ========== LIVE SESSIONS FUNCTIONS ==========
