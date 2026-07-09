@@ -18,6 +18,12 @@
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .result-header {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+            border-radius: 16px 16px 0 0;
             padding: 1.5rem;
         }
 
@@ -25,22 +31,13 @@
             width: 120px;
             height: 120px;
             border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.5rem;
             font-weight: 700;
             margin: 0 auto;
-        }
-
-        .score-circle.pass {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .score-circle.fail {
-            background: #f8d7da;
-            color: #721c24;
         }
 
         .question-review {
@@ -56,90 +53,113 @@
             color: #28a745;
         }
 
-        .wrong {
+        .incorrect {
             color: #dc3545;
+        }
+
+        .feedback-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
 
 <body>
+
     <%- include('../partials/navbar') %>
 
         <div class="container mt-4">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <div class="card result-card">
-                        <div class="text-center">
-                            <h2>
+
+                    <div class="result-card">
+                        <!-- Header -->
+                        <div class="result-header text-center">
+                            <h4><i class="fas fa-graduation-cap me-2"></i>
                                 <%= classWork.title %>
-                            </h2>
-                            <p class="text-muted">
+                            </h4>
+                            <p class="mb-0">
                                 <%= classWork.class ? classWork.class.name : '' %>
                             </p>
                         </div>
 
-                        <hr>
-
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <h5>Score</h5>
-                                <h3>
-                                    <%= submission.score !==null ? submission.score : 'N/A' %>
-                                </h3>
+                        <!-- Score summary -->
+                        <div class="card-body text-center">
+                            <div class="score-circle">
+                                <%= results.score %> / <%= results.totalPoints %>
                             </div>
-                            <div class="col-4">
-                                <h5>Total</h5>
-                                <h3>
-                                    <%= totalPoints || 0 %>
-                                </h3>
-                            </div>
-                            <div class="col-4">
-                                <h5>Percentage</h5>
-                                <h3>
-                                    <%= percentage %>
-                                </h3>
-                            </div>
+                            <h5 class="mt-3">
+                                Score: <strong>
+                                    <%= results.percentage %>%
+                                </strong>
+                            </h5>
+                            <p class="text-muted">Submitted: <%= new Date(submission.submittedAt).toLocaleString() %>
+                            </p>
+                            <p>
+                                <span
+                                    class="badge bg-<%= results.percentage >= 70 ? 'success' : results.percentage >= 50 ? 'warning' : 'danger' %>">
+                                    <%= results.percentage>= 70 ? 'Passed' : results.percentage >= 50 ? 'Needs
+                                        Improvement' : 'Needs Review' %>
+                                </span>
+                            </p>
                         </div>
-
-                        <div class="text-center mt-3">
-                            <div class="score-circle <%= percentage >= 70 ? 'pass' : 'fail' %>">
-                                <%= percentage %>%
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <h5>Review Answers</h5>
-                        <% if (submission.answers && Object.keys(submission.answers).length> 0) {
-                            const questions = classWork.questions || [];
-                            questions.forEach((q, idx) => {
-                            const studentAnswer = submission.answers[idx];
-                            const isCorrect = q.type === 'multiple_choice' && q.correctAnswer && studentAnswer ===
-                            q.correctAnswer;
-                            %>
-                            <div class="question-review">
-                                <strong>Q<%= idx+1 %>:</strong>
-                                <%= q.question %>
-                                    <div>
-                                        <span class="<%= isCorrect ? 'correct' : 'wrong' %>">
-                                            Your answer: <%= studentAnswer || 'Not answered' %>
-                                        </span>
-                                        <% if (q.correctAnswer) { %>
-                                            <span class="text-muted">| Correct: <%= q.correctAnswer %></span>
-                                            <% } %>
-                                    </div>
-                            </div>
-                            <% }); } else { %>
-                                <p class="text-muted">No answers recorded.</p>
-                                <% } %>
-
-                                    <div class="mt-4">
-                                        <a href="/student/class/<%= classWork.classId %>/class-works"
-                                            class="btn btn-secondary">
-                                            <i class="fas fa-arrow-left me-1"></i> Back to Class Works
-                                        </a>
-                                    </div>
                     </div>
+
+                    <!-- Question review -->
+                    <div class="result-card mt-4 p-3">
+                        <h5><i class="fas fa-list-check me-2"></i>Your Answers</h5>
+                        <% if (results.questions && results.questions.length> 0) { %>
+                            <% results.questions.forEach((q, idx)=> {
+                                const userAnswer = submission.answers ? submission.answers[idx] : null;
+                                const isCorrect = q.correctAnswer && userAnswer && userAnswer === q.correctAnswer;
+                                const isAutoGraded = q.type === 'multiple_choice' || q.type === 'true_false';
+                                %>
+                                <div class="question-review">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Q<%= idx+1 %>:</strong>
+                                        <span
+                                            class="<%= isAutoGraded ? (isCorrect ? 'correct' : 'incorrect') : 'text-muted' %>">
+                                            <i
+                                                class="fas <%= isAutoGraded ? (isCorrect ? 'fa-check-circle' : 'fa-times-circle') : 'fa-ellipsis-h' %> me-1"></i>
+                                            <%= q.points || 1 %> pts
+                                        </span>
+                                    </div>
+                                    <p>
+                                        <%= q.question %>
+                                    </p>
+                                    <div>
+                                        <strong>Your answer:</strong>
+                                        <%= userAnswer || 'Not answered' %>
+                                            <% if (isAutoGraded && q.correctAnswer) { %>
+                                                <br><span class="text-muted">Correct answer: <strong>
+                                                        <%= q.correctAnswer %>
+                                                    </strong></span>
+                                                <% } %>
+                                    </div>
+                                    <% if (submission.feedback) { %>
+                                        <div class="feedback-box">
+                                            <strong>Teacher Feedback:</strong>
+                                            <%= submission.feedback %>
+                                        </div>
+                                        <% } %>
+                                </div>
+                                <% }) %>
+                                    <% } else { %>
+                                        <p class="text-muted">No questions found.</p>
+                                        <% } %>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="/student/class/<%= classWork.classId %>/class-works" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Class Works
+                        </a>
+                        <a href="/student/dashboard" class="btn btn-outline-primary">
+                            <i class="fas fa-home me-1"></i> Dashboard
+                        </a>
+                    </div>
+
                 </div>
             </div>
         </div>
