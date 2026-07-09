@@ -318,7 +318,7 @@
                     addQuestion();
                 }
 
-                // ---------- FILE UPLOAD HANDLER ----------
+                // ---------- FILE UPLOAD HANDLER (with logs) ----------
                 document.getElementById('parseQuestionsBtn').addEventListener('click', async function () {
                     const fileInput = document.getElementById('questionsFile');
                     if (!fileInput.files.length) {
@@ -340,9 +340,11 @@
                         const result = await response.json();
 
                         if (result.success) {
-                            // ✅ The update: store parsed questions in hidden input
+                            // ✅ Store parsed questions in hidden input
                             questionsInput.value = JSON.stringify(result.questions);
-                            console.log('📝 Hidden input populated with', result.questions.length, 'questions');
+                            // 📝 NEW LOGS:
+                            console.log('✅ Hidden input set to:', questionsInput.value);
+                            console.log('✅ Number of questions:', result.questions.length);
 
                             if (typeSelect.value !== 'quiz') {
                                 typeSelect.value = 'quiz';
@@ -366,7 +368,7 @@
                     }
                 });
 
-                // ---------- FORM SUBMISSION ----------
+                // ---------- FORM SUBMISSION (with logs) ----------
                 form.addEventListener('submit', async function (e) {
                     e.preventDefault();
 
@@ -379,7 +381,9 @@
                             const parsed = JSON.parse(questionsInput.value);
                             if (Array.isArray(parsed) && parsed.length > 0) {
                                 data.questions = questionsInput.value;
-                                console.log('📤 Using questions from hidden input (file upload)');
+                                // 📝 NEW LOGS:
+                                console.log('📤 Submitting data:', data);
+                                console.log('📤 questions field:', data.questions);
                             } else {
                                 collectManualQuestions(data);
                             }

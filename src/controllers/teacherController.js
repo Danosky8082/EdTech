@@ -2873,103 +2873,80 @@ exports.createClassWork = async (req, res) => {
     const teacherId = req.session.user.teacherId;
     const { title, description, type, classId, points, dueDate, questions } = req.body;
 
-    console.log('🔍 Received data:', { title, description, type, classId, points, dueDate, questions });
-    console.log('🔍 Type of questions:', typeof questions);
-    console.log('🔍 Value of questions:', questions);
+    console.log('📝 Creating class work:', { 
+      title, 
+      classId, 
+      teacherId, 
+      questionsLength: questions ? questions.length : 0,
+      dueDate 
+    });
 
-    // Basic validation
+    // Validate
     if (!title || !title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title is required'
-      });
+      return res.status(400).json({ success: false, message: 'Title is required' });
     }
-
     if (!classId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please select a class'
-      });
+      return res.status(400).json({ success: false, message: 'Please select a class' });
     }
 
-    // Parse dueDate – if it's a string, convert to Date; if it's an array, take first element
-    let parsedDueDate = null;
-    if (dueDate) {
-      if (Array.isArray(dueDate) && dueDate.length > 0) {
-        parsedDueDate = new Date(dueDate[0]);
-      } else if (typeof dueDate === 'string') {
-        parsedDueDate = new Date(dueDate);
-      } else if (dueDate instanceof Date) {
-        parsedDueDate = dueDate;
-      }
-      if (parsedDueDate && isNaN(parsedDueDate.getTime())) {
-        parsedDueDate = null; // invalid date
-      }
-    }
-
-    // Parse questions – now with more robustness
+    // Parse questions – it's a JSON string from the hidden input
     let parsedQuestions = [];
     if (questions) {
       if (typeof questions === 'string') {
         try {
           parsedQuestions = JSON.parse(questions);
-          // Ensure it's an array
           if (!Array.isArray(parsedQuestions)) {
             parsedQuestions = [];
           }
         } catch (e) {
-          console.error('❌ Failed to parse questions string:', e);
+          console.error('❌ Error parsing questions JSON:', e);
           parsedQuestions = [];
         }
       } else if (Array.isArray(questions)) {
         parsedQuestions = questions;
-      } else {
-        // If it's an object, try to extract array
-        if (questions.questions && Array.isArray(questions.questions)) {
-          parsedQuestions = questions.questions;
-        } else {
-          parsedQuestions = [];
-        }
       }
     }
 
-    console.log('✅ Parsed questions count:', parsedQuestions.length);
-    if (parsedQuestions.length > 0) {
-      console.log('✅ Sample question:', parsedQuestions[0]);
-    }
+    console.log(`✅ Parsed questions count: ${parsedQuestions.length}`);
 
-    // Create class work
-    const classWork = await prisma.classWork.create({
-      data: {
-        title: title.trim(),
-        description: description ? description.trim() : null,
-        type: type || 'assignment',
-        points: points ? parseInt(points) : 100,
-        dueDate: parsedDueDate,
-        questions: parsedQuestions,
-        classId: classId,
-        teacherId: teacherId,
-        isActive: true,
-        createdAt: new Date()
+    // Build data
+    const data = {
+      title: title.trim(),
+      description: description ? description.trim() : null,
+      type: type || 'assignment',
+      points: points ? parseInt(points) : 100,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      questions: parsedQuestions,  // Store as array
+      classId: classId,
+      teacherId: teacherId,
+      isActive: true,
+      createdAt: new Date()
+    };
+
+    const classWork = await prisma.classWork.create({ data });
+
+    console.log('✅ Class work created with ID:', classWork.id);
+    console.log('📦 Stored questions count:', classWork.questions ? classWork.questions.length : 0);
+
+    // Send notifications
+    try {
+      const students = await prisma.enrollment.findMany({
+        where: { classId: classId },
+        include: { student: true }
+      });
+      for (const enrollment of students) {
+        await prisma.notification.create({
+          data: {
+            userId: enrollment.student.userId,
+            title: 'New Class Work',
+            message: `New ${type || 'assignment'} "${title}" has been assigned`,
+            icon: 'fa-tasks',
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          }
+        });
       }
-    });
-
-    console.log('✅ Class work created successfully with ID:', classWork.id);
-    console.log('✅ Stored questions count:', classWork.questions ? classWork.questions.length : 0);
-
-    // Notifications
-    const classStudents = await prisma.enrollment.findMany({
-      where: { classId: classId },
-      include: { student: true }
-    });
-
-    for (const enrollment of classStudents) {
-      await createNotification(
-        enrollment.student.userId,
-        'New Class Work',
-        `New ${type || 'assignment'} "${title}" has been assigned`,
-        'fa-tasks'
-      );
+    } catch (notifError) {
+      console.error('❌ Error sending notifications:', notifError);
     }
 
     res.json({
