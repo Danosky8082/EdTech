@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> - EdTech
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f0f2f5;
+        }
+
+        .result-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 auto;
+        }
+
+        .score-circle.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .score-circle.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .question-review {
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 0;
+        }
+
+        .question-review:last-child {
+            border-bottom: none;
+        }
+
+        .correct {
+            color: #28a745;
+        }
+
+        .wrong {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('../partials/navbar') %>
+
+        <div class="container mt-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card result-card">
+                        <div class="text-center">
+                            <h2>
+                                <%= classWork.title %>
+                            </h2>
+                            <p class="text-muted">
+                                <%= classWork.class ? classWork.class.name : '' %>
+                            </p>
+                        </div>
+
+                        <hr>
+
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h5>Score</h5>
+                                <h3>
+                                    <%= submission.score !==null ? submission.score : 'N/A' %>
+                                </h3>
+                            </div>
+                            <div class="col-4">
+                                <h5>Total</h5>
+                                <h3>
+                                    <%= totalPoints || 0 %>
+                                </h3>
+                            </div>
+                            <div class="col-4">
+                                <h5>Percentage</h5>
+                                <h3>
+                                    <%= percentage %>
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <div class="score-circle <%= percentage >= 70 ? 'pass' : 'fail' %>">
+                                <%= percentage %>%
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5>Review Answers</h5>
+                        <% if (submission.answers && Object.keys(submission.answers).length> 0) {
+                            const questions = classWork.questions || [];
+                            questions.forEach((q, idx) => {
+                            const studentAnswer = submission.answers[idx];
+                            const isCorrect = q.type === 'multiple_choice' && q.correctAnswer && studentAnswer ===
+                            q.correctAnswer;
+                            %>
+                            <div class="question-review">
+                                <strong>Q<%= idx+1 %>:</strong>
+                                <%= q.question %>
+                                    <div>
+                                        <span class="<%= isCorrect ? 'correct' : 'wrong' %>">
+                                            Your answer: <%= studentAnswer || 'Not answered' %>
+                                        </span>
+                                        <% if (q.correctAnswer) { %>
+                                            <span class="text-muted">| Correct: <%= q.correctAnswer %></span>
+                                            <% } %>
+                                    </div>
+                            </div>
+                            <% }); } else { %>
+                                <p class="text-muted">No answers recorded.</p>
+                                <% } %>
+
+                                    <div class="mt-4">
+                                        <a href="/student/class/<%= classWork.classId %>/class-works"
+                                            class="btn btn-secondary">
+                                            <i class="fas fa-arrow-left me-1"></i> Back to Class Works
+                                        </a>
+                                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

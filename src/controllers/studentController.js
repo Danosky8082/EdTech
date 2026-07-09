@@ -2480,7 +2480,7 @@ const submitClassWork = async (req, res) => {
 };
 
 // View class work results
-const viewClassWorkResults = async (req, res) => {
+exports.viewClassWorkResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
@@ -2512,27 +2512,50 @@ const viewClassWorkResults = async (req, res) => {
       return res.status(404).render('error/404', { title: 'Submission Not Found' });
     }
 
-    // Compute score and total
+    // Calculate total points
+    let totalPoints = 0;
+    const questions = submission.classWork.questions || [];
+    if (Array.isArray(questions)) {
+      totalPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
+    }
+
+    // Calculate percentage
     const score = submission.score || 0;
-    const total = submission.classWork.points || 100;
+    const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+
+    // Compute avatar data
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
 
     res.render('student/class-work-results', {
       title: `Results - ${submission.classWork.title}`,
-      submission: submission,
+      submission,
       classWork: submission.classWork,
-      classWorkId,
-      score,
-      total,
-      percentage: total > 0 ? Math.round((score / total) * 100) : 0,
+      totalPoints,
+      percentage,
       userSchool,
       isSuperAdmin,
-      user: req.session.user
+      avatarUrl,
+      fallbackAvatar
     });
   } catch (error) {
     console.error('❌ Error in viewClassWorkResults:', error);
-    res.status(500).render('error/500', {
+    res.status(500).render('error/500', { 
       title: 'Server Error',
-      message: 'Failed to load class work results'
+      message: 'Failed to load class work results: ' + error.message
     });
   }
 };
