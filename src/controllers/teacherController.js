@@ -2874,22 +2874,31 @@ exports.createClassWork = async (req, res) => {
 
     console.log('📝 Creating class work with questions:', questions);
 
-    // Parse questions if they're a string
+    // Parse questions – they come as a JSON string from the frontend
     let parsedQuestions = [];
     if (questions) {
       if (typeof questions === 'string') {
         try {
           parsedQuestions = JSON.parse(questions);
         } catch (e) {
-          console.error('Error parsing questions string:', e);
+          console.error('❌ Error parsing questions string:', e);
           parsedQuestions = [];
         }
       } else if (Array.isArray(questions)) {
         parsedQuestions = questions;
+      } else if (typeof questions === 'object') {
+        // If it's an object with numeric keys, convert to array
+        parsedQuestions = Object.values(questions).filter(item => item && typeof item === 'object' && item.question);
       }
     }
 
     console.log('✅ Parsed questions count:', parsedQuestions.length);
+
+    // Ensure each question has a points field
+    parsedQuestions = parsedQuestions.map(q => ({
+      ...q,
+      points: q.points || 1
+    }));
 
     const classWork = await prisma.classWork.create({
       data: {
@@ -2907,6 +2916,22 @@ exports.createClassWork = async (req, res) => {
     });
 
     console.log('✅ Class work created with ID:', classWork.id);
+    console.log('✅ Stored questions count:', classWork.questions.length);
+
+    // Create notifications for students
+    const classStudents = await prisma.enrollment.findMany({
+      where: { classId: classId },
+      include: { student: true }
+    });
+
+    for (const enrollment of classStudents) {
+      await createNotification(
+        enrollment.student.userId,
+        'New Class Work',
+        `New ${type || 'assignment'} "${title}" has been assigned`,
+        'fa-tasks'
+      );
+    }
 
     res.json({
       success: true,
@@ -2923,7 +2948,7 @@ exports.createClassWork = async (req, res) => {
   }
 };
 
-// Edit class work form (with avatar data)
+// Edit class work form
 exports.editClassWorkForm = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -2944,6 +2969,16 @@ exports.editClassWorkForm = async (req, res) => {
     if (!classWork) {
       req.flash('error', 'Class work not found');
       return res.redirect('/teacher/class-works');
+    }
+
+    // Ensure questions is an array for the edit form
+    let questions = classWork.questions || [];
+    if (typeof questions === 'string') {
+      try {
+        questions = JSON.parse(questions);
+      } catch (e) {
+        questions = [];
+      }
     }
 
     const classes = await prisma.class.findMany({
@@ -2968,7 +3003,10 @@ exports.editClassWorkForm = async (req, res) => {
 
     res.render('teacher/edit-class-work', {
       title: 'Edit Class Work',
-      classWork: classWork,
+      classWork: {
+        ...classWork,
+        questions: questions   // pass parsed questions
+      },
       classes: classes,
       userSchool,
       isSuperAdmin,
