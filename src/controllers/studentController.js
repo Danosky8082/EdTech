@@ -2479,15 +2479,11 @@ const submitClassWork = async (req, res) => {
   }
 };
 
-// View class work results
-exports.viewClassWorkResults = async (req, res) => {
+// ========== VIEW CLASS WORK RESULTS ==========
+const viewClassWorkResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
-    const userSchool = req.userSchool;
-    const isSuperAdmin = req.isSuperAdmin;
-
-    console.log(`📊 Viewing results for class work: ${classWorkId}, student: ${studentId}`);
 
     const submission = await prisma.classWorkSubmission.findUnique({
       where: {
@@ -2499,10 +2495,7 @@ exports.viewClassWorkResults = async (req, res) => {
       include: {
         classWork: {
           include: {
-            class: true,
-            teacher: {
-              include: { user: true }
-            }
+            class: true
           }
         }
       }
@@ -2512,51 +2505,60 @@ exports.viewClassWorkResults = async (req, res) => {
       return res.status(404).render('error/404', { title: 'Submission Not Found' });
     }
 
-    // Calculate total points
+    const classWork = submission.classWork;
+    const questions = classWork.questions || [];
     let totalPoints = 0;
-    const questions = submission.classWork.questions || [];
-    if (Array.isArray(questions)) {
-      totalPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
-    }
+    let earnedPoints = 0;
 
-    // Calculate percentage
-    const score = submission.score || 0;
-    const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
-
-    // Compute avatar data
-    const user = req.session.user;
-    let avatarUrl = '';
-    let fallbackAvatar = '';
-    if (user) {
-      const firstName = user.firstName || '';
-      const lastName = user.lastName || '';
-      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=36`;
-      if (user.avatar) {
-        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
-          avatarUrl = user.avatar;
-        } else {
-          avatarUrl = '/' + user.avatar;
+    // Calculate points
+    questions.forEach((q, idx) => {
+      const points = q.points || 1;
+      totalPoints += points;
+      const userAnswer = submission.answers ? submission.answers[idx] : null;
+      if (q.type === 'multiple_choice' || q.type === 'true_false') {
+        if (userAnswer && userAnswer === q.correctAnswer) {
+          earnedPoints += points;
+        }
+      } else {
+        // For open‑ended, give full points if answered (or use score field)
+        if (userAnswer && userAnswer.trim().length > 0) {
+          // If teacher has graded, use the score field
+          if (submission.score !== null && submission.score !== undefined) {
+            // We'll use score if it's set, but for now, we can average or use full
+            earnedPoints += points; // assume full for now; adjust later
+          } else {
+            earnedPoints += points;
+          }
         }
       }
+    });
+
+    // If teacher has set a score directly, override
+    if (submission.score !== null && submission.score !== undefined) {
+      earnedPoints = submission.score;
     }
 
-    res.render('student/class-work-results', {
-      title: `Results - ${submission.classWork.title}`,
-      submission,
-      classWork: submission.classWork,
+    const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+
+    const results = {
+      score: earnedPoints,
       totalPoints,
       percentage,
-      userSchool,
-      isSuperAdmin,
-      avatarUrl,
-      fallbackAvatar
+      questions,
+    };
+
+    res.render('student/class-work-results', {
+      title: `Results - ${classWork.title}`,
+      classWork,
+      submission,
+      results,
+      user: req.session.user,
+      userSchool: req.userSchool,
+      isSuperAdmin: req.isSuperAdmin,
     });
   } catch (error) {
-    console.error('❌ Error in viewClassWorkResults:', error);
-    res.status(500).render('error/500', { 
-      title: 'Server Error',
-      message: 'Failed to load class work results: ' + error.message
-    });
+    console.error('Error viewing results:', error);
+    res.status(500).render('error/500', { title: 'Server Error' });
   }
 };
 
