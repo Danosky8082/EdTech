@@ -2714,9 +2714,11 @@ exports.getPendingSubmissionsCount = async (req, res) => {
   }
 };
 
-// ========== CLASS WORKS MANAGEMENT ==========
+// ================================================================
+// ========== CLASS WORKS MANAGEMENT (UPDATED) =====================
+// ================================================================
 
-// View all class works for teacher
+// View all class works for teacher (with avatar data)
 exports.viewClassWorks = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -2727,18 +2729,12 @@ exports.viewClassWorks = async (req, res) => {
 
     // Get teacher with classes
     const teacher = await prisma.teacher.findUnique({
-      where: {
-        id: teacherId
-      },
+      where: { id: teacherId },
       include: {
         user: true,
         classes: {
           include: {
-            _count: {
-              select: {
-                enrollments: true
-              }
-            }
+            _count: { select: { enrollments: true } }
           }
         }
       }
@@ -2751,44 +2747,28 @@ exports.viewClassWorks = async (req, res) => {
     // Get class works for all teacher's classes
     const classWorks = await prisma.classWork.findMany({
       where: {
-        classId: {
-          in: teacher.classes.map(c => c.id)
-        }
+        teacherId: teacherId  // Use teacherId directly
       },
       include: {
         class: {
-          select: {
-            name: true,
-            _count: {
-              select: {
-                enrollments: true
-              }
-            }
-          }
+          select: { name: true }
         },
         _count: {
-          select: {
-            submissions: true
-          }
+          select: { submissions: true }
         },
         submissions: {
           include: {
             student: {
               include: {
                 user: {
-                  select: {
-                    firstName: true,
-                    lastName: true
-                  }
+                  select: { firstName: true, lastName: true }
                 }
               }
             }
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
     // Calculate stats
@@ -2800,6 +2780,23 @@ exports.viewClassWorks = async (req, res) => {
       totalSubmissions: classWorks.reduce((acc, cw) => acc + cw.submissions.length, 0)
     };
 
+    // --- Compute avatar data for navbar and profile ---
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=100`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
+
     res.render('teacher/class-works', {
       title: 'Manage Class Works',
       classWorks,
@@ -2807,7 +2804,9 @@ exports.viewClassWorks = async (req, res) => {
       teacher,
       user: teacher.user,
       userSchool,
-      isSuperAdmin
+      isSuperAdmin,
+      avatarUrl,
+      fallbackAvatar
     });
 
   } catch (error) {
@@ -2819,7 +2818,7 @@ exports.viewClassWorks = async (req, res) => {
   }
 };
 
-// Create class work form
+// Create class work form (with avatar data)
 exports.createClassWorkForm = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -2834,13 +2833,31 @@ exports.createClassWorkForm = async (req, res) => {
       }
     });
 
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=100`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
+
     res.render('teacher/create-class-work', {
       title: 'Create Class Work',
       teacher,
       user: teacher.user,
       classes: teacher.classes,
       userSchool,
-      isSuperAdmin
+      isSuperAdmin,
+      avatarUrl,
+      fallbackAvatar
     });
 
   } catch (error) {
@@ -2849,7 +2866,7 @@ exports.createClassWorkForm = async (req, res) => {
   }
 };
 
-// Create class work
+// Create class work (unchanged)
 exports.createClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
@@ -2920,11 +2937,11 @@ exports.createClassWork = async (req, res) => {
   }
 };
 
-// Edit class work form
+// Edit class work form (with avatar data)
 exports.editClassWorkForm = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
-    const classWorkId = parseInt(req.params.id);
+    const classWorkId = req.params.id; // Keep as string
     const userSchool = req.userSchool;
     const isSuperAdmin = req.isSuperAdmin;
 
@@ -2944,17 +2961,33 @@ exports.editClassWorkForm = async (req, res) => {
     }
 
     const classes = await prisma.class.findMany({
-      where: {
-        teacherId: teacherId
-      }
+      where: { teacherId: teacherId }
     });
+
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=100`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
 
     res.render('teacher/edit-class-work', {
       title: 'Edit Class Work',
       classWork: classWork,
       classes: classes,
-      userSchool: userSchool,
-      isSuperAdmin: isSuperAdmin
+      userSchool,
+      isSuperAdmin,
+      avatarUrl,
+      fallbackAvatar
     });
   } catch (error) {
     console.error('Edit class work form error:', error);
@@ -2962,12 +2995,12 @@ exports.editClassWorkForm = async (req, res) => {
   }
 };
 
-// Update class work
+// Update class work (handles both AJAX and form)
 exports.updateClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
-    const classWorkId = parseInt(req.params.id);
-    const { title, description, classId, dueDate, questions } = req.body;
+    const classWorkId = req.params.id; // Keep as string
+    const { title, description, classId, dueDate, questions, points, isActive } = req.body;
 
     let parsedQuestions = [];
     if (questions && typeof questions === 'string') {
@@ -2976,6 +3009,22 @@ exports.updateClassWork = async (req, res) => {
       } catch (e) {
         console.error('Error parsing questions:', e);
       }
+    } else if (Array.isArray(questions)) {
+      parsedQuestions = questions;
+    }
+
+    // Build update data
+    const updateData = {
+      title,
+      description,
+      classId: classId,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      questions: parsedQuestions,
+      points: points ? parseInt(points) : 100,
+      updatedAt: new Date()
+    };
+    if (isActive !== undefined) {
+      updateData.isActive = isActive === 'on' || isActive === true || isActive === 'true';
     }
 
     await prisma.classWork.update({
@@ -2983,31 +3032,40 @@ exports.updateClassWork = async (req, res) => {
         id: classWorkId,
         teacherId: teacherId
       },
-      data: {
-        title,
-        description,
-        classId: parseInt(classId),
-        dueDate: new Date(dueDate),
-        questions: parsedQuestions
-      }
+      data: updateData
     });
 
-    req.flash('success', 'Class work updated successfully');
-    res.redirect('/teacher/class-works');
+    // Handle both AJAX and form submissions
+    if (req.xhr || req.headers.accept?.includes('json')) {
+      res.json({ success: true, message: 'Class work updated successfully' });
+    } else {
+      req.flash('success', 'Class work updated successfully');
+      res.redirect('/teacher/class-works');
+    }
   } catch (error) {
     console.error('Update class work error:', error);
-    req.flash('error', 'Failed to update class work');
-    res.redirect(`/teacher/class-works/${classWorkId}/edit`);
+    if (req.xhr || req.headers.accept?.includes('json')) {
+      res.status(500).json({ success: false, message: 'Failed to update class work: ' + error.message });
+    } else {
+      req.flash('error', 'Failed to update class work');
+      res.redirect(`/teacher/class-works/${req.params.id}/edit`);
+    }
   }
 };
 
-// Delete class work
+// Delete class work (deletes submissions first)
 exports.deleteClassWork = async (req, res) => {
   try {
     const teacherId = req.session.user.teacherId;
-    const classWorkId = parseInt(req.params.id);
+    const classWorkId = req.params.id; // Keep as string
 
-    await prisma.classWork.delete({
+    // First delete related submissions
+    await prisma.classWorkSubmission.deleteMany({
+      where: { classWorkId: classWorkId }
+    });
+
+    // Then delete the class work
+    const result = await prisma.classWork.delete({
       where: {
         id: classWorkId,
         teacherId: teacherId
@@ -3023,88 +3081,92 @@ exports.deleteClassWork = async (req, res) => {
     console.error('❌ Error in deleteClassWork:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete class work'
+      message: 'Failed to delete class work: ' + error.message
     });
   }
 };
 
-// View class work submissions
-// In teacherController.js, around line 2807
+// View class work submissions (FIXED - includes student.user)
 exports.viewSubmissions = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        // Get class work with submissions
-        const classWork = await prisma.classWork.findUnique({
-            where: { id },
-            include: {
-                class: true,
-                submissions: {
-                    include: {
-                        student: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                avatar: true
-                            }
-                        }
-                    },
-                    orderBy: {
-                        submittedAt: 'desc'
-                    }
-                },
-                _count: {
-                    select: {
-                        submissions: true
-                    }
-                }
+  try {
+    const { id } = req.params;
+    const teacherId = req.session.user.teacherId;
+
+    // Get class work with submissions – using proper includes
+    const classWork = await prisma.classWork.findFirst({
+      where: {
+        id: id,
+        teacherId: teacherId
+      },
+      include: {
+        class: true,
+        submissions: {
+          include: {
+            student: {
+              include: {
+                user: true  // Include the user to get firstName, lastName, etc.
+              }
             }
-        });
-
-        if (!classWork) {
-            req.flash('error', 'Class work not found');
-            return res.redirect('/teacher/class-works');
+          },
+          orderBy: {
+            submittedAt: 'desc'
+          }
         }
+      }
+    });
 
-        // Calculate stats
-        const submissions = classWork.submissions || [];
-        const gradedCount = submissions.filter(s => s.status === 'graded').length;
-        const pendingCount = submissions.filter(s => s.status === 'submitted').length;
-        
-        // Get total students in the class (if class exists)
-        let totalStudents = 0;
-        if (classWork.classId) {
-            const classData = await prisma.class.findUnique({
-                where: { id: classWork.classId },
-                include: {
-                    _count: {
-                        select: {
-                            students: true
-                        }
-                    }
-                }
-            });
-            totalStudents = classData?._count?.students || 0;
-        }
-
-        res.render('teacher/class-work-submissions', {
-            title: `Submissions: ${classWork.title}`,
-            classWork,
-            submissions,
-            totalStudents,
-            gradedCount,
-            pendingCount,
-            user: req.user,
-            userSchool: req.user.school,
-            isSuperAdmin: req.user.role === 'admin' && req.adminInfo?.roleLevel === 'superadmin'
-        });
-    } catch (error) {
-        console.error('Error viewing submissions:', error);
-        req.flash('error', 'Failed to load submissions');
-        res.redirect('/teacher/class-works');
+    if (!classWork) {
+      req.flash('error', 'Class work not found');
+      return res.redirect('/teacher/class-works');
     }
+
+    // Calculate stats
+    const submissions = classWork.submissions || [];
+    const gradedCount = submissions.filter(s => s.score !== null || s.grade !== null).length;
+    const pendingCount = submissions.filter(s => s.score === null && s.grade === null).length;
+
+    // Get total students in the class (if class exists)
+    let totalStudents = 0;
+    if (classWork.classId) {
+      totalStudents = await prisma.enrollment.count({
+        where: { classId: classWork.classId }
+      });
+    }
+
+    const user = req.session.user;
+    let avatarUrl = '';
+    let fallbackAvatar = '';
+    if (user) {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=6a11cb&color=fff&size=100`;
+      if (user.avatar) {
+        if (user.avatar.startsWith('http://') || user.avatar.startsWith('https://')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = '/' + user.avatar;
+        }
+      }
+    }
+
+    res.render('teacher/class-work-submissions', {
+      title: `Submissions: ${classWork.title}`,
+      classWork,
+      submissions,
+      totalStudents,
+      gradedCount,
+      pendingCount,
+      user: req.session.user,
+      userSchool: req.userSchool,
+      isSuperAdmin: req.isSuperAdmin,
+      avatarUrl,
+      fallbackAvatar
+    });
+  } catch (error) {
+    console.error('Error viewing submissions:', error);
+    req.flash('error', 'Failed to load submissions: ' + error.message);
+    res.redirect('/teacher/class-works');
+  }
 };
 
 // ========== LIVE SESSIONS MANAGEMENT ==========
