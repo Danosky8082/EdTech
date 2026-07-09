@@ -2479,12 +2479,15 @@ const submitClassWork = async (req, res) => {
   }
 };
 
-// ========== VIEW CLASS WORK RESULTS ==========
+// ============================================================
+// VIEW CLASS WORK RESULTS
+// ============================================================
 const viewClassWorkResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
 
+    // Get the submission with class work and class info
     const submission = await prisma.classWorkSubmission.findUnique({
       where: {
         classWorkId_studentId: {
@@ -2495,7 +2498,10 @@ const viewClassWorkResults = async (req, res) => {
       include: {
         classWork: {
           include: {
-            class: true
+            class: true,
+            teacher: {
+              include: { user: true }
+            }
           }
         }
       }
@@ -2515,17 +2521,18 @@ const viewClassWorkResults = async (req, res) => {
       const points = q.points || 1;
       totalPoints += points;
       const userAnswer = submission.answers ? submission.answers[idx] : null;
+
+      // Only auto-grade multiple-choice and true/false
       if (q.type === 'multiple_choice' || q.type === 'true_false') {
         if (userAnswer && userAnswer === q.correctAnswer) {
           earnedPoints += points;
         }
       } else {
-        // For open‑ended, give full points if answered (or use score field)
+        // For open-ended, give points if answered (or use teacher-assigned score)
         if (userAnswer && userAnswer.trim().length > 0) {
-          // If teacher has graded, use the score field
-          if (submission.score !== null && submission.score !== undefined) {
-            // We'll use score if it's set, but for now, we can average or use full
-            earnedPoints += points; // assume full for now; adjust later
+          // If teacher set score, use it; otherwise give full points
+          if (submission.score !== null) {
+            // We'll use the score field if present
           } else {
             earnedPoints += points;
           }
@@ -2533,32 +2540,39 @@ const viewClassWorkResults = async (req, res) => {
       }
     });
 
-    // If teacher has set a score directly, override
-    if (submission.score !== null && submission.score !== undefined) {
+    // If teacher set a score directly (e.g., after grading), override
+    if (submission.score !== null) {
       earnedPoints = submission.score;
     }
+
+    // Clamp to total points
+    if (earnedPoints > totalPoints) earnedPoints = totalPoints;
 
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
     const results = {
       score: earnedPoints,
-      totalPoints,
-      percentage,
-      questions,
+      totalPoints: totalPoints,
+      percentage: percentage,
+      questions: questions,
     };
 
     res.render('student/class-work-results', {
       title: `Results - ${classWork.title}`,
-      classWork,
-      submission,
-      results,
+      classWork: classWork,
+      submission: submission,
+      results: results,
       user: req.session.user,
-      userSchool: req.userSchool,
-      isSuperAdmin: req.isSuperAdmin,
+      userSchool: req.userSchool || 'Unknown School',
+      isSuperAdmin: req.isSuperAdmin || false,
     });
+
   } catch (error) {
-    console.error('Error viewing results:', error);
-    res.status(500).render('error/500', { title: 'Server Error' });
+    console.error('❌ Error in viewClassWorkResults:', error);
+    res.status(500).render('error/500', {
+      title: 'Server Error',
+      message: 'Failed to load results.'
+    });
   }
 };
 
@@ -3555,5 +3569,5 @@ module.exports = {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   getBorrowingHistory,    
-  viewAttendance  
+  viewAttendance
 };
