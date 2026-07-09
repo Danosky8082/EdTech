@@ -75,7 +75,6 @@
                 <div class="col-lg-8">
 
                     <div class="result-card">
-                        <!-- Header -->
                         <div class="result-header text-center">
                             <h4><i class="fas fa-graduation-cap me-2"></i>
                                 <%= classWork.title %>
@@ -84,8 +83,6 @@
                                 <%= classWork.class ? classWork.class.name : '' %>
                             </p>
                         </div>
-
-                        <!-- Score summary -->
                         <div class="card-body text-center">
                             <div class="score-circle">
                                 <%= results.score %> / <%= results.totalPoints %>
@@ -107,7 +104,6 @@
                         </div>
                     </div>
 
-                    <!-- Question review -->
                     <div class="result-card mt-4 p-3">
                         <h5><i class="fas fa-list-check me-2"></i>Your Answers</h5>
                         <% if (results.questions && results.questions.length> 0) { %>
