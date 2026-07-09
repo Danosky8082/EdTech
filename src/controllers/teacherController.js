@@ -2873,46 +2873,80 @@ exports.createClassWork = async (req, res) => {
     const teacherId = req.session.user.teacherId;
     const { title, description, type, classId, points, dueDate, questions } = req.body;
 
-    console.log('📝 Creating class work with questions:', questions);
+    console.log('🔍 Received data:', { title, description, type, classId, points, dueDate, questions });
+    console.log('🔍 Type of questions:', typeof questions);
+    console.log('🔍 Value of questions:', questions);
 
-    // Parse questions – they come as a JSON string from the front-end
+    // Basic validation
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+    }
+
+    if (!classId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a class'
+      });
+    }
+
+    // Parse dueDate – if it's a string, convert to Date; if it's an array, take first element
+    let parsedDueDate = null;
+    if (dueDate) {
+      if (Array.isArray(dueDate) && dueDate.length > 0) {
+        parsedDueDate = new Date(dueDate[0]);
+      } else if (typeof dueDate === 'string') {
+        parsedDueDate = new Date(dueDate);
+      } else if (dueDate instanceof Date) {
+        parsedDueDate = dueDate;
+      }
+      if (parsedDueDate && isNaN(parsedDueDate.getTime())) {
+        parsedDueDate = null; // invalid date
+      }
+    }
+
+    // Parse questions – now with more robustness
     let parsedQuestions = [];
     if (questions) {
       if (typeof questions === 'string') {
         try {
           parsedQuestions = JSON.parse(questions);
-          console.log('✅ Parsed questions from string:', parsedQuestions.length);
+          // Ensure it's an array
+          if (!Array.isArray(parsedQuestions)) {
+            parsedQuestions = [];
+          }
         } catch (e) {
-          console.error('❌ Error parsing questions string:', e);
+          console.error('❌ Failed to parse questions string:', e);
           parsedQuestions = [];
         }
       } else if (Array.isArray(questions)) {
         parsedQuestions = questions;
-        console.log('✅ Questions already array:', parsedQuestions.length);
       } else {
-        console.warn('⚠️ Questions is neither string nor array:', typeof questions);
-        parsedQuestions = [];
+        // If it's an object, try to extract array
+        if (questions.questions && Array.isArray(questions.questions)) {
+          parsedQuestions = questions.questions;
+        } else {
+          parsedQuestions = [];
+        }
       }
-    } else {
-      console.warn('⚠️ No questions field in request body');
     }
 
-    // Ensure each question has a points field
-    parsedQuestions = parsedQuestions.map(q => ({
-      ...q,
-      points: q.points || 1
-    }));
+    console.log('✅ Parsed questions count:', parsedQuestions.length);
+    if (parsedQuestions.length > 0) {
+      console.log('✅ Sample question:', parsedQuestions[0]);
+    }
 
-    console.log(`✅ Final questions count: ${parsedQuestions.length}`);
-
+    // Create class work
     const classWork = await prisma.classWork.create({
       data: {
         title: title.trim(),
         description: description ? description.trim() : null,
         type: type || 'assignment',
         points: points ? parseInt(points) : 100,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        questions: parsedQuestions,  // ✅ Store the parsed array
+        dueDate: parsedDueDate,
+        questions: parsedQuestions,
         classId: classId,
         teacherId: teacherId,
         isActive: true,
@@ -2920,9 +2954,10 @@ exports.createClassWork = async (req, res) => {
       }
     });
 
-    console.log('✅ Class work created with ID:', classWork.id);
+    console.log('✅ Class work created successfully with ID:', classWork.id);
+    console.log('✅ Stored questions count:', classWork.questions ? classWork.questions.length : 0);
 
-    // Create notifications for students
+    // Notifications
     const classStudents = await prisma.enrollment.findMany({
       where: { classId: classId },
       include: { student: true }
