@@ -128,7 +128,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- ========= NEW: UPLOAD QUESTIONS FROM FILE ========= -->
+                                    <!-- ========= UPLOAD QUESTIONS FROM FILE ========= -->
                                     <div class="card mb-4 border-primary">
                                         <div class="card-header bg-light text-primary">
                                             <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Questions from
@@ -152,7 +152,6 @@
                                             <div id="uploadStatus" class="mt-2 small"></div>
                                         </div>
                                     </div>
-                                    <!-- ========= END UPLOAD SECTION ========= -->
 
                                     <!-- Questions Section (for quizzes) -->
                                     <div id="questionsSection" class="mb-4" style="display: none;">
@@ -187,16 +186,15 @@
                 const questionsSection = document.getElementById('questionsSection');
                 const questionsContainer = document.getElementById('questionsContainer');
                 const addQuestionBtn = document.getElementById('addQuestionBtn');
-                const questionsInput = document.getElementById('questionsInput'); // ✅ Hidden input
+                const questionsInput = document.getElementById('questionsInput');
 
-                // ---------- FUNCTION TO ADD A QUESTION CARD ----------
+                // ---------- ADD QUESTION CARD ----------
                 function addQuestion(questionData = null) {
                     const questionId = Date.now() + Math.random();
                     const questionDiv = document.createElement('div');
                     questionDiv.className = 'card mb-3';
                     questionDiv.id = `question-${questionId}`;
 
-                    // Default values
                     let questionText = questionData?.question || '';
                     let questionType = questionData?.type || 'multiple_choice';
                     let points = questionData?.points || 1;
@@ -227,70 +225,65 @@
                         </div>
                         <div class="options-section">
                             <label class="form-label">Options (for multiple choice)</label>
-                            <div class="options-container">
-                                <!-- Options will be added here -->
-                            </div>
+                            <div class="options-container"></div>
                             <button type="button" class="btn btn-sm btn-outline-secondary add-option">Add Option</button>
                         </div>
                     </div>
-                    `;
+                `;
 
                     questionsContainer.appendChild(questionDiv);
 
-                    // If this is a multiple choice question with options, populate them
+                    // Populate options if provided
                     if (questionData && questionData.type === 'multiple_choice' && Array.isArray(questionData.options)) {
                         const optionsContainer = questionDiv.querySelector('.options-container');
-                        optionsContainer.innerHTML = ''; // clear default
-
+                        optionsContainer.innerHTML = '';
                         questionData.options.forEach((opt, idx) => {
                             const optionDiv = document.createElement('div');
                             optionDiv.className = 'option-item mb-2';
                             optionDiv.innerHTML = `
-                                <div class="input-group">
-                                    <div class="input-group-text">
-                                        <input type="radio" name="correct-${questionId}" value="${idx}" ${opt.isCorrect ? 'checked' : ''}>
-                                    </div>
-                                    <input type="text" class="form-control option-input" placeholder="Option ${idx + 1}" value="${escapeHtml(opt.text)}">
-                                    <button type="button" class="btn btn-outline-danger remove-option">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <input type="radio" name="correct-${questionId}" value="${idx}" ${opt.isCorrect ? 'checked' : ''}>
                                 </div>
-                            `;
+                                <input type="text" class="form-control option-input" placeholder="Option ${idx + 1}" value="${escapeHtml(opt.text)}">
+                                <button type="button" class="btn btn-outline-danger remove-option">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
                             optionsContainer.appendChild(optionDiv);
                         });
                     }
 
-                    // Attach remove question handler
+                    // Remove question
                     questionDiv.querySelector('.remove-question').addEventListener('click', function () {
                         questionDiv.remove();
-                        // Clear hidden input if no questions remain? We'll handle in submission.
                     });
 
-                    // Attach add option handler
+                    // Add option
                     questionDiv.querySelector('.add-option').addEventListener('click', function () {
                         const optionsContainer = questionDiv.querySelector('.options-container');
                         const optionCount = optionsContainer.children.length;
                         const optionDiv = document.createElement('div');
                         optionDiv.className = 'option-item mb-2';
                         optionDiv.innerHTML = `
-                            <div class="input-group">
-                                <div class="input-group-text">
-                                    <input type="radio" name="correct-${questionId}" value="${optionCount}">
-                                </div>
-                                <input type="text" class="form-control option-input" placeholder="Option ${optionCount + 1}">
-                                <button type="button" class="btn btn-outline-danger remove-option">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                        <div class="input-group">
+                            <div class="input-group-text">
+                                <input type="radio" name="correct-${questionId}" value="${optionCount}">
                             </div>
-                        `;
+                            <input type="text" class="form-control option-input" placeholder="Option ${optionCount + 1}">
+                            <button type="button" class="btn btn-outline-danger remove-option">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
                         optionsContainer.appendChild(optionDiv);
-
                         optionDiv.querySelector('.remove-option').addEventListener('click', function () {
                             optionDiv.remove();
                         });
                     });
 
-                    // Attach remove option handlers for existing options
+                    // Remove option (existing)
                     questionDiv.querySelectorAll('.remove-option').forEach(btn => {
                         btn.addEventListener('click', function () {
                             this.closest('.option-item').remove();
@@ -298,7 +291,6 @@
                     });
                 }
 
-                // Helper to escape HTML in question text
                 function escapeHtml(unsafe) {
                     if (!unsafe) return '';
                     return unsafe
@@ -318,17 +310,15 @@
                     }
                 });
 
-                // Add question button
                 addQuestionBtn.addEventListener('click', function () {
                     addQuestion();
                 });
 
-                // Add initial question if type is quiz
                 if (typeSelect.value === 'quiz') {
                     addQuestion();
                 }
 
-                // ---------- FILE UPLOAD HANDLER FOR QUESTIONS ----------
+                // ---------- FILE UPLOAD HANDLER ----------
                 document.getElementById('parseQuestionsBtn').addEventListener('click', async function () {
                     const fileInput = document.getElementById('questionsFile');
                     if (!fileInput.files.length) {
@@ -350,18 +340,16 @@
                         const result = await response.json();
 
                         if (result.success) {
-                            // ✅ Populate the hidden input with the parsed questions JSON
+                            // ✅ The update: store parsed questions in hidden input
                             questionsInput.value = JSON.stringify(result.questions);
                             console.log('📝 Hidden input populated with', result.questions.length, 'questions');
 
-                            // Ensure the quiz type is selected and questions section is visible
                             if (typeSelect.value !== 'quiz') {
                                 typeSelect.value = 'quiz';
                                 questionsSection.style.display = 'block';
                             }
 
-                            // Add each parsed question using the addQuestion function
-                            result.questions.forEach((parsedQ, index) => {
+                            result.questions.forEach((parsedQ) => {
                                 addQuestion(parsedQ);
                             });
 
@@ -385,39 +373,30 @@
                     const formData = new FormData(form);
                     const data = Object.fromEntries(formData.entries());
 
-                    // If hidden input has questions (from file upload), use that
+                    // Prioritise hidden input (from file upload) if it has valid JSON
                     if (questionsInput.value) {
-                        // Use the JSON string from the hidden input
-                        // But we need to ensure it's a valid array
                         try {
                             const parsed = JSON.parse(questionsInput.value);
                             if (Array.isArray(parsed) && parsed.length > 0) {
                                 data.questions = questionsInput.value;
                                 console.log('📤 Using questions from hidden input (file upload)');
                             } else {
-                                // fallback to manual
                                 collectManualQuestions(data);
                             }
                         } catch (e) {
-                            // If invalid, fallback to manual
                             collectManualQuestions(data);
                         }
                     } else {
-                        // Otherwise, collect from UI
                         collectManualQuestions(data);
                     }
 
                     try {
                         const response = await fetch('/teacher/class-works', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
-
                         const result = await response.json();
-
                         if (result.success) {
                             alert('Class work created successfully!');
                             window.location.href = '/teacher/class-works';
@@ -429,26 +408,21 @@
                     }
                 });
 
-                // Helper to collect questions from the UI
                 function collectManualQuestions(data) {
                     if (typeSelect.value === 'quiz') {
                         const questions = [];
-                        const questionElements = questionsContainer.querySelectorAll('.card');
-
-                        questionElements.forEach((qEl) => {
+                        document.querySelectorAll('#questionsContainer .card').forEach((qEl) => {
                             const question = {
                                 question: qEl.querySelector('.question-text').value,
                                 type: qEl.querySelector('.question-type').value,
                                 points: parseInt(qEl.querySelector('.question-points').value) || 1,
                                 options: []
                             };
-
                             if (question.type === 'multiple_choice') {
-                                const optionItems = qEl.querySelectorAll('.option-item');
-                                optionItems.forEach((optEl) => {
+                                qEl.querySelectorAll('.option-item').forEach((optEl) => {
                                     const radio = optEl.querySelector('input[type="radio"]');
                                     const textInput = optEl.querySelector('.option-input');
-                                    if (textInput.value) { // only include non-empty options
+                                    if (textInput.value) {
                                         question.options.push({
                                             text: textInput.value,
                                             isCorrect: radio.checked
@@ -456,10 +430,8 @@
                                     }
                                 });
                             }
-
                             questions.push(question);
                         });
-
                         data.questions = JSON.stringify(questions);
                     }
                 }
