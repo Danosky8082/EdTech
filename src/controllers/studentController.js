@@ -2482,12 +2482,12 @@ const submitClassWork = async (req, res) => {
 // ============================================================
 // VIEW CLASS WORK RESULTS
 // ============================================================
+// In studentController.js – replace with this updated version
 const viewClassWorkResults = async (req, res) => {
   try {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
 
-    // Fetch submission with class work and questions
     const submission = await prisma.classWorkSubmission.findUnique({
       where: {
         classWorkId_studentId: {
@@ -2498,10 +2498,7 @@ const viewClassWorkResults = async (req, res) => {
       include: {
         classWork: {
           include: {
-            class: true,
-            teacher: {
-              include: { user: true }
-            }
+            class: true
           }
         }
       }
@@ -2513,46 +2510,33 @@ const viewClassWorkResults = async (req, res) => {
 
     const classWork = submission.classWork;
     const questions = classWork.questions || [];
-    let totalPoints = 0;
-    let earnedPoints = 0;
 
-    // Calculate total points from all questions
+    // Calculate total points
+    let totalPoints = 0;
     questions.forEach(function(q) {
-      totalPoints += (q.points || 1);
+      totalPoints += q.points || 1;
     });
 
-    // If submission has a teacher-assigned score, use it
-    if (submission.score !== null && submission.score !== undefined) {
-      earnedPoints = submission.score;
-    } else {
-      // Auto-grade based on answers
-      const answers = submission.answers || {};
+    // Use teacher-assigned score if available, otherwise calculate from answers
+    let earnedPoints = submission.score;
+    if (earnedPoints === null) {
+      earnedPoints = 0;
       questions.forEach(function(q, idx) {
-        const points = q.points || 1;
-        const userAnswer = answers[idx] || null;
+        const userAnswer = submission.answers ? submission.answers[idx] : null;
         if (q.type === 'multiple_choice' || q.type === 'true_false') {
           if (userAnswer && userAnswer === q.correctAnswer) {
-            earnedPoints += points;
+            earnedPoints += q.points || 1;
           }
         } else {
-          // Descriptive/essay: give full points if answered, else 0
+          // For descriptive, give points if answered (or you can give 0)
           if (userAnswer && userAnswer.trim().length > 0) {
-            earnedPoints += points;
+            earnedPoints += q.points || 1;
           }
         }
       });
-      // Update submission with auto-calculated score
-      if (earnedPoints !== submission.score) {
-        await prisma.classWorkSubmission.update({
-          where: { id: submission.id },
-          data: { score: earnedPoints }
-        });
-        // Refresh submission object
-        submission.score = earnedPoints;
-      }
     }
 
-    // Clamp earned points to total
+    // Clamp to total points
     if (earnedPoints > totalPoints) earnedPoints = totalPoints;
 
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
