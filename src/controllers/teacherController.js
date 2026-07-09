@@ -3810,49 +3810,36 @@ exports.getMaterialIcon = function(type) {
 // POST /teacher/class-works/parse-questions
 exports.parseClassWorkQuestions = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded.' });
-    }
+    let text = '';
 
-    const fileExt = path.extname(req.file.originalname).toLowerCase();
-    let questions = [];
-
-    if (fileExt === '.txt') {
-      const text = req.file.buffer.toString('utf8');
-      questions = parseTextContent(text);
-    } else if (fileExt === '.docx') {
-      questions = await parseDocx(req.file.buffer);
+    // If file uploaded (multipart)
+    if (req.file) {
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      if (fileExt === '.txt') {
+        text = req.file.buffer.toString('utf8');
+      } else if (fileExt === '.docx') {
+        text = await extractRawTextFromDocx(req.file.buffer);
+      } else {
+        return res.status(400).json({ success: false, message: 'Unsupported file type.' });
+      }
+    } else if (req.body.text) {
+      // If sent as JSON with text field
+      text = req.body.text;
     } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Unsupported file type. Please upload .txt or .docx files.'
-      });
+      return res.status(400).json({ success: false, message: 'No text or file provided.' });
     }
+
+    // Use the simple parser
+    const questions = parseTextContent(text); // make sure it handles the format
 
     if (!questions || questions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid questions could be extracted from the file.'
-      });
+      return res.status(400).json({ success: false, message: 'No valid questions found.' });
     }
 
-    // ✅ Ensure each question has a points field
-    questions = questions.map(q => ({
-      ...q,
-      points: q.points || 1
-    }));
-
-    console.log(`✅ Parsed ${questions.length} class work questions from ${req.file.originalname}`);
-    console.log('✅ Sample question:', questions[0]);
-
     res.json({ success: true, questions });
-
   } catch (error) {
-    console.error('❌ Class work question parsing error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to parse questions: ' + error.message
-    });
+    console.error('Parse error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
