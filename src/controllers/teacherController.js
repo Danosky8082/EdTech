@@ -3808,6 +3808,7 @@ exports.getMaterialIcon = function(type) {
 
 // ========== CLASS WORK QUESTIONS PARSING ==========
 // POST /teacher/class-works/parse-questions
+// POST /teacher/class-works/parse-questions
 exports.parseClassWorkQuestions = async (req, res) => {
   try {
     let text = '';
@@ -3829,14 +3830,22 @@ exports.parseClassWorkQuestions = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No text or file provided.' });
     }
 
-    // Use the simple parser
-    const questions = parseTextContent(text); // make sure it handles the format
+    // Use the parser (it now handles both formats)
+    const questions = parseTextContent(text);
 
     if (!questions || questions.length === 0) {
-      return res.status(400).json({ success: false, message: 'No valid questions found.' });
+      return res.status(400).json({ success: false, message: 'No valid questions found. Check format.' });
     }
 
-    res.json({ success: true, questions });
+    // Ensure each question has a points field
+    const enriched = questions.map(q => ({
+      ...q,
+      points: q.points || 1,
+      // Ensure options is always an array for multiple choice
+      options: q.type === 'multiple_choice' ? (q.options || []) : []
+    }));
+
+    res.json({ success: true, questions: enriched });
   } catch (error) {
     console.error('Parse error:', error);
     res.status(500).json({ success: false, message: error.message });
