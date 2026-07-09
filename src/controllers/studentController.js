@@ -2487,6 +2487,7 @@ const viewClassWorkResults = async (req, res) => {
     const studentId = req.session.user.studentId;
     const classWorkId = req.params.classWorkId;
 
+    // Fetch submission with class work and questions
     const submission = await prisma.classWorkSubmission.findUnique({
       where: {
         classWorkId_studentId: {
@@ -2497,7 +2498,10 @@ const viewClassWorkResults = async (req, res) => {
       include: {
         classWork: {
           include: {
-            class: true
+            class: true,
+            teacher: {
+              include: { user: true }
+            }
           }
         }
       }
@@ -2512,15 +2516,44 @@ const viewClassWorkResults = async (req, res) => {
     let totalPoints = 0;
     let earnedPoints = 0;
 
+    // Calculate total points from all questions
     questions.forEach(function(q) {
-      const points = q.points || 1;
-      totalPoints += points;
-      // We'll just pass raw data; we can calculate in the view later
+      totalPoints += (q.points || 1);
     });
 
-    if (submission.score !== null) {
+    // If submission has a teacher-assigned score, use it
+    if (submission.score !== null && submission.score !== undefined) {
       earnedPoints = submission.score;
+    } else {
+      // Auto-grade based on answers
+      const answers = submission.answers || {};
+      questions.forEach(function(q, idx) {
+        const points = q.points || 1;
+        const userAnswer = answers[idx] || null;
+        if (q.type === 'multiple_choice' || q.type === 'true_false') {
+          if (userAnswer && userAnswer === q.correctAnswer) {
+            earnedPoints += points;
+          }
+        } else {
+          // Descriptive/essay: give full points if answered, else 0
+          if (userAnswer && userAnswer.trim().length > 0) {
+            earnedPoints += points;
+          }
+        }
+      });
+      // Update submission with auto-calculated score
+      if (earnedPoints !== submission.score) {
+        await prisma.classWorkSubmission.update({
+          where: { id: submission.id },
+          data: { score: earnedPoints }
+        });
+        // Refresh submission object
+        submission.score = earnedPoints;
+      }
     }
+
+    // Clamp earned points to total
+    if (earnedPoints > totalPoints) earnedPoints = totalPoints;
 
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
 
@@ -2529,8 +2562,6 @@ const viewClassWorkResults = async (req, res) => {
       totalPoints: totalPoints,
       percentage: percentage,
       questions: questions,
-      // pass raw submission answers
-      answers: submission.answers || {}
     };
 
     res.render('student/class-work-results', {
@@ -2538,6 +2569,9 @@ const viewClassWorkResults = async (req, res) => {
       classWork: classWork,
       submission: submission,
       results: results,
+      user: req.session.user,
+      userSchool: req.userSchool || 'Unknown School',
+      isSuperAdmin: req.isSuperAdmin || false,
     });
 
   } catch (error) {
@@ -2545,7 +2579,6 @@ const viewClassWorkResults = async (req, res) => {
     res.status(500).render('error/500', { title: 'Server Error' });
   }
 };
-
 // ========== LIVE SESSIONS FUNCTIONS ==========
 
 // Get live sessions for a specific class
