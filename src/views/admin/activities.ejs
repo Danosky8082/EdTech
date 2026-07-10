@@ -140,7 +140,7 @@
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
                                                 <h6 class="mb-1">
-                                                    <i class="fas fa-<%= activity.icon %> me-2"></i> <!-- CHANGED THIS LINE -->
+                                                    <i class="fas fa-<%= activity.icon %> me-2"></i>
                                                     <%= activity.action %>
                                                 </h6>
                                                 <p class="mb-1">
@@ -160,7 +160,7 @@
                                                                 <% } %>
                                                 </small>
                                             </div>
-                                            <span class="badge bg-<%= activity.badgeColor %>"> <!-- Make sure this uses activity.badgeColor -->
+                                            <span class="badge bg-<%= activity.badgeColor %>">
                                                 <%= activity.type %>
                                             </span>
                                         </div>
@@ -170,7 +170,8 @@
                                             <div class="text-center py-5">
                                                 <i class="fas fa-history fa-3x text-muted mb-3"></i>
                                                 <h5>No activities recorded</h5>
-                                                <p class="text-muted">Activity logs will appear here as users interact with the system.</p>
+                                                <p class="text-muted">Activity logs will appear here as users interact
+                                                    with the system.</p>
                                             </div>
                                             <% } %>
                         </div>
@@ -178,81 +179,90 @@
                 </div>
         </div>
 
+        <!-- ✅ Bootstrap JS added here -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
         <script>
-            // Helper functions for activity display
-            function getActivityIcon(action) {
-                const icons = {
-                    'login': 'sign-in-alt',
-                    'logout': 'sign-out-alt',
-                    'create': 'plus-circle',
-                    'update': 'edit',
-                    'delete': 'trash',
-                    'upload': 'upload',
-                    'download': 'download',
-                    'view': 'eye',
-                    'grade': 'check-circle',
-                    'submit': 'paper-plane'
-                };
-                return icons[action.toLowerCase()] || 'history';
-            }
+            // Ensure DOM is fully loaded before attaching events
+            document.addEventListener('DOMContentLoaded', function () {
+                // Helper functions
+                function getActivityIcon(action) {
+                    const icons = {
+                        'login': 'sign-in-alt',
+                        'logout': 'sign-out-alt',
+                        'create': 'plus-circle',
+                        'update': 'edit',
+                        'delete': 'trash',
+                        'upload': 'upload',
+                        'download': 'download',
+                        'view': 'eye',
+                        'grade': 'check-circle',
+                        'submit': 'paper-plane'
+                    };
+                    return icons[action.toLowerCase()] || 'history';
+                }
 
-            function getActivityBadgeColor(type) {
-                const colors = {
-                    'system': 'success',
-                    'user': 'primary',
-                    'login': 'info',
-                    'warning': 'warning',
-                    'error': 'danger'
-                };
-                return colors[type] || 'secondary';
-            }
+                function getActivityBadgeColor(type) {
+                    const colors = {
+                        'system': 'success',
+                        'user': 'primary',
+                        'login': 'info',
+                        'warning': 'warning',
+                        'error': 'danger'
+                    };
+                    return colors[type] || 'secondary';
+                }
 
-            // Filter functions
-            function filterActivities(type) {
-                const items = document.querySelectorAll('.activity-item');
-                items.forEach(item => {
-                    if (type === 'all') {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = item.getAttribute('data-type') === type ? 'block' : 'none';
-                    }
-                });
-            }
+                // Filter functions
+                function filterActivities(type) {
+                    const items = document.querySelectorAll('.activity-item');
+                    items.forEach(item => {
+                        if (type === 'all') {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = item.getAttribute('data-type') === type ? 'block' : 'none';
+                        }
+                    });
+                }
 
-            // Add event listeners for filters
-            document.getElementById('dateFilter').addEventListener('change', applyFilters);
-            document.getElementById('roleFilter').addEventListener('change', applyFilters);
-            document.getElementById('searchFilter').addEventListener('input', applyFilters);
+                // Attach filter functions to global scope so inline onclick works
+                window.filterActivities = filterActivities;
 
-            function applyFilters() {
-                const dateFilter = document.getElementById('dateFilter').value;
-                const roleFilter = document.getElementById('roleFilter').value;
-                const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+                function applyFilters() {
+                    const dateFilter = document.getElementById('dateFilter').value;
+                    const roleFilter = document.getElementById('roleFilter').value;
+                    const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
 
-                const items = document.querySelectorAll('.activity-item');
-                const now = new Date();
+                    const items = document.querySelectorAll('.activity-item');
+                    const now = new Date();
 
-                items.forEach(item => {
-                    const itemDate = new Date(item.getAttribute('data-date'));
-                    const itemRole = item.getAttribute('data-role');
-                    const itemText = item.textContent.toLowerCase();
+                    items.forEach(item => {
+                        const itemDate = new Date(item.getAttribute('data-date'));
+                        const itemRole = item.getAttribute('data-role');
+                        const itemText = item.textContent.toLowerCase();
 
-                    // Date filter
-                    let dateMatch = true;
-                    if (dateFilter !== 'all') {
-                        const daysDiff = Math.floor((now - itemDate) / (1000 * 60 * 60 * 24));
-                        dateMatch = daysDiff <= parseInt(dateFilter);
-                    }
+                        // Date filter
+                        let dateMatch = true;
+                        if (dateFilter !== 'all') {
+                            const daysDiff = Math.floor((now - itemDate) / (1000 * 60 * 60 * 24));
+                            dateMatch = daysDiff <= parseInt(dateFilter);
+                        }
 
-                    // Role filter
-                    const roleMatch = roleFilter === 'all' || itemRole === roleFilter;
+                        // Role filter
+                        const roleMatch = roleFilter === 'all' || itemRole === roleFilter;
 
-                    // Search filter
-                    const searchMatch = searchFilter === '' || itemText.includes(searchFilter);
+                        // Search filter
+                        const searchMatch = searchFilter === '' || itemText.includes(searchFilter);
 
-                    item.style.display = (dateMatch && roleMatch && searchMatch) ? 'block' : 'none';
-                });
-            }
+                        item.style.display = (dateMatch && roleMatch && searchMatch) ? 'block' : 'none';
+                    });
+                }
+
+                // Attach event listeners
+                document.getElementById('dateFilter').addEventListener('change', applyFilters);
+                document.getElementById('roleFilter').addEventListener('change', applyFilters);
+                document.getElementById('searchFilter').addEventListener('input', applyFilters);
+            });
         </script>
 </body>
 
